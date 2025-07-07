@@ -1,151 +1,414 @@
 # kan_mamote/src/models/c_mamba.py
-
+from src.utils.config import KANMAMOTEConfig
 import torch
 import torch.nn as nn
+
 import torch.nn.functional as F
 from typing import Optional, Tuple
-
 from src.utils.config import KANMAMOTEConfig
+import math
+import numpy as np
+
+
+try:
+    from mamba_ssm import Mamba
+    MAMBA_AVAILABLE = True
+except ImportError:
+    from builtins import print
+    print("Warning: mamba_ssm not available. Using fallback implementation.")
+    MAMBA_AVAILABLE = False
 
 class ContinuousMambaBlock(nn.Module):
     """
-    Implements a Continuous-Time Mamba Block by dynamically adapting SSM parameters
-    based on the time difference between events (delta_t).
+    Continuous-Time Mamba Block inspired by DyGMamba for KAN-MAMMOTE.
 
-    This block processes a sequence of input vectors (u_k) and corresponding
-    time differences (delta_t_k) to maintain a continuous hidden state.
+    This implementation takes time embeddings from K-MOTE as input and uses 
+    mamba_ssm.Mamba for the core selective state space model with continuous-time
+    modeling capabilities through time difference encoding.
 
-    Conceptual adaptation of LTI (Linear Time-Invariant) SSMs to continuous-time.
-    For the full efficiency of Mamba's selective scan, custom CUDA kernels are usually
-    required. This implementation provides the PyTorch-native conceptual logic.
+    Key features:
+    - Takes time embeddings from K-MOTE (not raw timestamps)
+    - Uses standard Mamba from mamba_ssm for SSM operations
+    - Time difference modeling for continuous sequences
+    - Residual connections and layer normalization
     """
+
     def __init__(self, input_dim: int, config: KANMAMOTEConfig):
         super().__init__()
-        # `input_dim` is the dimension of the raw input to this Mamba block
-        # (e.g., K-MOTE embeddings + raw_event_features)
-        self.input_dim = input_dim 
-        self.hidden_dim = config.hidden_dim_mamba # Mamba's internal embedding dimension (D)
-        self.state_dim = config.state_dim_mamba # Dimension of the hidden state (N)
-        self.config = config
+        self.input_dim = input_dim  # This should be D_time from K-MOTE
+        self.hidden_dim = config.hidden_dim_mamba
+        self.state_dim = config.state_dim_mamba
+        self.num_layers = getattr(config, 'num_mamba_layers', 2)
+        self.gamma = getattr(config, 'gamma', 0.5)  # For time difference scaling
 
-        # --- Input Projection ---
-        # Project the incoming `input_dim` to Mamba's internal `hidden_dim`.
-        self.in_proj = nn.Linear(self.input_dim, self.hidden_dim)
+        # Time difference encoder for modeling temporal gaps
+        self.time_diff_encoder = TimeEncoder(time_dim=self.hidden_dim // 2)
 
-        # --- SSM Parameters (A, B, C, D) ---
-        # A: State matrix (NxN). Often initialized to be stable.
-        self.A = nn.Parameter(torch.randn(self.state_dim, self.state_dim)) # N x N
-        nn.init.xavier_uniform_(self.A) 
+        # Input projection to match Mamba's expected dimension
+        # Note: input_dim is now D_time from K-MOTE time embeddings
+        self.input_proj = nn.Linear(input_dim, self.hidden_dim)
 
-        # B: Input matrix (NxD). Maps projected input (D-dim) to state (N-dim).
-        self.B = nn.Parameter(torch.randn(self.state_dim, self.hidden_dim)) # N x D
-        nn.init.xavier_uniform_(self.B)
+        # Time difference projection layers
+        # Note: time_diff_encoder outputs hidden_dim//2, so we need to project that
+        self.time_diff_proj = nn.Linear(self.hidden_dim // 2, int(self.gamma * self.hidden_dim))
+        self.time_diff_proj_up = nn.Linear(int(self.gamma * self.hidden_dim), self.hidden_dim)
 
-        # C: Output matrix (DxN). Maps state (N-dim) to output (D-dim).
-        self.C = nn.Parameter(torch.randn(self.hidden_dim, self.state_dim)) # D x N
-        nn.init.xavier_uniform_(self.C)
+        # Main Mamba blocks (using mamba_ssm)
+        if MAMBA_AVAILABLE:
+            self.mamba_layers = nn.ModuleList([
+                Mamba(
+                    d_model=self.hidden_dim,    # Model dimension
+                    d_state=16,                 # SSM state expansion factor
+                    d_conv=4,                   # Local convolution width
+                    expand=2,                   # Block expansion factor
+                )
+                for _ in range(self.num_layers)
+            ])
 
-        # D: Direct skip connection (DxD).
-        # This parameter directly connects the projected input to the output.
-        self.D_param = nn.Parameter(torch.randn(self.hidden_dim)) # D-dimensional vector (element-wise multiplication)
-        nn.init.ones_(self.D_param) # Common initialization for skip/residual
+            # Time difference Mamba (smaller dimension)
+            self.mamba_time_diff = nn.ModuleList([
+                Mamba(
+                    d_model=int(self.gamma * self.hidden_dim),
+                    d_state=16,
+                    d_conv=4,
+                    expand=2,
+                )
+                for _ in range(self.num_layers)
+            ])
+        else:
+            # Fallback to simple transformer-like layers
+            self.mamba_layers = nn.ModuleList([
+                nn.TransformerEncoderLayer(
+                    d_model=self.hidden_dim,
+                    nhead=8,
+                    dim_feedforward=self.hidden_dim * 4,
+                    dropout=0.1,
+                    batch_first=True
+                )
+                for _ in range(self.num_layers)
+            ])
 
-        # --- Delta (Discretization Step) Modulation ---
-        # Project scalar delta_t_k to `state_dim` for per-state delta values.
-        self.delta_t_proj = nn.Linear(1, self.state_dim) 
+            self.mamba_time_diff = nn.ModuleList([
+                nn.TransformerEncoderLayer(
+                    d_model=int(self.gamma * self.hidden_dim),
+                    nhead=4,
+                    dim_feedforward=int(self.gamma * self.hidden_dim) * 4,
+                    dropout=0.1,
+                    batch_first=True
+                )
+                for _ in range(self.num_layers)
+            ])
 
-    def _discretize_ssm(self, A: torch.Tensor, B: torch.Tensor, delta_t_k: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # Layer normalization and feedforward
+        self.layer_norm = nn.LayerNorm(self.hidden_dim)
+        self.feedforward = FeedForwardNet(
+            input_dim=self.hidden_dim,
+            dim_expansion_factor=4,
+            dropout=0.1
+        )
+
+        # Weight aggregation layer (for attention-like mechanism)
+        self.weight_agg = nn.Linear(self.hidden_dim, 1)
+
+        # Initialize parameters
+        self._initialize_parameters()
+
+    def _initialize_parameters(self):
+        """Initialize parameters for stability"""
+        with torch.no_grad():
+            # Initialize projections
+            nn.init.xavier_uniform_(self.input_proj.weight, gain=0.1)
+            nn.init.zeros_(self.input_proj.bias)
+
+            nn.init.xavier_uniform_(self.time_diff_proj.weight, gain=0.1)
+            nn.init.zeros_(self.time_diff_proj.bias)
+
+            nn.init.xavier_uniform_(self.time_diff_proj_up.weight, gain=0.1)
+            nn.init.zeros_(self.time_diff_proj_up.bias)
+
+    def compute_time_differences(self, timestamps: torch.Tensor) -> torch.Tensor:
         """
-        Dynamically discretizes the continuous SSM parameters (A, B) using delta_t_k.
-        This uses a differentiable approximation for the discretization.
+        Compute time differences between consecutive events.
+        Similar to DyGMamba's time modeling approach.
         
         Args:
-            A: Continuous state matrix (state_dim, state_dim).
-            B: Continuous input matrix (state_dim, hidden_dim).
-            delta_t_k: Time difference for current step, shape (batch_size, 1).
-
+            timestamps: (batch_size, seq_len, 1) - timestamps for each event
+            
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - A_k_bar: Discretized state matrix (batch_size, state_dim, state_dim).
-                - B_k_bar: Discretized input matrix (batch_size, state_dim, hidden_dim).
+            time_diffs: (batch_size, seq_len, 1) - time differences
         """
-        # Proposal: "Mamba,k = softplus(Linear(Δtk))"
-        # This `delta` parameter controls the discretization strength per state dimension.
-        # Shape: (batch_size, state_dim)
-        delta_param = F.softplus(self.delta_t_proj(delta_t_k)) 
-
-        # Reshape for broadcasting with A and B matrices: (batch_size, state_dim, 1)
-        delta_expanded = delta_param.unsqueeze(-1) 
-
-        # Reshape A, B for broadcasting across batch:
-        A_expanded = A.unsqueeze(0) # (1, state_dim, state_dim)
-        B_expanded = B.unsqueeze(0) # (1, state_dim, hidden_dim)
-
-        # Apply discretization approximation:
-        # A_k_bar: element-wise exponential of A scaled by delta
-        A_k_bar = torch.exp(A_expanded * delta_expanded) # (batch_size, state_dim, state_dim)
+        batch_size, seq_len, _ = timestamps.shape
+        device = timestamps.device
         
-        # B_k_bar: B scaled by delta (a simplified form)
-        B_k_bar = B_expanded * delta_expanded # (batch_size, state_dim, hidden_dim)
-
-        return A_k_bar, B_k_bar
+        # Compute differences between consecutive timestamps
+        # Pad with zeros for the first timestamp (no previous event)
+        time_diffs = torch.zeros_like(timestamps)
+        if seq_len > 1:
+            time_diffs[:, 1:, :] = timestamps[:, 1:, :] - timestamps[:, :-1, :]
+        
+        # Apply exponential decay similar to DyGMamba
+        shrink_coeff = 1e-8  # Similar to DyGMamba's shrink coefficient
+        time_diffs = torch.exp(-time_diffs * shrink_coeff)
+        
+        return time_diffs
 
     def forward(self, 
-                u_k_sequence: torch.Tensor, 
-                delta_t_sequence: torch.Tensor, 
-                initial_hidden_state: Optional[torch.Tensor] = None) -> torch.Tensor:
+                time_embeddings: torch.Tensor,      # (batch_size, seq_len, D_time) - from K-MOTE
+                timestamps: torch.Tensor,           # (batch_size, seq_len, 1) - raw timestamps for time differences
+                initial_state: Optional[torch.Tensor] = None  # Not used in this implementation
+               ) -> torch.Tensor:
         """
-        Performs the forward pass of the Continuous-Time Mamba Block over a sequence.
-
+        Forward pass through the continuous-time Mamba block.
+        
         Args:
-            u_k_sequence: Input sequence of concatenated embeddings,
-                          shape (batch_size, seq_len, input_dim).
-            delta_t_sequence: Sequence of time differences,
-                              shape (batch_size, seq_len, 1).
-            initial_hidden_state: Optional initial hidden state h_0,
-                                  shape (batch_size, state_dim). Defaults to zeros.
-
+            time_embeddings: Input time embeddings from K-MOTE (batch_size, seq_len, D_time)
+            timestamps: Raw timestamps for computing time differences (batch_size, seq_len, 1)
+            initial_state: Initial hidden state (optional, not used)
+            
         Returns:
-            torch.Tensor: Sequence of final hidden states,
-                          shape (batch_size, seq_len, hidden_dim).
+            Output sequence with temporal dependencies modeled
         """
-        batch_size, seq_len, _ = u_k_sequence.shape
-        device = u_k_sequence.device
+        batch_size, seq_len, _ = time_embeddings.shape
+        
+        # Project K-MOTE time embeddings to hidden dimension
+        u_proj = self.input_proj(time_embeddings)  # (batch_size, seq_len, hidden_dim)
+        
+        # Compute time differences
+        time_diffs = self.compute_time_differences(timestamps)  # (batch_size, seq_len, 1)
+        
+        # Encode time differences using the time encoder (fix attribute name)
+        time_diff_emb = self.time_diff_encoder(time_diffs.squeeze(-1))  # (batch_size, seq_len, hidden_dim//2)
+        
+        # Project time differences to smaller dimension
+        time_diff_projected = self.time_diff_proj(time_diff_emb)  # (batch_size, seq_len, gamma*hidden_dim)
+        
+        # Process time differences through Mamba layers
+        time_diff_output = time_diff_projected
+        for mamba_t in self.mamba_time_diff:
+            if MAMBA_AVAILABLE:
+                # For mamba_ssm, we need to handle the sequence processing
+                time_diff_output = mamba_t(time_diff_output) + time_diff_output
+            else:
+                # For transformer fallback
+                time_diff_output = mamba_t(time_diff_output) + time_diff_output
+        
+        # Project time difference output back up
+        time_diff_final = self.time_diff_proj_up(time_diff_output)  # (batch_size, seq_len, hidden_dim)
+        
+        # Combine input embeddings with time difference information
+        combined_input = u_proj + time_diff_final
+        
+        # Process through main Mamba layers
+        mamba_output = combined_input
+        for mamba_layer in self.mamba_layers:
+            if MAMBA_AVAILABLE:
+                # Mamba with residual connection
+                mamba_output = mamba_layer(mamba_output) + mamba_output
+            else:
+                # Transformer fallback with residual connection
+                mamba_output = mamba_layer(mamba_output) + mamba_output
+            
+            # Layer normalization
+            mamba_output = self.layer_norm(mamba_output)
+            
+            # Feedforward with residual connection
+            mamba_output = self.feedforward(mamba_output) + mamba_output
+        
+        # Apply attention-like weighting (similar to DyGMamba's weightagg)
+        weights = self.weight_agg(mamba_output).transpose(1, 2)  # (batch_size, 1, seq_len)
+        weights = F.softmax(weights, dim=-1)
+        
+        # Weighted combination of sequence elements
+        weighted_output = torch.bmm(weights, mamba_output)  # (batch_size, 1, hidden_dim)
+        
+        # Broadcast back to sequence length for compatibility
+        output_sequence = weighted_output.expand(-1, seq_len, -1)  # (batch_size, seq_len, hidden_dim)
+        
+        return output_sequence
 
-        # Initialize hidden state h_k-1 (state_dim)
-        if initial_hidden_state is None:
-            h_state = torch.zeros(batch_size, self.state_dim, device=device) # (batch_size, state_dim)
+
+class TimeEncoder(nn.Module):
+    """
+    Time encoder similar to DyGMamba's TimeEncoder.
+    Encodes timestamps using learnable periodic functions.
+    """
+    
+    def __init__(self, time_dim: int):
+        super().__init__()
+        self.time_dim = time_dim
+        
+        # Learnable frequency and phase parameters
+        self.freq = nn.Parameter(torch.randn(time_dim // 2) * 0.1)
+        self.phase = nn.Parameter(torch.randn(time_dim // 2) * 0.1)
+        
+        # Linear projection layer
+        self.linear = nn.Linear(time_dim, time_dim)
+        
+    def forward(self, timestamps: torch.Tensor) -> torch.Tensor:
+        """
+        Encode timestamps using periodic functions.
+        
+        Args:
+            timestamps: (batch_size, seq_len) or (batch_size, seq_len, 1)
+            
+        Returns:
+            time_features: (batch_size, seq_len, time_dim)
+        """
+        if timestamps.dim() == 3:
+            timestamps = timestamps.squeeze(-1)  # Remove last dimension if present
+        
+        batch_size, seq_len = timestamps.shape
+        
+        # Expand timestamps for broadcasting
+        t_expanded = timestamps.unsqueeze(-1)  # (batch_size, seq_len, 1)
+        
+        # Compute periodic features
+        freq_expanded = self.freq.unsqueeze(0).unsqueeze(0)  # (1, 1, time_dim//2)
+        phase_expanded = self.phase.unsqueeze(0).unsqueeze(0)  # (1, 1, time_dim//2)
+        
+        # Sine and cosine features
+        sin_features = torch.sin(t_expanded * freq_expanded + phase_expanded)
+        cos_features = torch.cos(t_expanded * freq_expanded + phase_expanded)
+        
+        # Concatenate sin and cos features
+        periodic_features = torch.cat([sin_features, cos_features], dim=-1)  # (batch_size, seq_len, time_dim)
+        
+        # Apply linear transformation
+        time_features = self.linear(periodic_features)
+        
+        return time_features
+
+
+class FeedForwardNet(nn.Module):
+    """
+    Feed-forward network with GELU activation (from DyGMamba).
+    """
+    
+    def __init__(self, input_dim: int, dim_expansion_factor: float, dropout: float = 0.0):
+        super().__init__()
+        
+        self.input_dim = input_dim
+        self.dim_expansion_factor = dim_expansion_factor
+        self.dropout = dropout
+        
+        expanded_dim = int(dim_expansion_factor * input_dim)
+        
+        self.ffn = nn.Sequential(
+            nn.Linear(input_dim, expanded_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(expanded_dim, input_dim),
+            nn.Dropout(dropout)
+        )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Feed forward network forward pass.
+        
+        Args:
+            x: Input tensor of shape (*, input_dim)
+            
+        Returns:
+            Output tensor of the same shape as input
+        """
+        return self.ffn(x)
+
+
+class SimplifiedContinuousMambaBlock(nn.Module):
+    """
+    Simplified Continuous-Time Mamba Block using standard Mamba from mamba_ssm.
+    
+    This version takes time embeddings from K-MOTE as input and provides a cleaner 
+    interface while maintaining the core continuous-time modeling capabilities. 
+    It uses the DyGMamba approach of combining standard Mamba blocks with time difference modeling.
+    """
+    
+    def __init__(self, input_dim: int, config: KANMAMOTEConfig):
+        super().__init__()
+        self.input_dim = input_dim  # Should be D_time from K-MOTE
+        self.hidden_dim = config.hidden_dim_mamba
+        self.state_dim = config.state_dim_mamba
+        
+        # Input projection from K-MOTE embeddings to Mamba hidden dimension
+        self.input_proj = nn.Linear(input_dim, self.hidden_dim)
+        
+        # Time encoder for continuous modeling (for time differences)
+        self.time_encoder = TimeEncoder(time_dim=self.hidden_dim // 2)
+        
+        # Single Mamba layer (simpler than the full implementation)
+        if MAMBA_AVAILABLE:
+            self.mamba = Mamba(
+                d_model=self.hidden_dim,
+                d_state=16,
+                d_conv=4,
+                expand=2,
+            )
         else:
-            h_state = initial_hidden_state.to(device) # Use provided initial state
-
-        output_hidden_states = []
-
-        # Iterate through the sequence (Scan operation)
-        for k in range(seq_len):
-            raw_u_k = u_k_sequence[:, k, :] # (batch_size, input_dim)
-            delta_t_k = delta_t_sequence[:, k, :] # (batch_size, 1)
-
-            # 1. Project raw input to Mamba's internal `hidden_dim`
-            u_k_projected = self.in_proj(raw_u_k) # (batch_size, hidden_dim)
-
-            # 2. Dynamically discretize A and B based on delta_t_k
-            A_k_bar, B_k_bar = self._discretize_ssm(self.A, self.B, delta_t_k)
-            # A_k_bar: (batch_size, state_dim, state_dim)
-            # B_k_bar: (batch_size, state_dim, hidden_dim)
-
-            # 3. Update hidden state: h_k = A_k_bar @ h_{k-1} + B_k_bar @ u_k_projected
-            # h_state_new: (batch_size, state_dim) after operations
-            h_state_new = torch.bmm(A_k_bar, h_state.unsqueeze(-1)).squeeze(-1) # (batch_size, state_dim)
-
-            h_state_new = h_state_new + torch.bmm(B_k_bar, u_k_projected.unsqueeze(-1)).squeeze(-1)
-
-            h_state = h_state_new # Update state for next iteration
-
-            # 4. Project current hidden state to output (hidden_dim) using C and D_param
-            # output_h_k = C @ h_state + D_param * u_k_projected (element-wise multiplication for D)
-            output_h_k = torch.matmul(h_state, self.C.T) + (self.D_param * u_k_projected) # (batch_size, hidden_dim)
-            output_hidden_states.append(output_h_k)
-
-        # Stack the collected hidden states to form the output sequence
-        # Result: (batch_size, seq_len, hidden_dim)
-        return torch.stack(output_hidden_states, dim=1)
+            # Fallback to LSTM
+            self.mamba = nn.LSTM(
+                input_size=self.hidden_dim,
+                hidden_size=self.hidden_dim,
+                batch_first=True,
+                dropout=0.1
+            )
+        
+        # Output normalization
+        self.layer_norm = nn.LayerNorm(self.hidden_dim)
+        
+    def forward(self, 
+                time_embeddings: torch.Tensor,      # (batch_size, seq_len, D_time) - from K-MOTE
+                timestamps: torch.Tensor,           # (batch_size, seq_len, 1) - raw timestamps for time differences
+                initial_state: Optional[torch.Tensor] = None
+               ) -> torch.Tensor:
+        """
+        Simplified forward pass through the continuous-time Mamba block.
+        
+        Args:
+            time_embeddings: Input time embeddings from K-MOTE (batch_size, seq_len, D_time)
+            timestamps: Raw timestamps for computing time differences (batch_size, seq_len, 1) 
+            initial_state: Initial hidden state (optional, not used)
+            
+        Returns:
+            Output sequence with temporal dependencies modeled (batch_size, seq_len, hidden_dim)
+        """
+        batch_size, seq_len, _ = time_embeddings.shape
+        
+        # Project K-MOTE time embeddings to hidden dimension
+        u_proj = self.input_proj(time_embeddings)  # (batch_size, seq_len, hidden_dim)
+        
+        # Encode time differences for continuous modeling
+        if timestamps.dim() == 3:
+            timestamps = timestamps.squeeze(-1)  # Remove last dimension
+        
+        # Compute time differences (similar to DyGMamba approach)
+        time_diffs = torch.zeros_like(timestamps)
+        if seq_len > 1:
+            time_diffs[:, 1:] = timestamps[:, 1:] - timestamps[:, :-1]
+        
+        # Encode time differences
+        time_features = self.time_encoder(time_diffs)  # (batch_size, seq_len, hidden_dim//2)
+        
+        # Combine input features with time features
+        # Pad time features to match hidden_dim if needed
+        if time_features.shape[-1] == u_proj.shape[-1]:
+            combined_input = u_proj + time_features
+        else:
+            # Pad time features to match hidden_dim
+            time_features_padded = F.pad(time_features, (0, self.hidden_dim - time_features.shape[-1]))
+            combined_input = u_proj + time_features_padded
+        
+        # Process through Mamba
+        if MAMBA_AVAILABLE:
+            # Standard Mamba forward pass
+            mamba_output = self.mamba(combined_input)
+            # Add residual connection
+            output = mamba_output + combined_input
+        else:
+            # LSTM fallback
+            mamba_output, _ = self.mamba(combined_input)
+            output = mamba_output + combined_input
+        
+        # Apply layer normalization
+        output = self.layer_norm(output)
+        
+        return output

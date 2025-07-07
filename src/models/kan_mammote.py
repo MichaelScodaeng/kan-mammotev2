@@ -31,11 +31,11 @@ class KAN_MAMOTE_Model(nn.Module):
         self.k_mote_rel = K_MOTE(config)
 
         # 2. Continuous-Mamba Block
-        # Input to Continuous-Mamba is a concatenation of:
+        # Input to Continuous-Mamba is the concatenated time embeddings from K-MOTE:
         # - K-MOTE absolute embedding (D_time)
         # - K-MOTE relative embedding (D_time)
-        # - Raw event features (raw_event_feature_dim)
-        mamba_input_dim = config.D_time + config.D_time + config.raw_event_feature_dim
+        # Total input dimension: 2 * D_time
+        mamba_input_dim = 2 * config.D_time  # Concatenated absolute and relative time embeddings
         self.ct_mamba_block = ContinuousMambaBlock(input_dim=mamba_input_dim, config=config)
 
         # Optional: A final linear layer or task-specific head after Mamba's output
@@ -126,10 +126,17 @@ class KAN_MAMOTE_Model(nn.Module):
 
 
         # 3. Continuous-Mamba Block Processing
-        # Returns (batch_size, seq_len, hidden_dim_mamba)
+        # Pass time embeddings from K-MOTE instead of raw features
+        # The Mamba block expects: (time_embeddings, timestamps, initial_state)
+        # time_embeddings are the concatenated K-MOTE outputs
+        time_embeddings = torch.cat([phi_abs_flat, phi_rel_flat], dim=-1)  # Concatenate abs and rel embeddings
+        time_embeddings = time_embeddings.view(batch_size, seq_len, -1)  # Reshape to sequence format
+        
+        # If we want to include raw event features, we can add them to the Mamba input dimension
+        # or pass them separately. For now, let's keep it simple with just time embeddings.
         final_embeddings = self.ct_mamba_block(
-            u_k_sequence_for_mamba, 
-            delta_t_sequence_for_mamba, 
+            time_embeddings,  # (batch_size, seq_len, D_time + D_time) - concatenated K-MOTE embeddings
+            timestamps,       # (batch_size, seq_len, 1) - raw timestamps for time differences
             initial_mamba_state
         )
 

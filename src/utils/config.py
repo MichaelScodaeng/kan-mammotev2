@@ -14,6 +14,7 @@ class KANMAMOTEConfig:
     D_time: int = 128  # Total dimension of time embedding from K-MOTE (must be divisible by num_experts)
     hidden_dim_mamba: int = 256 # Mamba's internal hidden dimension
     state_dim_mamba: int = 64  # Mamba's state dimension (for Continuous-Time Mamba's SSM state)
+    dt_rank: int = 16  # Rank for delta_t parameterization in Mamba (controls selective mechanism complexity)
     K_top: int = 2     # Number of experts to activate in K-MOTE (Top-Ktop MoE dispatch)
     num_experts: int = 4 # Fixed number of experts (Fourier, Spline, RKHS, Wavelet)
     use_aux_features_router: bool = True # If router input includes auxiliary features (from raw_event_features)
@@ -47,6 +48,9 @@ class KANMAMOTEConfig:
     wavelet_mother_type: Literal['mexican_hat', 'morlet'] = 'mexican_hat' # Type of mother wavelet function
     wavelet_learnable_params: bool = True # If scales, translations, weights are learnable
 
+    # --- Faster-KAN Settings ---
+    kan_grid_size: int = 5  # Grid size for Faster-KAN spline approximations
+
     # --- Regularization Parameters ---
     lambda_sobolev_l2: float = 0.01      # For smoothness of expert functions
     lambda_total_variation_l1: float = 0.001 # For sparsity in derivatives (sharp transitions)
@@ -62,6 +66,19 @@ class KANMAMOTEConfig:
     # Example: sequence_length for time series tasks
     max_sequence_length: int = 256 
 
+    # --- Continuous Mamba Configuration (DyGMamba-style) ---
+    num_mamba_layers: int = 2  # Number of Mamba layers in the continuous block
+    gamma: float = 0.5  # Time difference scaling factor (similar to DyGMamba)
+    use_mamba_ssm: bool = True  # Whether to use mamba_ssm or fallback to transformers/LSTM
+
+    # --- Faster-KAN Settings (for temporal difference processing) ---
+    kan_grid_size: int = 8  # Number of grid points for Faster-KAN
+    kan_grid_min: float = -2.0  # Minimum grid value
+    kan_grid_max: float = 2.0   # Maximum grid value
+    kan_spline_scale: float = 0.667  # Spline weight initialization scale
+    kan_num_layers: int = 2  # Number of layers in Faster-KAN network
+    kan_hidden_dim: int = None  # Hidden dimension (None means same as D_time)
+    
     def __post_init__(self):
         """
         Post-initialization method to perform checks and calculate derived properties.
@@ -73,6 +90,10 @@ class KANMAMOTEConfig:
         # Ensure that if using auxiliary features for the router, raw_event_feature_dim is defined.
         if self.use_aux_features_router and self.raw_event_feature_dim is None:
             raise ValueError("raw_event_feature_dim must be specified if use_aux_features_router is True.")
+        
+        # Set default Faster-KAN hidden dimension if not specified
+        if self.kan_hidden_dim is None:
+            self.kan_hidden_dim = self.D_time
 
 # Example usage (will be instantiated in train.py or main script)
 # config = KANMAMOTEConfig()
