@@ -304,10 +304,22 @@ class ImmediateFasterKANLayer(nn.Module):
         # Step 6: Feed to C-Mamba (using original timestamps for internal time difference computation)
         final_embeddings = self.c_mamba(kan_processed_diffs, timestamps)
         
-        # Combine MoE information
-        moe_info = (current_weights, previous_weights, current_masks, previous_masks)
+        # Prepare detailed information for analysis and visualization
+        detailed_info = {
+            'temporal_differences': time_diff_embeddings,
+            'kmote_current': current_embeddings,
+            'kmote_previous': previous_embeddings,
+            'fasterkan_output': kan_processed_diffs,
+            'mamba_output': final_embeddings,
+            'kmote_expert_mask': current_masks,  # For expert usage analysis
+            'kmote_info': {
+                'expert_weights': current_weights,
+                'expert_mask': current_masks,
+                'router_logits': current_weights
+            }
+        }
         
-        return final_embeddings, moe_info
+        return final_embeddings, detailed_info
 
 class ImprovedKANMAMOTE(nn.Module):
     """
@@ -323,7 +335,7 @@ class ImprovedKANMAMOTE(nn.Module):
         
     def forward(self, 
                 timestamps: torch.Tensor,
-                event_features: torch.Tensor) -> Tuple[torch.Tensor, Tuple]:
+                event_features: torch.Tensor) -> Tuple[torch.Tensor, dict]:
         """
         Forward pass through improved KAN-MAMMOTE.
         
@@ -333,6 +345,6 @@ class ImprovedKANMAMOTE(nn.Module):
             
         Returns:
             embeddings: (batch_size, seq_len, hidden_dim_mamba)
-            moe_info: Expert routing information
+            detailed_info: Dictionary with all intermediate information
         """
         return self.immediate_fasterkan_layer(timestamps, event_features)
