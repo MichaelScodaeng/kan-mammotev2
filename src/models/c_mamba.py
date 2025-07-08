@@ -55,6 +55,7 @@ class ContinuousMambaBlock(nn.Module):
 
         # Main Mamba blocks (using mamba_ssm)
         if MAMBA_AVAILABLE:
+            from mamba_ssm import Mamba  # Ensure Mamba is imported only if available
             self.mamba_layers = nn.ModuleList([
                 Mamba(
                     d_model=self.hidden_dim,    # Model dimension
@@ -334,9 +335,9 @@ class SimplifiedContinuousMambaBlock(nn.Module):
         
         # Time encoder for continuous modeling (for time differences)
         self.time_encoder = TimeEncoder(time_dim=self.hidden_dim // 2)
-        
         # Single Mamba layer (simpler than the full implementation)
         if MAMBA_AVAILABLE:
+            from mamba_ssm import Mamba  # Ensure Mamba is imported only if available
             self.mamba = Mamba(
                 d_model=self.hidden_dim,
                 d_state=16,
@@ -351,6 +352,7 @@ class SimplifiedContinuousMambaBlock(nn.Module):
                 batch_first=True,
                 dropout=0.1
             )
+            
         
         # Output normalization
         self.layer_norm = nn.LayerNorm(self.hidden_dim)

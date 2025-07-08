@@ -7,8 +7,8 @@ from typing import Optional, Tuple
 import sys
 import os
 
-# Add faster-kan to path
-faster_kan_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'faster-kan')
+# Add faster_kan to path
+faster_kan_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'faster_kan')
 if faster_kan_path not in sys.path:
     sys.path.append(faster_kan_path)
 
@@ -18,13 +18,16 @@ from src.models.c_mamba import SimplifiedContinuousMambaBlock
 
 # Import Faster-KAN from the cloned repository
 try:
-    from fasterkan.fasterkan import FasterKAN, FasterKANLayer
+    from faster_kan.fasterkan import FasterKAN, FasterKANLayer
     FASTER_KAN_AVAILABLE = True
     print("✓ Faster-KAN successfully imported from cloned repository")
 except ImportError as e:
     print(f"Warning: Faster-KAN not available. Error: {e}")
     print("Using MLP fallback.")
     FASTER_KAN_AVAILABLE = False
+    # Define dummy classes to avoid unbound errors
+    FasterKAN = None  # type: ignore
+    FasterKANLayer = None  # type: ignore
 
 class FasterKANTemporalLayer(nn.Module):
     """
@@ -43,24 +46,31 @@ class FasterKANTemporalLayer(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         
-        if FASTER_KAN_AVAILABLE:
+        if FASTER_KAN_AVAILABLE and FasterKANLayer is not None:
             # Use actual Faster-KAN layer from cloned repository
-            self.kan_layer = FasterKANLayer(
-                input_dim=input_dim,
-                output_dim=output_dim,
-                grid_min=grid_min,
-                grid_max=grid_max,
-                num_grids=num_grids,
-                exponent=2,
-                inv_denominator=0.5,
-                train_grid=False,
-                train_inv_denominator=False,
-                base_activation=F.silu,
-                spline_weight_init_scale=spline_weight_init_scale
-            )
-            self.use_kan = True
-            print(f"✓ Using FasterKANLayer: {input_dim}→{output_dim}, grids={num_grids}")
+            try:
+                self.kan_layer = FasterKANLayer(
+                    input_dim=input_dim,  # FasterKANLayer uses input_dim/output_dim
+                    output_dim=output_dim,
+                    grid_min=grid_min,
+                    grid_max=grid_max,
+                    num_grids=num_grids,
+                    exponent=2,
+                    inv_denominator=0.5,
+                    train_grid=False,
+                    train_inv_denominator=False,
+                    base_activation=F.silu,
+                    spline_weight_init_scale=spline_weight_init_scale
+                )
+                self.use_kan = True
+                print(f"✓ Using FasterKANLayer: {input_dim}→{output_dim}, grids={num_grids}")
+            except Exception as e:
+                print(f"Failed to create FasterKANLayer: {e}")
+                self.use_kan = False
         else:
+            self.use_kan = False
+        
+        if not self.use_kan:
             # Enhanced MLP fallback with spline-like behavior
             self.mlp = nn.Sequential(
                 nn.LayerNorm(input_dim),
@@ -73,7 +83,6 @@ class FasterKANTemporalLayer(nn.Module):
                 nn.Linear(input_dim, output_dim),
                 nn.LayerNorm(output_dim)
             )
-            self.use_kan = False
             print(f"⚠ Using MLP fallback: {input_dim}→{output_dim}")
     
     def forward(self, x):
@@ -121,7 +130,7 @@ class FasterKANTemporalNetwork(nn.Module):
         self.output_dim = output_dim
         self.num_layers = num_layers
         
-        if FASTER_KAN_AVAILABLE:
+        if FASTER_KAN_AVAILABLE and FasterKAN is not None:
             # Create layer dimensions
             if num_layers == 1:
                 layers_hidden = [input_dim, output_dim]
@@ -129,21 +138,28 @@ class FasterKANTemporalNetwork(nn.Module):
                 layers_hidden = [input_dim] + [hidden_dim] * (num_layers - 1) + [output_dim]
             
             # Use actual FasterKAN network from cloned repository
-            self.kan_network = FasterKAN(
-                layers_hidden=layers_hidden,
-                grid_min=grid_min,
-                grid_max=grid_max,
-                num_grids=num_grids,
-                exponent=2,
-                inv_denominator=0.5,
-                train_grid=False,
-                train_inv_denominator=False,
-                base_activation=F.silu,
-                spline_weight_init_scale=0.667
-            )
-            self.use_kan = True
-            print(f"✓ Using FasterKAN Network: {layers_hidden}, grids={num_grids}")
+            try:
+                self.kan_network = FasterKAN(
+                    layers_hidden=layers_hidden,
+                    grid_min=grid_min,
+                    grid_max=grid_max,
+                    num_grids=num_grids,
+                    exponent=2,
+                    inv_denominator=0.5,
+                    train_grid=False,
+                    train_inv_denominator=False,
+                    base_activation=F.silu,
+                    spline_weight_init_scale=0.667
+                )
+                self.use_kan = True
+                print(f"✓ Using FasterKAN Network: {layers_hidden}, grids={num_grids}")
+            except Exception as e:
+                print(f"Failed to create FasterKAN: {e}")
+                self.use_kan = False
         else:
+            self.use_kan = False
+        
+        if not self.use_kan:
             # Enhanced MLP fallback
             layers = []
             dims = [input_dim] + [hidden_dim] * (num_layers - 1) + [output_dim]
@@ -246,7 +262,7 @@ class ImmediateFasterKANLayer(nn.Module):
     
     def forward(self, 
                 timestamps: torch.Tensor,
-                event_features: torch.Tensor) -> Tuple[torch.Tensor, Tuple]:
+                event_features: torch.Tensor) -> Tuple[torch.Tensor, dict]:
         """
         Forward pass through your proposed architecture.
         
@@ -256,7 +272,7 @@ class ImmediateFasterKANLayer(nn.Module):
             
         Returns:
             final_embeddings: (batch_size, seq_len, hidden_dim_mamba)
-            moe_info: (current_weights, previous_weights, current_masks, previous_masks)
+            detailed_info: Dictionary with all intermediate information
         """
         batch_size, seq_len, _ = timestamps.shape
         device = timestamps.device
