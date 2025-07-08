@@ -18,7 +18,7 @@ from src.models.c_mamba import SimplifiedContinuousMambaBlock
 
 # Import Faster-KAN from the cloned repository
 try:
-    from fasterkan import FasterKAN, FasterKANLayer
+    from fasterkan.fasterkan import FasterKAN, FasterKANLayer
     FASTER_KAN_AVAILABLE = True
     print("✓ Faster-KAN successfully imported from cloned repository")
 except ImportError as e:
