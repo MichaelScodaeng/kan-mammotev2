@@ -161,12 +161,12 @@ class SplineBasis(BaseBasisFunction):
         # 1. Normalize input `x` to `u` in [0, 1] based on its position within the B-spline domain.
         # The B-spline is effectively defined over `knots[degree]` to `knots[-degree-1]`.
         # Clamp `x` to this active domain to avoid out-of-bounds issues.
-        knots = getattr(self, 'knots')
+        knots = getattr(self, 'knots').to(x.device)  # Ensure knots are on same device as input
         x_clamped = torch.clamp(x, knots[self.spline_degree], knots[-self.spline_degree - 1])
         
         # Calculate `u` (normalized position within the active spline domain [0,1])
-        domain_min = getattr(self, 'knots')[self.spline_degree]
-        domain_max = getattr(self, 'knots')[-self.spline_degree - 1]
+        domain_min = knots[self.spline_degree]
+        domain_max = knots[-self.spline_degree - 1]
         u_input = (x_clamped - domain_min) / (domain_max - domain_min + 1e-6) # shape: (batch_size, output_dim)
         u_input = torch.clamp(u_input, 0, 1) # Ensure u is strictly within [0,1]
 
@@ -181,6 +181,7 @@ class SplineBasis(BaseBasisFunction):
         psi_k_matrix = self.psi_k_matrix
         if isinstance(psi_k_matrix, nn.Module):
             psi_k_matrix = next(psi_k_matrix.parameters())
+        psi_k_matrix = psi_k_matrix.to(x.device)  # Ensure matrix is on same device as input
         bspline_basis_vals = torch.matmul(power_basis, psi_k_matrix)
 
         # 4. Combine with control points. This is `sum_{j} C_j * B_j(x)`
@@ -195,6 +196,7 @@ class SplineBasis(BaseBasisFunction):
         knots_tensor = self.knots
         if isinstance(knots_tensor, nn.Module):
             knots_tensor = next(knots_tensor.parameters())
+        knots_tensor = knots_tensor.to(x.device)  # Ensure knots are on same device as input
         segment_indices_flat = torch.searchsorted(knots_tensor, x_clamped.flatten()) # shape: (batch_size * output_dim)
         
         # Adjust indices to be relative to the *active* knot range for control point lookup.
@@ -209,7 +211,7 @@ class SplineBasis(BaseBasisFunction):
         segment_indices_adjusted = torch.clamp(segment_indices_adjusted, 0, self.num_control_points - self.spline_degree - 1)
         
         # Create offsets for the (spline_degree + 1) active control points per segment
-        offsets = torch.arange(self.spline_degree + 1, device=device).unsqueeze(0).unsqueeze(0) # (1, 1, spline_degree + 1)
+        offsets = torch.arange(self.spline_degree + 1, device=x.device).unsqueeze(0).unsqueeze(0) # (1, 1, spline_degree + 1)
         
         # Expand `segment_indices_adjusted` to match output_dim and offsets for gathering
         # (batch_size * output_dim, 1, 1) + (1, 1, spline_degree + 1) -> (batch_size * output_dim, 1, spline_degree + 1)

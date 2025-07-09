@@ -8,140 +8,101 @@ from typing import Tuple, Optional, List
 from src.utils.config import KANMAMOTEConfig
 # Import K-MOTE and ContinuousMambaBlock
 from src.models.k_mote import K_MOTE
+
+# Ensure ContinuousMambaBlock does NOT re-import or redefine KANMAMOTEConfig
 from src.models.c_mamba import ContinuousMambaBlock
 
 class KAN_MAMOTE_Model(nn.Module):
     """
-    The complete KAN-MAMOTE (Kernel-Adaptive-Neural-Mamba-Mixture-of-Time-Experts) model.
-    This framework learns adaptive spatio-temporal representations for continuous-time dynamic systems.
-
-    It comprises two primary synergistic modules:
-    1. K-MOTE: For rich, adaptive point-in-time encoding of absolute and relative timestamps.
-    2. Continuous-Mamba Integration: For sequential context and memory, dynamically adapting
-       to irregular time differences between events.
+    The complete KAN-MAMMOTE (Kernel-Adaptive-Neural-Mamba-Mixture-of-Time-Experts) model.
+    
+    TRUE KAN-MAMMOTE Architecture following the diagram:
+    1. Independent K-MOTE embeddings for t_k and t_k-1
+    2. Temporal differences in embedding space (t_k - t_k-1)  
+    3. Faster-KAN processing of temporal differences → Δt embedding
+    4. Continuous Mamba: current embedding as input, Δt embedding as delta parameter
+    5. Output: Absolute-Relative t_k Embedding
     """
     def __init__(self, config: KANMAMOTEConfig):
         super().__init__()
         self.config = config
 
-        # 1. K-MOTE Modules for Absolute and Relative Time Embeddings
-        # Both K-MOTE modules operate on scalar time inputs (tk or delta_tk)
-        # and optionally use auxiliary features for the router.
-        self.k_mote_abs = K_MOTE(config)
-        self.k_mote_rel = K_MOTE(config)
+        # Import Faster-KAN layer for temporal difference processing
+        from src.models.immediate_fasterkan_layer import FasterKANTemporalLayer
 
-        # 2. Continuous-Mamba Block
-        # Input to Continuous-Mamba is the concatenated time embeddings from K-MOTE:
-        # - K-MOTE absolute embedding (D_time)
-        # - K-MOTE relative embedding (D_time)
-        # Total input dimension: 2 * D_time
-        mamba_input_dim = 2 * config.D_time  # Concatenated absolute and relative time embeddings
-        self.ct_mamba_block = ContinuousMambaBlock(input_dim=mamba_input_dim, config=config)
+        # 1. K-MOTE Module for computing embeddings
+        # Single K-MOTE module will be used for both t_k and t_k-1 independently
+        self.k_mote = K_MOTE(config)
 
-        # Optional: A final linear layer or task-specific head after Mamba's output
-        # Mamba's output is hidden_dim_mamba.
-        # This will depend on the downstream task (e.g., forecasting, classification).
-        # For a general "embedding" output, this can be skipped or be an identity.
-        # Let's add a placeholder for a task-specific head, which can be defined based on `output_dim`.
-        # Assuming `output_dim` will be part of the config later for the final task.
-        # For now, let's just make sure the output matches `hidden_dim_mamba`.
-        # You can add: self.task_head = nn.Linear(config.hidden_dim_mamba, output_dim_for_task)
+        # 2. Faster-KAN Layer for processing temporal differences
+        # Takes temporal differences in embedding space (t_k - t_k-1) → Δt embedding
+        self.faster_kan_layer = FasterKANTemporalLayer(
+            input_dim=config.D_time,    # K-MOTE embedding dimension
+            output_dim=config.D_time,   # Same dimension for Δt embedding
+            grid_min=-2.0,
+            grid_max=2.0,
+            num_grids=8
+        )
+
+        # 3. TRUE KAN-MAMMOTE Continuous-Mamba Block
+        # Now correctly follows the diagram pattern
+        self.ct_mamba_block = ContinuousMambaBlock(
+            input_dim=config.D_time,        # K-MOTE embedding dimension
+            config=config,
+            kmote_layer=self.k_mote,        # Pass K-MOTE reference for independent computations
+            faster_kan_layer=self.faster_kan_layer  # Pass Faster-KAN reference for Δt processing
+        )
+
+        # Optional: Task-specific output head
+        # Output dimension matches the final embedding from Continuous-Mamba
+        self.output_dim = config.D_time  # Final embedding dimension
 
     def forward(self, 
                 timestamps: torch.Tensor,         # (batch_size, seq_len, 1) - absolute timestamps
-                event_features: torch.Tensor,     # (batch_size, seq_len, raw_event_feature_dim) - raw features at each timestamp
-                initial_mamba_state: Optional[torch.Tensor] = None # (batch_size, state_dim_mamba)
-               ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+                event_features: torch.Tensor,     # (batch_size, seq_len, raw_event_feature_dim) - raw features
+                initial_mamba_state: Optional[torch.Tensor] = None # Not used in new implementation
+               ) -> Tuple[torch.Tensor, dict]:
         """
-        Performs the forward pass of the KAN-MAMOTE model for a sequence of events.
-
+        TRUE KAN-MAMMOTE forward pass following the diagram exactly:
+        
+        Flow: Raw timestamps & features → ContinuousMambaBlock → Absolute-Relative t_k Embedding
+        
+        The ContinuousMambaBlock handles:
+        1. Independent K-MOTE embeddings for t_k and t_k-1
+        2. Temporal differences computation (t_k - t_k-1)
+        3. Faster-KAN processing of differences → Δt embedding
+        4. Continuous Mamba with current as input, Δt as delta parameter
+        
         Args:
-            timestamps: Absolute timestamps of events in the sequence,
-                        shape (batch_size, seq_len, 1).
-            event_features: Raw features associated with each event,
-                            shape (batch_size, seq_len, raw_event_feature_dim).
-            initial_mamba_state: Optional initial hidden state for the Continuous-Mamba block,
-                                 shape (batch_size, state_dim_mamba). Defaults to zeros.
-
+            timestamps: Raw absolute timestamps, shape (batch_size, seq_len, 1)
+            event_features: Raw features at each timestamp, shape (batch_size, seq_len, raw_event_feature_dim)
+            initial_mamba_state: Not used in the new implementation
+            
         Returns:
-            Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-                - final_embeddings: The comprehensive spatio-temporal embeddings for each event in sequence,
-                                    shape (batch_size, seq_len, hidden_dim_mamba).
-                - moe_losses_info: A tuple containing (abs_expert_weights_for_loss, rel_expert_weights_for_loss)
-                                   used for MoE load balancing regularization.
+            Tuple[torch.Tensor, dict]:
+                - absolute_relative_embeddings: Final absolute-relative t_k embeddings,
+                                               shape (batch_size, seq_len, D_time)
+                - analysis_info: Dict with intermediate results for MoE loss and analysis
         """
-        batch_size, seq_len, _ = timestamps.shape
-        device = timestamps.device
-
-        # Lists to collect K-MOTE outputs for each time step
-        u_k_sequence = [] # For Mamba input
-        all_abs_expert_weights = [] # For load balancing loss
-        all_rel_expert_weights = [] # For load balancing loss
-
-        # Initial timestamp (for delta_t_0 calculation if needed, or assume first delta_t is 0)
-        # We need a `prev_t` for `delta_t_k = t_k - prev_t`.
-        # For k=0, `prev_t` can be `timestamps[:, 0:1, :]` or a special learnable `t_0_base`.
-        # For simplicity, assume delta_t_0 is 0 or fixed for the first element.
-        # Let's follow common practice for first delta_t.
-        # Set delta_t for first element to 0 (or a small constant if timestamps are relative to start).
-        # We need (batch_size, seq_len, 1) for delta_t_sequence.
-
-        # Calculate delta_t_sequence
-        delta_t_sequence = torch.zeros_like(timestamps) # (batch_size, seq_len, 1)
-        if seq_len > 1:
-            # Shift timestamps to get previous ones, pad with current first timestamp or zero
-            prev_timestamps = torch.cat([timestamps[:, 0:1, :], timestamps[:, :-1, :]], dim=1)
-            delta_t_sequence = timestamps - prev_timestamps
-        # For seq_len = 1, delta_t_sequence remains zeros. This assumes delta_t_0 = 0.
-        # Alternatively, delta_t_0 could be a small learned parameter if there's no "previous event."
-
-
-        # Generate K-MOTE embeddings for the entire sequence
-        # We run K-MOTE on absolute and relative timestamps for each step.
-        # This will be looped over the sequence to get all u_k_sequence inputs for Mamba.
         
-        # It's more efficient to process the whole sequence with K-MOTE if possible,
-        # rather than looping over experts and batch size.
-        # K-MOTE's forward takes (batch_size, 1) for timestamp.
-        # To process a sequence, reshape timestamps and event_features
-        
-        timestamps_flat = timestamps.view(batch_size * seq_len, 1)
-        delta_t_flat = delta_t_sequence.view(batch_size * seq_len, 1)
-        event_features_flat = event_features.view(batch_size * seq_len, self.config.raw_event_feature_dim)
-
-        # K-MOTE for absolute time
-        # Returns (batch_size*seq_len, D_time), (batch_size*seq_len, num_experts), (batch_size*seq_len, num_experts)
-        phi_abs_flat, abs_expert_weights_flat, _ = self.k_mote_abs(timestamps_flat, event_features_flat)
-        
-        # K-MOTE for relative time
-        phi_rel_flat, rel_expert_weights_flat, _ = self.k_mote_rel(delta_t_flat, event_features_flat)
-
-        # Concatenate for Mamba input: u_k
-        # (batch_size*seq_len, D_time + D_time + raw_event_feature_dim)
-        u_k_flat = torch.cat([phi_abs_flat, phi_rel_flat, event_features_flat], dim=-1)
-
-        # Reshape u_k_flat and delta_t_flat back to sequence format for Mamba
-        u_k_sequence_for_mamba = u_k_flat.view(batch_size, seq_len, -1)
-        delta_t_sequence_for_mamba = delta_t_flat.view(batch_size, seq_len, 1)
-
-
-        # 3. Continuous-Mamba Block Processing
-        # Pass time embeddings from K-MOTE instead of raw features
-        # The Mamba block expects: (time_embeddings, timestamps, initial_state)
-        # time_embeddings are the concatenated K-MOTE outputs
-        time_embeddings = torch.cat([phi_abs_flat, phi_rel_flat], dim=-1)  # Concatenate abs and rel embeddings
-        time_embeddings = time_embeddings.view(batch_size, seq_len, -1)  # Reshape to sequence format
-        
-        # If we want to include raw event features, we can add them to the Mamba input dimension
-        # or pass them separately. For now, let's keep it simple with just time embeddings.
-        final_embeddings = self.ct_mamba_block(
-            time_embeddings,  # (batch_size, seq_len, D_time + D_time) - concatenated K-MOTE embeddings
-            timestamps,       # (batch_size, seq_len, 1) - raw timestamps for time differences
-            initial_mamba_state
+        # TRUE KAN-MAMMOTE processing through the Continuous-Mamba Block
+        # The block handles all the diagram logic internally
+        absolute_relative_embeddings, analysis_info = self.ct_mamba_block(
+            timestamps=timestamps,      # Raw timestamps (not pre-computed embeddings)
+            features=event_features     # Raw features (not pre-computed embeddings)
         )
-
-        # Reshape expert weights for loss calculation
-        abs_expert_weights_for_loss = abs_expert_weights_flat.view(batch_size, seq_len, self.config.num_experts)
-        rel_expert_weights_for_loss = rel_expert_weights_flat.view(batch_size, seq_len, self.config.num_experts)
-
-        return final_embeddings, (abs_expert_weights_for_loss, rel_expert_weights_for_loss)
+        
+        # Extract expert weights for MoE load balancing loss
+        # The analysis_info contains intermediate embeddings and expert usage information
+        current_embeddings = analysis_info.get('current_embeddings')  # t_k embeddings
+        previous_embeddings = analysis_info.get('previous_embeddings')  # t_k-1 embeddings
+        
+        # For compatibility with existing loss functions, we can extract expert weights
+        # from the K-MOTE computations if needed (this would require modifying the block
+        # to return expert weights, or we can compute them here for loss purposes)
+        
+        # Since K-MOTE expert weights are computed internally in the block,
+        # we can add them to the analysis_info or compute them separately if needed for loss
+        
+        # For now, return the absolute-relative embeddings and analysis info
+        return absolute_relative_embeddings, analysis_info

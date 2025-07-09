@@ -236,7 +236,9 @@ class ImmediateFasterKANLayer(nn.Module):
         # C-Mamba for sequence modeling (using simplified version for stability)
         self.c_mamba = SimplifiedContinuousMambaBlock(
             input_dim=config.D_time,
-            config=config
+            config=config,
+            kmote_layer=self.k_mote_current,
+            faster_kan_layer=self.temporal_difference_kan
         )
         
     def compute_previous_timestamps(self, timestamps: torch.Tensor) -> torch.Tensor:
