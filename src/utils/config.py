@@ -5,75 +5,77 @@ import torch
 class KANMAMOTEConfig:
     """
     Configuration class for the KAN-MAMMOTE model and its components.
+    Supports overriding defaults via kwargs.
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Global Model Parameters
-        self.d_model = 128           # Main model dimension (hidden_dim for Mamba)
-        self.D_time = 64             # Output dimension of K-MOTE (time embedding dimension)
-        self.num_layers = 2          # Number of ContinuousMambaBlocks to stack
-        self.input_feature_dim = 10  # Dimension of your raw input features (uk)
-        self.output_dim_for_task = 1 # Dimension of the final prediction (e.g., 1 for regression)
+        self.d_model = kwargs.get('d_model', 128)
+        self.D_time = kwargs.get('D_time', 64)
+        self.num_layers = kwargs.get('num_layers', 2)
+        self.input_feature_dim = kwargs.get('input_feature_dim', 10)
+        self.output_dim_for_task = kwargs.get('output_dim_for_task', 1)
 
         # K-MOTE Parameters
-        self.K_top = 2               # Number of top experts to select in K-MOTE router
-        self.use_aux_features_router = False # Whether router uses auxiliary features
-        self.raw_event_feature_dim = 0 # Dummy if use_aux_features_router is False
+        self.K_top = kwargs.get('K_top', 2)
+        self.use_aux_features_router = kwargs.get('use_aux_features_router', False)
+        self.raw_event_feature_dim = kwargs.get('raw_event_feature_dim', 0)
 
         # Router Parameters (MoERouter)
-        self.router_noise_scale = 1e-2 # Noise scale for router during training
-        self.use_load_balancing = True # Enable load balancing loss for router
-        self.balance_coefficient = 0.01 # Coefficient for load balancing loss
+        self.router_noise_scale = kwargs.get('router_noise_scale', 1e-2)
+        self.use_load_balancing = kwargs.get('use_load_balancing', True)
+        self.balance_coefficient = kwargs.get('balance_coefficient', 0.01)
 
-        # KANLayer (kan_base_layer.py) and Basis Function Parameters (basis_functions.py)
-        # These apply to Fourier, Gaussian, Wavelet basis types which use KANLayer wrapper.
-        self.kan_noise_scale = 0.1
-        self.kan_scale_base_mu = 0.0
-        self.kan_scale_base_sigma = 1.0
-        self.kan_grid_eps = 0.02
-        self.kan_grid_range = [-1, 1]
-        self.kan_sp_trainable = True # Spline part trainable
-        self.kan_sb_trainable = True # Base part trainable
+        # KANLayer and Basis Function Parameters
+        self.kan_noise_scale = kwargs.get('kan_noise_scale', 0.1)
+        self.kan_scale_base_mu = kwargs.get('kan_scale_base_mu', 0.0)
+        self.kan_scale_base_sigma = kwargs.get('kan_scale_base_sigma', 1.0)
+        self.kan_grid_eps = kwargs.get('kan_grid_eps', 0.02)
+        self.kan_grid_range = kwargs.get('kan_grid_range', [-1, 1])
+        self.kan_sp_trainable = kwargs.get('kan_sp_trainable', True)
+        self.kan_sb_trainable = kwargs.get('kan_sb_trainable', True)
 
-        # --- MISSING ATTRIBUTES FOR BASIS FUNCTIONS (Added/Updated) ---
-        # FourierBasis parameters
-        self.fourier_k_prime = 10 # Number of harmonics for FourierBasis
-        self.fourier_learnable_params = True # <--- ADDED THIS ONE
+        # Fourier Basis
+        self.fourier_k_prime = kwargs.get('fourier_k_prime', 10)
+        self.fourier_learnable_params = kwargs.get('fourier_learnable_params', True)
 
-        # RKHS / GaussianKernelBasis parameters
-        self.rkhs_num_mixture_components = 10 # Number of Gaussian components
-        self.rkhs_learnable_params = True # <--- ADDED THIS ONE (for consistency, even if not explicitly demanded yet)
+        # RKHS / Gaussian Kernel Basis
+        self.rkhs_num_mixture_components = kwargs.get('rkhs_num_mixture_components', 10)
+        self.rkhs_learnable_params = kwargs.get('rkhs_learnable_params', True)
 
-        # WaveletBasis parameters (already there, good)
-        self.wavelet_num_wavelets = 10 # Number of wavelet components
-        self.wavelet_mother_type = 'mexican_hat' # 'mexican_hat' or 'morlet'
-        self.wavelet_learnable_params = True # Whether wavelet weights, scales, translations are learnable
+        # Wavelet Basis
+        self.wavelet_num_wavelets = kwargs.get('wavelet_num_wavelets', 10)
+        self.wavelet_mother_type = kwargs.get('wavelet_mother_type', 'mexican_hat')
+        self.wavelet_learnable_params = kwargs.get('wavelet_learnable_params', True)
 
-        # SplineBasis (MatrixKANLayer) Specific Parameters (already there, good)
-        self.spline_grid_size = 5    # Number of grid intervals (G)
-        self.spline_degree = 3       # Spline order (k) - for MatrixKANLayer (k >= 0)
+        # Spline Basis (MatrixKANLayer)
+        self.spline_grid_size = kwargs.get('spline_grid_size', 5)
+        self.spline_degree = kwargs.get('spline_degree', 3)
 
-        # Mamba2 Parameters (dynamic_mamba_ssm.py) - passed as kwargs (already there, good)
-        self.mamba_d_state = 128
-        self.mamba_d_conv = 4
-        self.mamba_expand = 2
-        self.mamba_headdim = 32
-        self.mamba_dt_min = 0.001
-        self.mamba_dt_max = 0.1
-        self.mamba_dt_init_floor = 1e-4
-        self.mamba_bias = False
-        self.mamba_conv_bias = True
-        self.mamba_chunk_size = 256
-        self.mamba_use_mem_eff_path = True
-        self.mamba_layer_idx = None # Will be set per layer in KANMAMMOTE
+        # Mamba2 Parameters
+        self.mamba_d_state = kwargs.get('mamba_d_state', 128)
+        self.mamba_d_conv = kwargs.get('mamba_d_conv', 4)
+        self.mamba_expand = kwargs.get('mamba_expand', 2)
+        self.mamba_headdim = kwargs.get('mamba_headdim', 32)
+        self.mamba_dt_min = kwargs.get('mamba_dt_min', 0.001)
+        self.mamba_dt_max = kwargs.get('mamba_dt_max', 0.1)
+        self.mamba_dt_init_floor = kwargs.get('mamba_dt_init_floor', 1e-4)
+        self.mamba_bias = kwargs.get('mamba_bias', False)
+        self.mamba_conv_bias = kwargs.get('mamba_conv_bias', True)
+        self.mamba_chunk_size = kwargs.get('mamba_chunk_size', 256)
+        self.mamba_use_mem_eff_path = kwargs.get('mamba_use_mem_eff_path', True)
+        self.mamba_layer_idx = kwargs.get('mamba_layer_idx', None)
 
-        # Regularization Loss Coefficients (for KANMAMMOTE's total loss)
-        self.lambda_sobolev_l2 = 0.01
-        self.lambda_total_variation = 0.01
+        # Regularization
+        self.lambda_sobolev_l2 = kwargs.get('lambda_sobolev_l2', 0.01)
+        self.lambda_total_variation = kwargs.get('lambda_total_variation', 0.01)
 
-        # General Training Parameters
-        self.learning_rate = 1e-3
-        self.num_epochs = 50
-        self.batch_size = 32
-        self.sequence_length = 100 # For dummy data generation
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.dtype = torch.float32 # Use torch.bfloat16 for BFloat16 if supported
+        # Training Parameters
+        self.learning_rate = kwargs.get('learning_rate', 1e-3)
+        self.num_epochs = kwargs.get('num_epochs', 50)
+        self.batch_size = kwargs.get('batch_size', 32)
+        self.sequence_length = kwargs.get('sequence_length', 100)
+        self.device = kwargs.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
+        self.dtype = kwargs.get('dtype', torch.float32)
+
+    def to_dict(self):
+        return self.__dict__
