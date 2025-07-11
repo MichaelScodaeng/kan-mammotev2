@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 from typing import Literal
 
-# Import configuration and all defined basis functions
+# Import configuration and only the basis functions that this KANLayer will use
 from src.utils.config import KANMAMOTEConfig
-from .basis_functions import FourierBasis, SplineBasis, GaussianKernelBasis, WaveletBasis, BaseBasisFunction
+from .basis_functions import FourierBasis, GaussianKernelBasis, WaveletBasis, BaseBasisFunction
 
 class KANLayer(nn.Module):
     """
@@ -14,11 +14,15 @@ class KANLayer(nn.Module):
     a learnable basis function from the specified type.
     This module represents one "edge" or connection in a traditional KAN graph,
     where the activation is a learnable function.
+    
+    This KANLayer is used for Fourier, RKHS-Gaussian, and Wavelet experts in K-MOTE.
+    The Spline expert is handled directly by the external MatrixKANLayer.
     """
     def __init__(self, 
                  in_features: int, 
                  out_features: int, 
-                 basis_type: Literal['fourier', 'spline', 'rkhs_gaussian', 'wavelet'], 
+                 # 'spline' removed from Literal as it's handled separately in K_MOTE
+                 basis_type: Literal['fourier', 'rkhs_gaussian', 'wavelet'], 
                  config: KANMAMOTEConfig):
         super().__init__()
         self.in_features = in_features
@@ -26,26 +30,22 @@ class KANLayer(nn.Module):
         self.basis_type = basis_type
         self.config = config
 
-        # The linear transformation: x_prime = x @ self.alpha_weights + self.alpha_bias
-        # This maps the input (e.g., a timestamp or output from a previous KAN layer)
-        # to a domain suitable for the basis function to operate on across `out_features` dimensions.
-        # Initialize weights with small values for stability.
         self.alpha_weights = nn.Parameter(torch.randn(in_features, out_features) * 0.1)
         self.alpha_bias = nn.Parameter(torch.zeros(out_features))
 
-        # Instantiate the specific basis function based on the `basis_type`
-        # Each basis function is responsible for its own learnable parameters.
         if basis_type == 'fourier':
             self.basis_function: BaseBasisFunction = FourierBasis(out_features, config)
-        elif basis_type == 'spline':
-            self.basis_function: BaseBasisFunction = SplineBasis(out_features, config)
+        # elif basis_type == 'spline': # This branch is intentionally removed
+        #     self.basis_function: BaseBasisFunction = SplineBasis(out_features, config)
         elif basis_type == 'rkhs_gaussian':
             self.basis_function: BaseBasisFunction = GaussianKernelBasis(out_features, config)
         elif basis_type == 'wavelet':
             self.basis_function: BaseBasisFunction = WaveletBasis(out_features, config)
         else:
+            # Update the error message to reflect the current supported types
             raise ValueError(f"Unsupported basis_type: {basis_type}. "
-                             "Choose from 'fourier', 'spline', 'rkhs_gaussian', 'wavelet'.")
+                             "Choose from 'fourier', 'rkhs_gaussian', 'wavelet'. "
+                             "The 'spline' expert is handled directly by MatrixKANLayer in K_MOTE.")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -59,12 +59,5 @@ class KANLayer(nn.Module):
         Returns:
             Output tensor of shape (batch_size, out_features).
         """
-        # Apply the linear transformation
-        # x: (batch_size, in_features)
-        # self.alpha_weights: (in_features, out_features)
-        # Result: (batch_size, out_features)
         x_prime = torch.matmul(x, self.alpha_weights) + self.alpha_bias
-
-        # Pass through the learnable basis function
-        # The basis_function takes (batch_size, out_features) and returns (batch_size, out_features)
         return self.basis_function(x_prime)

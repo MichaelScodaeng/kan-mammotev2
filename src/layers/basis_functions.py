@@ -87,170 +87,84 @@ class FourierBasis(BaseBasisFunction):
         return term.sum(dim=-1)
 
 
-class SplineBasis(BaseBasisFunction):
+from src.utils.config import KANMAMOTEConfig
+
+# --- CORRECTED IMPORT: Import MatrixKANLayer from your MatrixKAN library ---
+# Assuming MatrixKANLayer.py is correctly accessible (e.g., in the same package
+# or directly in your PYTHONPATH).
+try:
+    from src.models.kan.MatrixKANLayer import MatrixKANLayer # This might need adjustment based on your exact file structure/import path
+except ImportError:
+    print("WARNING: Could not import MatrixKANLayer. Using a dummy placeholder.")
+    # Dummy placeholder if the actual library isn't found
+    class MatrixKANLayer(nn.Module):
+        def __init__(self, in_dim=1, out_dim=1, num=5, k=3, **kwargs):
+            super().__init__()
+            self.linear = nn.Linear(in_dim, out_dim)
+            # print(f"Using Dummy MatrixKANLayer: in={in_dim}, out={out_dim}, num={num}, k={k}")
+        def forward(self, x):
+            return self.linear(x)
+
+# ... (Your existing BaseBasisFunction, FourierBasis, GaussianKernelBasis, WaveletBasis classes) ...
+
+# Paste all your other basis function classes here
+# (BaseBasisFunction, FourierBasis, GaussianKernelBasis, WaveletBasis)
+# just before the corrected SplineBasis.
+
+'''class SplineBasis(BaseBasisFunction):
     """
-    Implements a learnable B-spline basis function using MatrixKAN principles.
-    This includes precomputing the Psi^k matrix and using matrix multiplications
-    for the forward pass, handling knot intervals to some extent.
+    Implements a learnable B-spline basis function by wrapping the MatrixKANLayer.
     """
     def __init__(self, output_dim: int, config: KANMAMOTEConfig):
         super().__init__(output_dim, config)
-        self.grid_size = config.spline_grid_size
-        self.spline_degree = config.spline_degree # Corresponds to 'degree' in KAN literature, 'k-1' for order 'k'
-        self.use_matrix_kan_optimized_spline = config.use_matrix_kan_optimized_spline
-
-        # Ensure degree is valid for MatrixKAN (order k >= 1, so degree >= 0)
-        if self.spline_degree < 0:
-            raise ValueError("Spline degree must be non-negative.")
-
-        # Number of control points. For uniform splines, typically `num_intervals + degree`.
-        # num_intervals = grid_size - 1. So, `(grid_size - 1) + spline_degree`.
-        self.num_control_points = (self.grid_size - 1) + self.spline_degree + 1 # +1 is crucial for count
-        self.control_points = nn.Parameter(torch.randn(output_dim, self.num_control_points) * 0.1) # Small init
-
-        # Knot sequence. MatrixKAN typically uses uniform knots.
-        # For B-spline of degree `d` defined on `N` intervals, `N + 2d` knots are needed.
-        # If `grid_size` is number of distinct grid points (defining `grid_size-1` intervals)
-        # then `(grid_size - 1) + 2 * spline_degree` knots.
-        # Let's align with general B-spline theory for number of knots
-        # Example: for cubic (degree 3), 4 control points are active per interval.
-        self.register_buffer('knots', 
-                             torch.linspace(0, 1, self.grid_size + self.spline_degree * 2).to(config.device))
-
-        # Precompute the Psi^k (bspline_matrix)
-        # `compute_bspline_matrix` takes `k_order`. If `spline_degree` is `d`, then `k_order = d + 1`.
-        # So, for spline_degree `self.spline_degree`, we call `compute_bspline_matrix(self.spline_degree + 1)`.
-        if self.use_matrix_kan_optimized_spline:
-            try:
-                psi_k = compute_bspline_matrix(self.spline_degree + 1)
-                self.register_buffer('psi_k_matrix', psi_k.to(config.device))
-                # print(f"SplineBasis: Precomputed MatrixKAN Psi^k matrix of shape {psi_k.shape}")
-            except Exception as e:
-                print(f"WARNING: Error computing Psi^k matrix: {e}. Falling back to non-MatrixKAN spline concept.")
-                self.use_matrix_kan_optimized_spline = False
         
-        if not self.use_matrix_kan_optimized_spline:
-            # Fallback for plotting or simple differentiable spline (not MatrixKAN)
-            # This is a highly simplified differentiable placeholder, not a true B-spline.
-            # It allows the model to run and train for initial debugging.
-            self.fallback_linear = nn.Linear(output_dim, output_dim)
-            nn.init.zeros_(self.fallback_linear.weight)
-            nn.init.zeros_(self.fallback_linear.bias)
-
+        # MatrixKANLayer takes:
+        # in_dim: The number of input features this KAN layer processes.
+        #         Here, it's `output_dim` because `x` is (batch_size, output_dim),
+        #         and each of these `output_dim` entries is treated as an independent
+        #         input to a separate KAN function.
+        # out_dim: The number of output features. Since each input maps to one output
+        #          in this basis function, it's also `output_dim`.
+        # num: The number of grid intervals (G).
+        # k: The piecewise polynomial order of splines.
+        
+        self.matrix_kan_layer = MatrixKANLayer(
+            in_dim=output_dim,  # Each of the 'output_dim' time series components is an input to a KAN
+            out_dim=output_dim, # Each KAN produces one output
+            num=config.spline_grid_size, # Number of grid intervals (G)
+            k=config.spline_degree,      # Spline order (k)
+            # Other parameters from MatrixKANLayer's __init__ can be passed if needed:
+            # noise_scale=config.kan_noise_scale,
+            # scale_base_mu=config.kan_scale_base_mu,
+            # scale_base_sigma=config.kan_scale_base_sigma,
+            # base_fun=torch.nn.SiLU(), # Default SiLU from MatrixKAN, or configure
+            grid_eps=config.kan_grid_eps, # For adaptive grid update
+            grid_range=config.kan_grid_range, # Initial grid range
+            sp_trainable=config.kan_sp_trainable, # Scale spline trainable
+            sb_trainable=config.kan_sb_trainable, # Scale base trainable
+            device=config.device # Ensure it's on the correct device
+        )
+        
+        # Note: The MatrixKANLayer's forward method returns (y, preacts, postacts, postspline)
+        # We only need 'y' (the main output) for our basis function.
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: Tensor of shape (batch_size, output_dim). Linearly transformed time input.
-               Each element x[b, d] is a scalar time value.
+               Each element x[b, d] is a scalar time value that forms an input
+               to one of the 'output_dim' KAN functions within the MatrixKANLayer.
         Returns:
             Tensor of shape (batch_size, output_dim).
         """
-        batch_size, output_dim = x.shape
-        device = x.device
-
-        if not self.use_matrix_kan_optimized_spline:
-            # Simplified fallback for B-spline for initial testing
-            # This is NOT a B-spline, just a differentiable function of x scaled by control points.
-            # Replace with a proper PyTorch B-spline if MatrixKAN is not used.
-            x_normalized = (x - x.min()) / (x.max() - x.min() + 1e-6) # Normalize x to [0,1] for stability
-            return self.fallback_linear(x_normalized) * self.control_points[:, :1] # Use first control point conceptually
-
-
-        # --- MatrixKAN Forward Pass ---
-        # 1. Normalize input `x` to `u` in [0, 1] based on its position within the B-spline domain.
-        # The B-spline is effectively defined over `knots[degree]` to `knots[-degree-1]`.
-        # Clamp `x` to this active domain to avoid out-of-bounds issues.
-        knots = getattr(self, 'knots').to(x.device)  # Ensure knots are on same device as input
-        x_clamped = torch.clamp(x, knots[self.spline_degree], knots[-self.spline_degree - 1])
+        # The MatrixKANLayer's forward method expects input x of shape (batch_size, in_dim).
+        # Your `x` is already (batch_size, output_dim) which matches our `in_dim` setting.
         
-        # Calculate `u` (normalized position within the active spline domain [0,1])
-        domain_min = knots[self.spline_degree]
-        domain_max = knots[-self.spline_degree - 1]
-        u_input = (x_clamped - domain_min) / (domain_max - domain_min + 1e-6) # shape: (batch_size, output_dim)
-        u_input = torch.clamp(u_input, 0, 1) # Ensure u is strictly within [0,1]
+        # It returns multiple values (y, preacts, postacts, postspline).
+        # We only need the main output `y`.
+        y, _, _, _ = self.matrix_kan_layer(x)
 
-        # 2. Construct the power basis tensor: [1, u, u^2, ..., u^(spline_degree)]
-        # This is (batch_size, output_dim, spline_degree + 1)
-        power_basis = torch.stack([u_input**i for i in range(self.spline_degree + 1)], dim=-1)
-        
-        # 3. Compute B-spline basis function values for `u`
-        # (batch_size, output_dim, spline_degree + 1) @ (spline_degree + 1, spline_degree + 1)
-        # -> (batch_size, output_dim, spline_degree + 1)
-        # These are `B_j(u)` values, where j runs over the relevant local basis functions.
-        psi_k_matrix = self.psi_k_matrix
-        if isinstance(psi_k_matrix, nn.Module):
-            psi_k_matrix = next(psi_k_matrix.parameters())
-        psi_k_matrix = psi_k_matrix.to(x.device)  # Ensure matrix is on same device as input
-        bspline_basis_vals = torch.matmul(power_basis, psi_k_matrix)
-
-        # 4. Combine with control points. This is `sum_{j} C_j * B_j(x)`
-        # This is the most intricate part in PyTorch for efficiency, requiring precise gathering
-        # of the active `spline_degree + 1` control points for each `x` based on its knot interval.
-
-        # Find the segment index for each `x` in `x_clamped`.
-        # `searchsorted` finds the insertion point, effectively the knot index (j) such that knots[j-1] <= x < knots[j].
-        # We need to reshape `x_clamped` to (batch_size * output_dim) and `knots` to (num_knots) for `searchsorted`.
-        # The result `segment_indices` will be for the flattened array.
-        # Ensure self.knots is a Tensor (not a Module)
-        knots_tensor = self.knots
-        if isinstance(knots_tensor, nn.Module):
-            knots_tensor = next(knots_tensor.parameters())
-        knots_tensor = knots_tensor.to(x.device)  # Ensure knots are on same device as input
-        segment_indices_flat = torch.searchsorted(knots_tensor, x_clamped.flatten()) # shape: (batch_size * output_dim)
-        
-        # Adjust indices to be relative to the *active* knot range for control point lookup.
-        # For a uniform B-spline, the j-th interval corresponds to control points C_j to C_{j+degree}.
-        # The `searchsorted` index `j` usually corresponds to `knots[j]`.
-        # We need to subtract the initial `spline_degree` offset from the knot sequence.
-        # This `j` should be `0` for the first active interval.
-        segment_indices_adjusted = segment_indices_flat - self.spline_degree # `j` in C_j
-
-        # Clamp these adjusted indices to ensure they are within valid range of control points.
-        # The control points are indexed from `0` to `self.num_control_points - 1`.
-        segment_indices_adjusted = torch.clamp(segment_indices_adjusted, 0, self.num_control_points - self.spline_degree - 1)
-        
-        # Create offsets for the (spline_degree + 1) active control points per segment
-        offsets = torch.arange(self.spline_degree + 1, device=x.device).unsqueeze(0).unsqueeze(0) # (1, 1, spline_degree + 1)
-        
-        # Expand `segment_indices_adjusted` to match output_dim and offsets for gathering
-        # (batch_size * output_dim, 1, 1) + (1, 1, spline_degree + 1) -> (batch_size * output_dim, 1, spline_degree + 1)
-        indices_to_gather_flat = segment_indices_adjusted.unsqueeze(-1) + offsets
-        
-        # Ensure indices are within control points bounds
-        indices_to_gather_flat = torch.clamp(indices_to_gather_flat, 0, self.num_control_points - 1)
-
-        # Expand control_points for gathering
-        # `control_points` shape: (output_dim, num_control_points)
-        # We need to gather independently for each `output_dim`.
-        # This needs to be done iteratively per output_dim or with a more complex `gather`.
-        
-        # More efficient gathering:
-        # Create `output_dim_indices` (0 to output_dim-1) for matching
-        output_dim_indices = torch.arange(output_dim, device=device).view(1, output_dim, 1).repeat(batch_size, 1, self.spline_degree + 1)
-
-        # Reshape segment_indices_adjusted to (batch_size, output_dim, 1)
-        segment_indices_adjusted_reshaped = segment_indices_adjusted.view(batch_size, output_dim, 1)
-
-        # Full gather indices (batch_size, output_dim, spline_degree + 1, 2)
-        # (batch_idx, output_dim_idx, relative_offset_idx) -> (control_points[output_dim_idx, control_point_idx])
-        full_indices_to_gather = segment_indices_adjusted_reshaped + offsets
-        full_indices_to_gather = torch.clamp(full_indices_to_gather, 0, self.num_control_points - 1)
-
-        # The gather operation must be for each output_dim separately.
-        # `active_control_points` will be (batch_size, output_dim, spline_degree + 1)
-        
-        # A more straightforward gather for multiple dimensions:
-        active_control_points = self.control_points[
-            output_dim_indices, full_indices_to_gather
-        ]
-
-        # Final weighted sum: `sum (B_j(u) * C_j)`
-        # (batch_size, output_dim, spline_degree + 1) * (batch_size, output_dim, spline_degree + 1)
-        # -> sum over last dim to get (batch_size, output_dim)
-        output = (bspline_basis_vals * active_control_points).sum(dim=-1)
-        
-        return output
+        return y'''
 
 
 class GaussianKernelBasis(BaseBasisFunction):

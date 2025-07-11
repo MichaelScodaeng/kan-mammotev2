@@ -12,7 +12,7 @@ import os
 sys.path.append('.')
 
 from src.utils.config import KANMAMOTEConfig
-from src.models.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock, MAMBA_AVAILABLE
+from archive.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock, MAMBA_AVAILABLE
 
 def test_continuous_mamba():
     """Test the continuous Mamba implementation."""
@@ -121,7 +121,7 @@ def test_time_encoder():
     """Test the TimeEncoder component."""
     print("\n=== Testing TimeEncoder ===")
     try:
-        from src.models.c_mamba import TimeEncoder
+        from archive.c_mamba import TimeEncoder
         
         time_dim = 64
         encoder = TimeEncoder(time_dim=time_dim)

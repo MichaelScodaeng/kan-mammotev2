@@ -17,7 +17,7 @@ src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
 from src.utils.config import KANMAMOTEConfig
-from src.models.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
+from archive.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
 from src.models.kan_mammote import KAN_MAMOTE_Model
 
 def test_basic_mamba_functionality():

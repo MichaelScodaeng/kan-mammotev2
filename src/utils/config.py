@@ -1,99 +1,79 @@
 # kan_mamote/src/utils/config.py
 
-from dataclasses import dataclass, field
 import torch
-from typing import List, Literal # For type hints
 
-@dataclass
 class KANMAMOTEConfig:
     """
-    Configuration dataclass for the KAN-MAMOTE model and its components.
-    Centralizes all hyperparameters for easy management and experimentation.
+    Configuration class for the KAN-MAMMOTE model and its components.
     """
-    # --- Global Model Settings ---
-    D_time: int = 128  # Total dimension of time embedding from K-MOTE (must be divisible by num_experts)
-    hidden_dim_mamba: int = 256 # Mamba's internal hidden dimension
-    state_dim_mamba: int = 64  # Mamba's state dimension (for Continuous-Time Mamba's SSM state)
-    dt_rank: int = 16  # Rank for delta_t parameterization in Mamba (controls selective mechanism complexity)
-    K_top: int = 2     # Number of experts to activate in K-MOTE (Top-Ktop MoE dispatch)
-    num_experts: int = 4 # Fixed number of experts (Fourier, Spline, RKHS, Wavelet)
-    use_aux_features_router: bool = True # If router input includes auxiliary features (from raw_event_features)
-    raw_event_feature_dim: int = 16 # Dimensionality of raw event features (if used in concatenation)
+    def __init__(self):
+        # Global Model Parameters
+        self.d_model = 128           # Main model dimension (hidden_dim for Mamba)
+        self.D_time = 64             # Output dimension of K-MOTE (time embedding dimension)
+        self.num_layers = 2          # Number of ContinuousMambaBlocks to stack
+        self.input_feature_dim = 10  # Dimension of your raw input features (uk)
+        self.output_dim_for_task = 1 # Dimension of the final prediction (e.g., 1 for regression)
 
-    # --- K-MOTE Router Settings ---
-    # Input to router is (timestamp + aux_features_dim). Output is num_experts logits.
-    router_mlp_dims: List[int] = field(default_factory=lambda: [64, 32]) # Hidden dims for router MLP
+        # K-MOTE Parameters
+        self.K_top = 2               # Number of top experts to select in K-MOTE router
+        self.use_aux_features_router = False # Whether router uses auxiliary features
+        self.raw_event_feature_dim = 0 # Dummy if use_aux_features_router is False
 
-    # --- KANLayer Settings (Shared by all experts, D_time_per_expert computed below) ---
-    
-    # --- Expert 1: Advanced Fourier-KAN ---
-    fourier_k_prime: int = 16 # Number of harmonics for Fourier series
-    fourier_learnable_params: bool = True # If frequencies, amplitudes, phases are learnable
+        # Router Parameters (MoERouter)
+        self.router_noise_scale = 1e-2 # Noise scale for router during training
+        self.use_load_balancing = True # Enable load balancing loss for router
+        self.balance_coefficient = 0.01 # Coefficient for load balancing loss
 
-    # --- Expert 2: Spline-KAN (Leveraging MatrixKAN principles) ---
-    spline_grid_size: int = 10 # Number of grid points for B-splines (determines the knots distribution)
-    spline_degree: int = 3 # Degree of B-splines (e.g., 3 for cubic splines). Corresponds to 'k-1' in some contexts.
-    # When using MatrixKAN's `bspline_matrix(k_order)`, `k_order` corresponds to `spline_degree + 1`.
-    use_matrix_kan_optimized_spline: bool = True # Flag to enable MatrixKAN optimizations for SplineBasis
+        # KANLayer (kan_base_layer.py) and Basis Function Parameters (basis_functions.py)
+        # These apply to Fourier, Gaussian, Wavelet basis types which use KANLayer wrapper.
+        self.kan_noise_scale = 0.1
+        self.kan_scale_base_mu = 0.0
+        self.kan_scale_base_sigma = 1.0
+        self.kan_grid_eps = 0.02
+        self.kan_grid_range = [-1, 1]
+        self.kan_sp_trainable = True # Spline part trainable
+        self.kan_sb_trainable = True # Base part trainable
 
-    # --- Expert 3: Parameterized RKHS/GaussianKernel KAN ---
-    rkhs_num_mixture_components: int = 5 # Number of Gaussian components per output dim
-    # Note: The "tiny KAN" described in the proposal for RKHS expert is for *modulating*
-    # parameters based on context, not generating them from scratch. For initial implementation,
-    # RKHS parameters (weights, means, stds) are directly learnable.
-    # The 'anchor_points' concept implicitly relates to the 'means' of the Gaussians.
+        # --- MISSING ATTRIBUTES FOR BASIS FUNCTIONS (Added/Updated) ---
+        # FourierBasis parameters
+        self.fourier_k_prime = 10 # Number of harmonics for FourierBasis
+        self.fourier_learnable_params = True # <--- ADDED THIS ONE
 
-    # --- Expert 4: Wavelet-KAN ---
-    wavelet_num_wavelets: int = 8 # Number of wavelets per output dim
-    wavelet_mother_type: Literal['mexican_hat', 'morlet'] = 'mexican_hat' # Type of mother wavelet function
-    wavelet_learnable_params: bool = True # If scales, translations, weights are learnable
+        # RKHS / GaussianKernelBasis parameters
+        self.rkhs_num_mixture_components = 10 # Number of Gaussian components
+        self.rkhs_learnable_params = True # <--- ADDED THIS ONE (for consistency, even if not explicitly demanded yet)
 
-    # --- Faster-KAN Settings ---
-    kan_grid_size: int = 5  # Grid size for Faster-KAN spline approximations
+        # WaveletBasis parameters (already there, good)
+        self.wavelet_num_wavelets = 10 # Number of wavelet components
+        self.wavelet_mother_type = 'mexican_hat' # 'mexican_hat' or 'morlet'
+        self.wavelet_learnable_params = True # Whether wavelet weights, scales, translations are learnable
 
-    # --- Regularization Parameters ---
-    lambda_sobolev_l2: float = 0.01      # For smoothness of expert functions
-    lambda_total_variation_l1: float = 0.001 # For sparsity in derivatives (sharp transitions)
-    lambda_moe_load_balancing: float = 0.01 # To prevent expert collapse (encourages balanced usage)
+        # SplineBasis (MatrixKANLayer) Specific Parameters (already there, good)
+        self.spline_grid_size = 5    # Number of grid intervals (G)
+        self.spline_degree = 3       # Spline order (k) - for MatrixKANLayer (k >= 0)
 
-    # --- Training Configuration ---
-    batch_size: int = 32
-    learning_rate: float = 1e-3
-    num_epochs: int = 100
-    device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    # --- Data Configuration (placeholder for now, will be detailed in data/*) ---
-    # Example: sequence_length for time series tasks
-    max_sequence_length: int = 256 
+        # Mamba2 Parameters (dynamic_mamba_ssm.py) - passed as kwargs (already there, good)
+        self.mamba_d_state = 128
+        self.mamba_d_conv = 4
+        self.mamba_expand = 2
+        self.mamba_headdim = 32
+        self.mamba_dt_min = 0.001
+        self.mamba_dt_max = 0.1
+        self.mamba_dt_init_floor = 1e-4
+        self.mamba_bias = False
+        self.mamba_conv_bias = True
+        self.mamba_chunk_size = 256
+        self.mamba_use_mem_eff_path = True
+        self.mamba_layer_idx = None # Will be set per layer in KANMAMMOTE
 
-    # --- Continuous Mamba Configuration (DyGMamba-style) ---
-    num_mamba_layers: int = 2  # Number of Mamba layers in the continuous block
-    gamma: float = 0.5  # Time difference scaling factor (similar to DyGMamba)
-    use_mamba_ssm: bool = True  # Whether to use mamba_ssm or fallback to transformers/LSTM
+        # Regularization Loss Coefficients (for KANMAMMOTE's total loss)
+        self.lambda_sobolev_l2 = 0.01
+        self.lambda_total_variation = 0.01
 
-    # --- Faster-KAN Settings (for temporal difference processing) ---
-    kan_grid_size: int = 8  # Number of grid points for Faster-KAN
-    kan_grid_min: float = -2.0  # Minimum grid value
-    kan_grid_max: float = 2.0   # Maximum grid value
-    kan_spline_scale: float = 0.667  # Spline weight initialization scale
-    kan_num_layers: int = 2  # Number of layers in Faster-KAN network
-    kan_hidden_dim: int = None  # Hidden dimension (None means same as D_time)
-    
-    def __post_init__(self):
-        """
-        Post-initialization method to perform checks and calculate derived properties.
-        """
-        if self.D_time % self.num_experts != 0:
-            raise ValueError(f"D_time ({self.D_time}) must be divisible by num_experts ({self.num_experts}) for even split.")
-        self.D_time_per_expert = self.D_time // self.num_experts
-
-        # Ensure that if using auxiliary features for the router, raw_event_feature_dim is defined.
-        if self.use_aux_features_router and self.raw_event_feature_dim is None:
-            raise ValueError("raw_event_feature_dim must be specified if use_aux_features_router is True.")
-        
-        # Set default Faster-KAN hidden dimension if not specified
-        if self.kan_hidden_dim is None:
-            self.kan_hidden_dim = self.D_time
-
-# Example usage (will be instantiated in train.py or main script)
-# config = KANMAMOTEConfig()
+        # General Training Parameters
+        self.learning_rate = 1e-3
+        self.num_epochs = 50
+        self.batch_size = 32
+        self.sequence_length = 100 # For dummy data generation
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.dtype = torch.float32 # Use torch.bfloat16 for BFloat16 if supported

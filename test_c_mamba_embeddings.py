@@ -10,7 +10,7 @@ import sys
 sys.path.append('.')
 
 from src.utils.config import KANMAMOTEConfig
-from src.models.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
+from archive.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
 from src.models.k_mote import K_MOTE
 from src.models.kan_mammote import KAN_MAMOTE_Model
 from src.models.immediate_fasterkan_layer import (

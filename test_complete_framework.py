@@ -23,7 +23,7 @@ sys.path.append(str(Path(__file__).parent / "src"))
 
 from src.utils.config import KANMAMOTEConfig
 from src.models.kan_mammote import KAN_MAMOTE_Model
-from src.models.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
+from archive.c_mamba import ContinuousMambaBlock, SimplifiedContinuousMambaBlock
 from src.models.k_mote import K_MOTE
 from src.layers.basis_functions import FourierBasis, SplineBasis, GaussianKernelBasis, WaveletBasis
 from src.losses.simple_losses import feature_extraction_loss
