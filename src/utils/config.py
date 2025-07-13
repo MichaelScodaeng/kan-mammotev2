@@ -16,7 +16,7 @@ class KANMAMOTEConfig:
         self.output_dim_for_task = kwargs.get('output_dim_for_task', 1)
 
         # K-MOTE Parameters
-        self.K_top = kwargs.get('K_top', 2)
+        self.K_top = kwargs.get('K_top', 4)
         self.use_aux_features_router = kwargs.get('use_aux_features_router', False)
         self.raw_event_feature_dim = kwargs.get('raw_event_feature_dim', 0)
 
