@@ -71,7 +71,7 @@ class KANMAMOTEConfig:
 
         # Training Parameters
         self.learning_rate = kwargs.get('learning_rate', 1e-3)
-        self.num_epochs = kwargs.get('num_epochs', 50)
+        self.num_epochs = kwargs.get('num_epochs', 5)
         self.batch_size = kwargs.get('batch_size', 32)
         self.sequence_length = kwargs.get('sequence_length', 100)
         self.device = kwargs.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
