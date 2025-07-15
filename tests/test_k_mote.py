@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Tuple
 # Import the necessary modules from your project structure
-from src.utils.config import KANMAMOTEConfig
+from src.utils.config import KANMAMMOTEConfig
 from src.models.moe_router import MoERouter
 from src.models.k_mote import K_MOTE
 
@@ -17,7 +17,7 @@ class TestK_MOTE(unittest.TestCase):
         """
         Set up common configurations and parameters for all tests.
         """
-        self.config = KANMAMOTEConfig()
+        self.config = KANMAMMOTEConfig()
         self.batch_size = 4
         self.timestamp_input_dim = 1 # Scalar timestamp
         self.aux_feature_dim = self.config.raw_event_feature_dim

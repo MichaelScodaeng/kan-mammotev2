@@ -7,7 +7,7 @@ from .kan_mammote import KANMAMMOTE
 
 __all__ = [
     'KANMAMMOTE',  # Default: Improved version
-    'ImprovedKANMAMOTE',  # Explicit improved version
+    'ImprovedKANMAMMOTE',  # Explicit improved version
     'ImmediateFasterKANLayer',
     'K_MOTE',
     'MoERouter',

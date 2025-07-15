@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 # Import the necessary modules from your project structure
-from src.utils.config import KANMAMOTEConfig
+from src.utils.config import KANMAMMOTEConfig
 from src.layers.kan_base_layer import KANLayer
 from src.layers.basis_functions import (
     FourierBasis, SplineBasis, GaussianKernelBasis, WaveletBasis
@@ -17,7 +17,7 @@ class TestKANLayers(unittest.TestCase):
         """
         Set up common configurations and parameters for all tests.
         """
-        self.config = KANMAMOTEConfig()
+        self.config = KANMAMMOTEConfig()
         self.batch_size = 4
         self.in_features = 1 # For time input
         self.out_features_per_expert = self.config.D_time_per_expert

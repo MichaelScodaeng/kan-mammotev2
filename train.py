@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 # Import your components
-from src.utils.config import KANMAMOTEConfig
+from src.utils.config import KANMAMMOTEConfig
 from src.models.kan_mammote import KANMAMMOTE
 
 # --- Dummy Dataset ---
@@ -36,7 +36,7 @@ class DummyContinuousTimeDataset(Dataset):
 
 # --- Main Training Function ---
 def train_kan_mammote():
-    config = KANMAMOTEConfig()
+    config = KANMAMMOTEConfig()
     
     print(f"Using device: {config.device}")
     print(f"D_time: {config.D_time}, Num Layers: {config.num_layers}")

@@ -5,16 +5,16 @@ import torch
 import torch.nn as nn
 
 # Import the necessary modules from your project structure
-from src.utils.config import KANMAMOTEConfig
+from src.utils.config import KANMAMMOTEConfig
 from src.models.kan_mammote import KAN_MAMOTE_Model
 
-class TestKANMAMOTEModel(unittest.TestCase):
+class TestKANMAMMOTEModel(unittest.TestCase):
 
     def setUp(self):
         """
         Set up common configurations and parameters for the full model test.
         """
-        self.config = KANMAMOTEConfig()
+        self.config = KANMAMMOTEConfig()
         self.batch_size = 2 # Use a small batch size for testing
         self.seq_len = 5    # Test with a short sequence
         self.timestamp_dim = 1 # Scalar timestamp

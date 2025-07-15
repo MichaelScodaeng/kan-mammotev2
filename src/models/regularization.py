@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.utils.config import KANMAMOTEConfig
+from src.utils.config import KANMAMMOTEConfig
 from src.layers.kan_base_layer import KANLayer
 # You will need to import MatrixKANLayer if you want to apply regularization to it
 # from MatrixKANLayer import MatrixKANLayer 
@@ -14,7 +14,7 @@ class KANMAMMOTE_RegularizationLosses(nn.Module):
     """
     Module to compute regularization losses for KAN-MAMMOTE.
     """
-    def __init__(self, config: KANMAMOTEConfig):
+    def __init__(self, config: KANMAMMOTEConfig):
         super().__init__()
         self.config = config
 

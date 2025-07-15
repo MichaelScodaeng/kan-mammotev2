@@ -2,7 +2,7 @@
 
 import torch
 
-class KANMAMOTEConfig:
+class KANMAMMOTEConfig:
     """
     Configuration class for the KAN-MAMMOTE model and its components.
     Supports overriding defaults via kwargs.
@@ -64,7 +64,8 @@ class KANMAMOTEConfig:
         self.mamba_chunk_size = kwargs.get('mamba_chunk_size', 256)
         self.mamba_use_mem_eff_path = kwargs.get('mamba_use_mem_eff_path', True)
         self.mamba_layer_idx = kwargs.get('mamba_layer_idx', None)
-
+        self.mamba_d_ssm = kwargs.get('mamba_d_ssm', None) # ADDED THIS LINE
+        
         # Regularization
         self.lambda_sobolev_l2 = kwargs.get('lambda_sobolev_l2', 0.01)
         self.lambda_total_variation = kwargs.get('lambda_total_variation', 0.01)
