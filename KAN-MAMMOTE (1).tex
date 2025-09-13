@@ -282,49 +282,49 @@ To overcome this fundamental trade-off, our work redefines the nature of the tem
 By defining the time encoding in this manner, we enable the downstream GNN to leverage a far more comprehensive temporal signal, allowing it to reason about events based on both their global context and their local recency.
 \section{The KAN-MAMMOTE Framework}
 
-To address the limitations of prior work, we introduce \textbf{KAN-MAMMOTE}, a novel time encoding framework designed to create a unified and expressive representation from both absolute and relative temporal signals. The architecture is founded on three core principles: (1) specialized, dual-stream encoding to capture the distinct nature of absolute and relative time; (2) the use of highly flexible and mathematically principled function approximators for each stream; and (3) a dynamic fusion mechanism that models the interaction between the two temporal aspects. An overview of the full architecture is presented in Figure~\ref{fig:kan-mammote-architecture}. % Assumes you have a label for your diagram
+To address the limitations of prior work, we introduce \textbf{KAN-MAMMOTE}, a novel time encoding framework designed to create a unified and expressive representation from both absolute and relative temporal signals. The architecture is founded on three core principles: (1) specialized, dual-stream encoding to capture the distinct nature of absolute and relative time; (2) the use of highly flexible and mathematically principled function approximators for each stream; and (3) a dynamic fusion mechanism that models the interaction between the two temporal aspects. An overview of the full architecture is presented in Figure~\ref{fig:kan-mammote-architecture}.
 
 \begin{figure}[h!]
     \centering
     % You would include your KAN-MAMMOTE diagram here
     % \includegraphics[width=\textwidth]{path/to/kan-mammote-diagram.png}
-    \caption{The KAN-MAMMOTE architecture. The model processes absolute time ($t_k$) and relative time ($\Delta t$) through two specialized streams, K-MOTE and SM-Kernel, respectively. The resulting embeddings ($u_k, v_k$) are fused to dynamically control a Mamba (SSM) block, which produces the final, unified temporal representation $T_k$.}
+    \caption{The KAN-MAMMOTE architecture. The model processes absolute time ($t_k$) and relative time ($\Delta t$) through two specialized streams, K-MOTE and SM-Kernel, respectively. The resulting embeddings ($\mathbf{u}_k, \mathbf{v}_k$) are used to dynamically modulate a Mamba (SSM) block, which processes the absolute time sequence to produce the final, unified temporal representation $\mathbf{T}_k$.}
     \label{fig:kan-mammote-architecture}
 \end{figure}
 
 \subsection{Dual-Stream Architecture for Temporal Encoding}
-Our framework begins by explicitly separating the encoding of absolute and relative time into two parallel streams, reflecting the dual nature of temporal information as outlined in our rationale. For each event $k$ occurring at timestamp $t_k$, we compute the relative time difference $\Delta t_k = t_k - t_{k-1}$ with respect to the immediately preceding event. These two signals, $t_k$ and $\Delta t_k$, are then fed into their respective specialized encoders.
+Our framework begins by explicitly separating the encoding of absolute and relative time into two parallel streams. For each event $k$ occurring at timestamp $t_k$, we compute the relative time difference $\Delta t_k = t_k - t_{k-1}$ with respect to the immediately preceding event. These two signals, $t_k$ and $\Delta t_k$, are then fed into their respective specialized encoders.
 
 \subsection{Absolute Time Encoding: K-MOTE}
-To capture the complex, non-stationary patterns inherent in absolute timestamps (e.g., seasonality, trends, time-of-day effects), we propose the \textbf{Kolmogorov-Arnold Mixture-of-Time-Experts (K-MOTE)} module. This module is built upon Kolmogorov-Arnold Networks (KANs), a new class of neural networks that feature learnable activation functions on their edges, offering superior flexibility and interpretability compared to traditional MLPs with fixed activations.
-
-Recognizing that no single functional basis is optimal for all temporal patterns, K-MOTE employs a mixture-of-experts design. Each expert is a specialized KAN designed to capture a specific type of pattern:
-\begin{itemize}
-    \item \textbf{Fourier-KAN:} Utilizes Fourier series as its basis functions, making it adept at identifying and modeling periodic patterns (e.g., weekly or daily cycles).
-    \item \textbf{Spline-KAN:} Employs B-splines as its basis, allowing it to flexibly capture local, non-periodic trends and irregular shapes.
-    \item \textbf{Wavelet-KAN:} Uses wavelet bases to capture transient, bursty patterns or abrupt changes in event frequency.
-\end{itemize}
-The outputs of these experts are combined to produce a rich embedding $\mathbf{u}_k \in \mathbb{R}^D$ that represents the absolute time context of the event:
+To capture the complex, non-stationary patterns inherent in absolute timestamps (e.g., seasonality, trends, time-of-day effects), we propose the \textbf{Kolmogorov-Arnold Mixture-of-Time-Experts (K-MOTE)} module. This module is built upon Kolmogorov-Arnold Networks (KANs), which feature learnable activation functions on their edges, offering superior flexibility and interpretability. K-MOTE employs a mixture-of-experts design, with specialized experts (Fourier-KAN, Spline-KAN, Wavelet-KAN) that are adaptively weighted by a gating network to capture a wide spectrum of temporal patterns. The module processes the sequence of absolute timestamps $t_k$ to produce a rich embedding $\mathbf{u}_k \in \mathbb{R}^D$:
 \begin{equation}
     \mathbf{u}_k = \text{K-MOTE}(t_k)
 \end{equation}
 
 \subsection{Relative Time Encoding: SM-Kernel}
-To model the relative time gap $\Delta t_k$, we require a function that is both powerful and adheres to the principle of translation-invariance. For this purpose, we employ a learnable \textbf{Spectral Mixture (SM) Kernel}. Derived from Gaussian Process theory and based on Bochner's theorem, the SM-Kernel models the covariance function as a mixture of Gaussians in the frequency domain.
-
-This choice provides two critical advantages. First, it is \textbf{provably translation-invariant}, correctly modeling the stationary nature of processes like memory decay. Second, it is highly interpretable, as it can automatically discover latent periodicities and aperiodic trends from the data by learning a power spectral density. The SM-Kernel processes the time gap $\Delta t_k$ to produce the relative time embedding $\mathbf{v}_k \in \mathbb{R}^D$:
+To model the relative time gap $\Delta t_k$, we employ a learnable \textbf{Spectral Mixture (SM) Kernel}. Derived from Gaussian Process theory, the SM-Kernel is both \textbf{provably translation-invariant}—correctly modeling the stationary nature of processes like memory decay—and highly interpretable, as it automatically discovers latent periodicities by learning a power spectral density. The SM-Kernel processes the time gap $\Delta t_k$ to produce the relative time embedding $\mathbf{v}_k \in \mathbb{R}^D$:
 \begin{equation}
     \mathbf{v}_k = \text{SM-Kernel}(\Delta t_k)
 \end{equation}
 
-\subsection{Dynamic Temporal Fusion via a Modified Mamba}
-The most significant innovation of our work lies in the fusion of the absolute and relative time embeddings. A simple concatenation or summation would fail to capture the crucial interaction between them (e.g., how the decay of influence over $\Delta t$ might change depending on the absolute time $t_k$).
+\subsection{Dynamic Temporal Fusion via Modulated Mamba}
+The core innovation of our framework lies in how the absolute and relative embeddings are fused. Instead of a simple post-hoc combination, we propose a mechanism that dynamically \textbf{modulates} the internal state transitions of a Mamba2 architecture.
 
-To model this interaction, we repurpose the selective mechanism of a Mamba architecture, a modern State Space Model (SSM). In a standard Mamba model, the selective state-update parameter $\Delta$ is made input-dependent to filter information along a sequence. We adapt this concept by making it \textbf{time-dependent}.
+Mamba's primary strength is its selective State Space Model (SSM), which uses an input-dependent gate, $\Delta$, to control how its recurrent state persists or resets. In Mamba2, this gate, which we term $\mathbf{dt}_{\text{content}}$, is computed from the input sequence—in our case, the absolute time embeddings $\mathbf{u}_k$. This provides the model with content-awareness. Our strategy is to enhance, not replace, this mechanism by injecting our dual-stream temporal knowledge. This is achieved in three steps:
 
-Specifically, the absolute and relative embeddings, $\mathbf{u}_k$ and $\mathbf{v}_k$, are concatenated and passed through a small multi-layer perceptron (MLP) to generate a dynamic, time-aware selection parameter, $\mathbf{\Delta'}_k$:
-\begin{equation}
-    \mathbf{\Delta'}_k = \text{MLP}([\mathbf{u}_k \Vert \mathbf{v}_k])
-\end{equation}
-This parameter $\mathbf{\Delta'}_k$ acts as a learned temporal gate that controls the recurrent state update of a second Mamba block (Mamba2). It allows the model to reason about its own memory, for example, by learning to reset its state (via a large $\mathbf{\Delta'}_k$) after a long period of inactivity, or to persist its state (via a small $\mathbf{\Delta'}_k$) during a burst of events. The final, unified temporal representation $\mathbf{T}_k \in \mathbb{R}^D$ is the output of this Mamba2 block, which has processed the sequence of absolute time embeddings $\mathbf{u}_k$ under the control of the temporal gate $\mathbf{\Delta'}_k$.
+\begin{enumerate}
+    \item \textbf{Content-Gate Calculation:} The sequence of absolute embeddings, $\mathbf{u}_k$, is passed to the Mamba2 block, which computes its internal, content-based gate $\mathbf{dt}_{\text{content}}$ for each event in the sequence.
+    
+    \item \textbf{Temporal-Gate Calculation:} In parallel, both the absolute embedding $\mathbf{u}_k$ and the relative embedding $\mathbf{v}_k$ are concatenated and passed through a dedicated \textbf{Fusion MLP}. This MLP outputs a multiplicative \textit{temporal gate}, $\mathbf{g}_t$, which is scaled by a factor of two and passed through a sigmoid function to be centered around 1.0.
+    \begin{equation}
+        \mathbf{g}_t = 2 \cdot \sigma\left(\text{MLP}([\mathbf{u}_k \Vert \mathbf{v}_k])\right)
+    \end{equation}
+    
+    \item \textbf{Multiplicative Modulation:} The final, fused gate, $\mathbf{dt}_{\text{fused}}$, is computed by the element-wise product of Mamba's content-based gate and our temporal gate. This fused gate is then used to control the state update of the Mamba SSM at every step in the sequence.
+    \begin{equation}
+        \mathbf{dt}_{\text{fused}} = \mathbf{dt}_{\text{content}} \odot \mathbf{g}_t
+    \end{equation}
+\end{enumerate}
+
+This modulation transforms the Mamba2 block into a time-aware sequence model. The learned temporal dynamics act as a controller for its memory, allowing it to amplify, suppress, or maintain its state based on a synergistic combination of sequence content and dual-stream temporal context. The final, unified temporal representation $\mathbf{T}_k \in \mathbb{R}^D$ is the output of this dynamically modulated process.
 \end{document}
