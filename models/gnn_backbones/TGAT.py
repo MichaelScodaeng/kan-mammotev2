@@ -78,8 +78,17 @@ class TGAT(nn.Module):
         assert current_layer_num >= 0
         device = self.node_raw_features.device
 
-        # query (source) node always has the start time with time interval == 0
-        # Tensor, shape (batch_size, 1, time_feat_dim)
+        # --- MODIFICATION START ---
+        # Get absolute and relative time for the source node
+        # t_abs is the actual interaction time.
+        # t_rel is zero since it's the reference point.
+        source_t_abs = torch.from_numpy(node_interact_times).float().to(device)
+        source_t_rel = torch.zeros(node_interact_times.shape).float().to(device)
+
+        # Pass both to the time encoder
+        node_time_features = self.time_encoder(t_abs=source_t_abs.unsqueeze(dim=1),
+                                               t_rel=source_t_rel.unsqueeze(dim=1))
+        
         node_time_features = self.time_encoder(timestamps=torch.zeros(node_interact_times.shape).unsqueeze(dim=1).to(device))
         # Tensor, shape (batch_size, node_feat_dim)
         node_raw_features = self.node_raw_features[torch.from_numpy(node_ids)]
@@ -112,12 +121,24 @@ class TGAT(nn.Module):
             # shape (batch_size, num_neighbors, node_feat_dim)
             neighbor_node_conv_features = neighbor_node_conv_features.reshape(node_ids.shape[0], num_neighbors, self.node_feat_dim)
 
-            # compute time interval between current time and historical interaction time
+            """ # compute time interval between current time and historical interaction time
             # adarray, shape (batch_size, num_neighbors)
             neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
 
             # shape (batch_size, num_neighbors, time_feat_dim)
-            neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(neighbor_delta_times).float().to(device))
+            neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(neighbor_delta_times).float().to(device))"""
+            
+            # --- MODIFICATION START ---
+            # Get absolute and relative time for the neighbors
+            # t_abs is the historical interaction time of the neighbor.
+            neighbor_t_abs = torch.from_numpy(neighbor_times).float().to(device)
+            # t_rel is the time difference.
+            neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
+            neighbor_t_rel = torch.from_numpy(neighbor_delta_times).float().to(device)
+
+            # Pass both to the time encoder
+            neighbor_time_features = self.time_encoder(t_abs=neighbor_t_abs, t_rel=neighbor_t_rel)
+            # --- MODIFICATION END ---
 
             # get edge features, shape (batch_size, num_neighbors, edge_feat_dim)
             neighbor_edge_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]

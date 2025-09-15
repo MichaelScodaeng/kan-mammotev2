@@ -1,18 +1,14 @@
-# file: models/time_encoders/controllable_mamba2.py (Corrected Imports)
+# file: models/controllable_mamba2.py
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
-# --- START OF CORRECTION ---
-# We now import directly from the globally installed libraries,
-# NOT from the local 'imported_lib' folder.
 from mamba_ssm.modules.mamba2 import Mamba2
 from mamba_ssm.ops.triton.ssd_combined import mamba_split_conv1d_scan_combined
-from causal_conv1d import causal_conv1d_update
 from mamba_ssm.ops.triton.selective_state_update import selective_state_update
-# --- END OF CORRECTION ---
+from causal_conv1d import causal_conv1d_update
 
 
 class ControllableMamba2(Mamba2):
@@ -69,8 +65,12 @@ class ControllableMamba2(Mamba2):
         )
 
         # 3. Apply the external temporal gate via multiplicative fusion
-        dt_fused = dt_content * temporal_gate
-
+        # Handle temporal gate properly
+        if temporal_gate is not None:
+            dt_fused = dt_content * temporal_gate
+        else:
+            # If no temporal gate, just use content as-is
+            dt_fused = dt_content
         # 4. Reconstruct the tensor with our new fused gate
         zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1)
 

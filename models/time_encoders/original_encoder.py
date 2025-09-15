@@ -43,40 +43,35 @@ class OriginalTimeEncoder(BaseTimeEncoder):
             self.w.weight.requires_grad = False
             self.w.bias.requires_grad = False
 
-    def forward(self, timestamps: torch.Tensor, time_deltas: torch.Tensor = None) -> torch.Tensor:
+    # MODIFICATION: The forward signature is changed
+    def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
         """
-        Compute time encodings from timestamps.
+        Computes time encodings. Conforms to the unified interface.
         
-        Args:
-            timestamps: Tensor of shape (batch_size,) or (batch_size, seq_len) 
-            time_deltas: Not used in original encoder, kept for interface compatibility
-        
-        Returns:
-            Time encodings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
+        This encoder only uses relative time (t_rel) and ignores t_abs.
         """
-        # Handle different input shapes
+        # The 'timestamps' this encoder needs are the relative time deltas.
+        timestamps = t_rel
+        
+        # --- The rest of the original logic is unchanged ---
         original_shape = timestamps.shape
         
         if timestamps.dim() == 1:
-            # Single timestamps: (batch_size,) -> (batch_size, 1, 1)
             timestamps = timestamps.unsqueeze(-1).unsqueeze(-1)
             single_batch = True
         elif timestamps.dim() == 2:
-            # Sequence timestamps: (batch_size, seq_len) -> (batch_size, seq_len, 1)
             timestamps = timestamps.unsqueeze(-1)
             single_batch = False
         else:
             single_batch = False
+            
+        output = torch.cos(self.w(timestamps))
         
-        # Apply cosine transformation: cos(W * t + b)
-        output = torch.cos(self.w(timestamps))  # Shape: (batch_size, [seq_len,] time_dim)
-        
-        # Restore original shape if needed
         if single_batch and len(original_shape) == 1:
-            output = output.squeeze(1)  # Remove sequence dimension
-        
+            output = output.squeeze(1)
+            
         return output
-    
+        
     def get_config(self) -> dict:
         """Return configuration for reproducibility."""
         config = super().get_config()

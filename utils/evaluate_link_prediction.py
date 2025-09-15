@@ -7,19 +7,22 @@ import warnings
 import json
 import torch.nn as nn
 
-from models.TGAT import TGAT
-from models.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
-from models.CAWN import CAWN
-from models.TCL import TCL
-from models.GraphMixer import GraphMixer
-from models.DyGFormer import DyGFormer
-from models.DyGMamba import DyGMamba
+# Add parent directory to path to access models
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.modules import MergeLayer, MergeLayerTD
+from models.gnn_backbones.TGAT import TGAT
+from models.gnn_backbones.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
+from models.gnn_backbones.CAWN import CAWN
+from models.gnn_backbones.TCL import TCL
+from models.gnn_backbones.GraphMixer import GraphMixer
+from models.gnn_backbones.DyGFormer import DyGFormer
+from models.gnn_backbones.DyGMamba import DyGMamba
+
+from models.gnn_backbones.modules import MergeLayer, MergeLayerTD
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes
 from utils.utils import get_neighbor_sampler, NegativeEdgeSampler
-from evaluate_models_utils import evaluate_model_link_prediction
-from src.DataLoader import get_idx_data_loader, get_link_prediction_data
+from experiments.evaluate_models_utils import evaluate_model_link_prediction
+from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import get_link_prediction_args
 

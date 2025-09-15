@@ -31,18 +31,16 @@ class BaseTimeEncoder(nn.Module, ABC):
         self.device = device
     
     @abstractmethod
-    def forward(self, timestamps: torch.Tensor, time_deltas: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
         """
-        Encode timestamps into embeddings.
+        The unified forward pass for all time encoders.
         
         Args:
-            timestamps: Tensor of shape (batch_size,) or (batch_size, seq_len)
-                       containing absolute timestamps
-            time_deltas: Optional tensor of same shape as timestamps containing
-                        relative time differences. If None, may be computed internally.
+            t_abs (torch.Tensor): Absolute timestamps.
+            t_rel (torch.Tensor): Relative time deltas.
         
         Returns:
-            Time embeddings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
+            torch.Tensor: The final time embedding.
         """
         pass
     

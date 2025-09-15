@@ -10,6 +10,9 @@ import json
 import torch
 import torch.nn as nn
 
+# Add parent directory to Python path to import models
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from models.gnn_backbones.TGAT import TGAT
 from models.gnn_backbones.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
 from models.gnn_backbones.CAWN import CAWN
@@ -98,19 +101,31 @@ if __name__ == "__main__":
 
         logger.info(f'configuration is {args}')
 
-        # create time encoder
+        # --- MODIFICATION START ---
+        # create time encoder using the factory
+        # This now correctly passes the specific args for KAN-MAMMOTE
         time_encoder = create_time_encoder(
             encoder_type=args.time_encoder_type,
             time_dim=args.time_feat_dim,
-            expert_dim=args.expert_dim,
+            device=args.device,
+            # These are passed into **kwargs for the factory
+            expert_dim=args.expert_dim, 
             num_mixtures=args.num_mixtures
         )
         logger.info(f'time encoder type: {args.time_encoder_type}')
 
         # create model
         if args.model_name == 'TGAT':
-            dynamic_backbone = TGAT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                    time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
+            # Pass the created time_encoder to the model's constructor
+            dynamic_backbone = TGAT(node_raw_features=node_raw_features, 
+                                    edge_raw_features=edge_raw_features, 
+                                    neighbor_sampler=train_neighbor_sampler,
+                                    time_feat_dim=args.time_feat_dim, 
+                                    time_encoder=time_encoder,  # Pass the encoder instance here
+                                    num_layers=args.num_layers, 
+                                    num_heads=args.num_heads, 
+                                    dropout=args.dropout, 
+                                    device=args.device)
         elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # four floats that represent the mean and standard deviation of source and destination node time shifts in the training data, which is used for JODIE
             src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \
