@@ -36,34 +36,46 @@ class Time2VecEncoder(BaseTimeEncoder):
         # Move to device
         self.to_device(device)
     
-    def forward(self, timestamps: torch.Tensor, time_deltas: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, timestamps: torch.Tensor = None, time_deltas: Optional[torch.Tensor] = None,
+                t_abs: torch.Tensor = None, t_rel: torch.Tensor = None) -> torch.Tensor:
         """
         Encode timestamps using Time2Vec.
+        Supports both single-stream (timestamps) and dual-stream (t_abs, t_rel) interfaces.
         
         Args:
             timestamps: Tensor of shape (batch_size,) or (batch_size, seq_len) or (batch_size, seq_len, 1)
             time_deltas: Optional, not used in Time2Vec but kept for interface compatibility
+            t_abs: Absolute timestamps (dual-stream interface)
+            t_rel: Relative timestamps (dual-stream interface, not used in Time2Vec)
             
         Returns:
             Time embeddings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
         """
-        # Handle input shapes
-        original_shape = timestamps.shape
+        # Handle different input interfaces
+        if timestamps is not None:
+            input_tensor = timestamps
+        elif t_abs is not None:
+            input_tensor = t_abs.squeeze(-1) if t_abs.dim() > 2 else t_abs
+        else:
+            raise ValueError("Either 'timestamps' or 't_abs' must be provided")
         
-        if timestamps.dim() == 1:
+        # Handle input shapes
+        original_shape = input_tensor.shape
+        
+        if input_tensor.dim() == 1:
             # (batch_size,) -> (batch_size, 1)
-            timestamps = timestamps.unsqueeze(-1)
-        elif timestamps.dim() == 2:
+            input_tensor = input_tensor.unsqueeze(-1)
+        elif input_tensor.dim() == 2:
             # (batch_size, seq_len) -> (batch_size, seq_len, 1)
-            timestamps = timestamps.unsqueeze(-1)
-        elif timestamps.dim() == 3 and timestamps.shape[-1] == 1:
+            input_tensor = input_tensor.unsqueeze(-1)
+        elif input_tensor.dim() == 3 and input_tensor.shape[-1] == 1:
             # Already correct shape (batch_size, seq_len, 1)
             pass
         else:
-            raise ValueError(f"Invalid timestamp shape: {timestamps.shape}")
+            raise ValueError(f"Invalid timestamp shape: {input_tensor.shape}")
         
         # Apply Time2Vec encoding
-        encoded = self.time2vec_layer(timestamps)
+        encoded = self.time2vec_layer(input_tensor)
         
         return encoded
     

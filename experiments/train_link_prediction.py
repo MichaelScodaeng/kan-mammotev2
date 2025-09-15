@@ -29,7 +29,7 @@ from utils.metrics import get_link_prediction_metrics
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import get_link_prediction_args
-
+from models.time_encoders import KAN_MAMMOTE, TimeEncoderWrapper
 if __name__ == "__main__":
 
     warnings.filterwarnings('ignore')
@@ -114,18 +114,30 @@ if __name__ == "__main__":
         )
         logger.info(f'time encoder type: {args.time_encoder_type}')
 
-        # create model
         if args.model_name == 'TGAT':
-            # Pass the created time_encoder to the model's constructor
-            dynamic_backbone = TGAT(node_raw_features=node_raw_features, 
-                                    edge_raw_features=edge_raw_features, 
-                                    neighbor_sampler=train_neighbor_sampler,
-                                    time_feat_dim=args.time_feat_dim, 
-                                    time_encoder=time_encoder,  # Pass the encoder instance here
-                                    num_layers=args.num_layers, 
-                                    num_heads=args.num_heads, 
-                                    dropout=args.dropout, 
-                                    device=args.device)
+        
+            # Use the factory to create the correct time encoder
+            time_encoder = create_time_encoder(
+                encoder_type=args.time_encoder_type,
+                time_dim=args.time_feat_dim,
+                train_data=train_data,
+                train_neighbor_sampler=train_neighbor_sampler,
+                args=args,  # Pass args here - factory will extract needed parameters
+                device=args.device
+            )
+
+            # Inject the created encoder into the single, flexible TGAT backbone
+            dynamic_backbone = TGAT(
+                node_raw_features=node_raw_features, 
+                edge_raw_features=edge_raw_features, 
+                neighbor_sampler=train_neighbor_sampler,
+                time_encoder=time_encoder, # <<<<<< INJECT THE CHOSEN ENCODER
+                time_feat_dim=args.time_feat_dim,
+                num_layers=args.num_layers,
+                num_heads=args.num_heads,
+                dropout=args.dropout,
+                device=args.device
+            )
         elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # four floats that represent the mean and standard deviation of source and destination node time shifts in the training data, which is used for JODIE
             src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \

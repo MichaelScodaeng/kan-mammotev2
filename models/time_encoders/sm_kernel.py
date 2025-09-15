@@ -1,4 +1,4 @@
-# file: models/time_encoders/sm_kernel.py (Final Corrected Initialization)
+# file: models/time_encoders/sm_kernel.py (Final GPU-Compatible Version)
 
 import torch
 import torch.nn as nn
@@ -8,7 +8,8 @@ import numpy as np
 
 class SMKernelLayer(nn.Module):
     """
-    (The class docstring and __init__ method are correct and unchanged)
+    A learnable layer that uses the Spectral Mixture (SM) Kernel to encode
+    relative time differences (delta_t).
     """
     def __init__(self, num_mixtures: int, input_dim: int = 1, use_layernorm: bool = True):
         super().__init__()
@@ -24,6 +25,7 @@ class SMKernelLayer(nn.Module):
     def initialize_from_data(self, delta_t_sample: torch.Tensor):
         """
         Initializes the kernel's parameters based on the frequency spectrum of sample data.
+        This method is now device-agnostic and will run on the same device as the input tensor.
         """
         print("Initializing SM-Kernel from data spectrum...")
         if not isinstance(delta_t_sample, torch.Tensor):
@@ -31,14 +33,16 @@ class SMKernelLayer(nn.Module):
         if delta_t_sample.dim() != 3 or delta_t_sample.shape[-1] != 1:
             raise ValueError("delta_t_sample must have shape (batch_size, seq_len, 1).")
 
+        # Get the device from the input tensor
+        device = delta_t_sample.device
+        
+        # --- START OF CORRECTION ---
+        # Perform all operations on the correct device, removing .cpu() and .numpy()
         delta_t_flat = delta_t_sample.reshape(-1)
         
-        # --- START OF FINAL CORRECTION ---
-        # The signal is a discrete sequence of delta_t values. The sample spacing (d)
-        # between these values is 1. We do not need to calculate it from the values themselves.
-        # This was the source of the previous error.
-        freqs = torch.fft.fftfreq(len(delta_t_flat), d=1.0)
-        # --- END OF FINAL CORRECTION ---
+        # The signal is a discrete sequence. The sample spacing (d) is 1.
+        freqs = torch.fft.fftfreq(len(delta_t_flat), d=1.0, device=device)
+        # --- END OF CORRECTION ---
 
         fft_vals = torch.fft.fft(delta_t_flat.to(dtype=torch.float32))
         power_spectrum = torch.abs(fft_vals)**2
@@ -69,7 +73,7 @@ class SMKernelLayer(nn.Module):
         print(f"SM-Kernel initialized with top frequencies: {top_freqs.tolist()}")
     
     def forward(self, delta_t: torch.Tensor) -> torch.Tensor:
-        """ The forward pass (already corrected). """
+        """ The forward pass (already correct). """
         if delta_t.dim() == 2:
             delta_t = delta_t.unsqueeze(-1)
 

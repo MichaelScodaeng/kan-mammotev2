@@ -46,29 +46,41 @@ class BochnerTimeEncoder(BaseTimeEncoder):
         # Optional learnable scaling
         self.scale = nn.Parameter(torch.ones(1))
     
-    def forward(self, timestamps: torch.Tensor, time_deltas: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, timestamps: torch.Tensor = None, time_deltas: torch.Tensor = None,
+                t_abs: torch.Tensor = None, t_rel: torch.Tensor = None) -> torch.Tensor:
         """
         Encode timestamps using Bochner's random Fourier features.
+        Supports both single-stream (timestamps) and dual-stream (t_abs, t_rel) interfaces.
         
         Args:
             timestamps: Tensor of shape (batch_size,) or (batch_size, seq_len)
             time_deltas: Not used, kept for interface compatibility
+            t_abs: Absolute timestamps (dual-stream interface)
+            t_rel: Relative timestamps (dual-stream interface, not used in Bochner)
         
         Returns:
             Time encodings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
         """
+        # Handle different input interfaces
+        if timestamps is not None:
+            input_tensor = timestamps
+        elif t_abs is not None:
+            input_tensor = t_abs.squeeze(-1) if t_abs.dim() > 2 else t_abs
+        else:
+            raise ValueError("Either 'timestamps' or 't_abs' must be provided")
+        
         # Handle input shapes
-        original_shape = timestamps.shape
-        if timestamps.dim() == 1:
-            timestamps = timestamps.unsqueeze(-1)  # (batch_size, 1)
+        original_shape = input_tensor.shape
+        if input_tensor.dim() == 1:
+            input_tensor = input_tensor.unsqueeze(-1)  # (batch_size, 1)
             squeeze_output = True
         else:
             squeeze_output = False
         
         # Project onto random frequencies: timestamps * frequencies
-        # timestamps: (batch_size, [seq_len])
+        # input_tensor: (batch_size, [seq_len])
         # frequencies: (half_dim,)
-        projected = timestamps.unsqueeze(-1) * self.frequencies  # (batch_size, [seq_len], half_dim)
+        projected = input_tensor.unsqueeze(-1) * self.frequencies  # (batch_size, [seq_len], half_dim)
         
         # Apply cosine and sine to get Fourier features
         cos_features = torch.cos(projected)  # (batch_size, [seq_len], half_dim)

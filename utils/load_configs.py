@@ -27,14 +27,14 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
     parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
     parser.add_argument('--time_gap', type=int, default=2000, help='time gap for neighbors to compute node features')
-    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
+    parser.add_argument('--time_feat_dim', type=int, default=128, help='dimension of the time embedding')
     parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--time_window_mode', type=str, default='fixed_proportion', help='how to select the time window size for time window memory',
                         choices=['fixed_proportion', 'repeat_interval'])
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'kan_mammote'], 
+                        choices=['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec'], 
                         help='type of time encoder to use')
     parser.add_argument('--expert_dim', type=int, default=64, 
                         help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
@@ -59,7 +59,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--max_interaction_times', type=int, default=10,
                         help='max interactions for src and dst to consider')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
-
+    # Arguments specific to KAN-MAMMOTE
 
     try:
         args = parser.parse_args()

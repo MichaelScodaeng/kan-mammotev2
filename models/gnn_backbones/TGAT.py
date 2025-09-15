@@ -7,26 +7,17 @@ from utils.utils import NeighborSampler
 
 
 class TGAT(nn.Module):
-
+    """
+    A clean, refactored TGAT model that uses a standardized dual-stream time encoder.
+    The specific time encoder is injected during initialization.
+    """
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
-                 time_feat_dim: int, num_layers: int = 2, num_heads: int = 2, dropout: float = 0.1, device: str = 'cpu', time_encoder=None):
-        """
-        TGAT model.
-        :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
-        :param edge_raw_features: ndarray, shape (num_edges + 1, edge_feat_dim)
-        :param neighbor_sampler: neighbor sampler
-        :param time_feat_dim: int, dimension of time features (encodings)
-        :param num_layers: int, number of temporal graph convolution layers
-        :param num_heads: int, number of attention heads
-        :param dropout: float, dropout rate
-        :param device: str, device
-        :param time_encoder: optional time encoder, if None will create default TimeEncoder
-        """
+                 time_encoder: nn.Module, time_feat_dim: int, num_layers: int = 2, num_heads: int = 2, 
+                 dropout: float = 0.1, device: str = 'cpu'):
         super(TGAT, self).__init__()
 
         self.node_raw_features = torch.from_numpy(node_raw_features.astype(np.float32)).to(device)
         self.edge_raw_features = torch.from_numpy(edge_raw_features.astype(np.float32)).to(device)
-
         self.neighbor_sampler = neighbor_sampler
         self.node_feat_dim = self.node_raw_features.shape[1]
         self.edge_feat_dim = self.edge_raw_features.shape[1]
@@ -34,135 +25,107 @@ class TGAT(nn.Module):
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.dropout = dropout
+        self.device = device
+        self.time_encoder = time_encoder
 
-        self.time_encoder = time_encoder if time_encoder is not None else TimeEncoder(time_dim=time_feat_dim)
+        self.temporal_conv_layers = nn.ModuleList([MultiHeadAttention(
+            node_feat_dim=self.node_feat_dim,
+            edge_feat_dim=self.edge_feat_dim,
+            time_feat_dim=self.time_feat_dim,
+            num_heads=self.num_heads,
+            dropout=self.dropout) for _ in range(num_layers)])
+            
+        self.merge_layers = nn.ModuleList([MergeLayer(
+            input_dim1=self.node_feat_dim + self.time_feat_dim, 
+            input_dim2=self.node_feat_dim,
+            hidden_dim=self.node_feat_dim, 
+            output_dim=self.node_feat_dim) for _ in range(num_layers)])
 
-        self.temporal_conv_layers = nn.ModuleList([MultiHeadAttention(node_feat_dim=self.node_feat_dim,
-                                                                      edge_feat_dim=self.edge_feat_dim,
-                                                                      time_feat_dim=self.time_feat_dim,
-                                                                      num_heads=self.num_heads,
-                                                                      dropout=self.dropout) for _ in range(num_layers)])
-        # follow the TGAT paper, use merge layer to combine the attention results and node original feature
-        self.merge_layers = nn.ModuleList([MergeLayer(input_dim1=self.node_feat_dim + self.time_feat_dim, input_dim2=self.node_feat_dim,
-                                                      hidden_dim=self.node_feat_dim, output_dim=self.node_feat_dim) for _ in range(num_layers)])
-
-    def compute_src_dst_node_temporal_embeddings(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray,
-                                                 node_interact_times: np.ndarray, num_neighbors: int = 20):
-        """
-        compute source and destination node temporal embeddings
-        :param src_node_ids: ndarray, shape (batch_size, )
-        :param dst_node_ids: ndarray, shape (batch_size, )
-        :param node_interact_times: ndarray, shape (batch_size, )
-        :param num_neighbors: int, number of neighbors to sample for each node
-        :return:
-        """
-        # Tensor, shape (batch_size, node_feat_dim)
-        src_node_embeddings = self.compute_node_temporal_embeddings(node_ids=src_node_ids, node_interact_times=node_interact_times,
-                                                                    current_layer_num=self.num_layers, num_neighbors=num_neighbors)
-        # Tensor, shape (batch_size, node_feat_dim)
-        dst_node_embeddings = self.compute_node_temporal_embeddings(node_ids=dst_node_ids, node_interact_times=node_interact_times,
-                                                                    current_layer_num=self.num_layers, num_neighbors=num_neighbors)
+    def compute_src_dst_node_temporal_embeddings(self, src_node_ids, dst_node_ids, node_interact_times, num_neighbors=20):
+        src_node_embeddings = self.compute_node_temporal_embeddings(src_node_ids, node_interact_times, self.num_layers, num_neighbors)
+        dst_node_embeddings = self.compute_node_temporal_embeddings(dst_node_ids, node_interact_times, self.num_layers, num_neighbors)
         return src_node_embeddings, dst_node_embeddings
 
-    def compute_node_temporal_embeddings(self, node_ids: np.ndarray, node_interact_times: np.ndarray,
-                                         current_layer_num: int, num_neighbors: int = 20):
-        """
-        given node ids node_ids, and the corresponding time node_interact_times,
-        return the temporal embeddings after convolution at the current_layer_num
-        :param node_ids: ndarray, shape (batch_size, ) or (*, ), node ids
-        :param node_interact_times: ndarray, shape (batch_size, ) or (*, ), node interaction times
-        :param current_layer_num: int, current layer number
-        :param num_neighbors: int, number of neighbors to sample for each node
-        :return:
-        """
+    def compute_node_temporal_embeddings(self, node_ids, node_interact_times, current_layer_num, num_neighbors=20):
         assert current_layer_num >= 0
-        device = self.node_raw_features.device
-
-        # --- MODIFICATION START ---
-        # Get absolute and relative time for the source node
-        # t_abs is the actual interaction time.
-        # t_rel is zero since it's the reference point.
-        source_t_abs = torch.from_numpy(node_interact_times).float().to(device)
-        source_t_rel = torch.zeros(node_interact_times.shape).float().to(device)
-
-        # Pass both to the time encoder
-        node_time_features = self.time_encoder(t_abs=source_t_abs.unsqueeze(dim=1),
-                                               t_rel=source_t_rel.unsqueeze(dim=1))
-        
-        node_time_features = self.time_encoder(timestamps=torch.zeros(node_interact_times.shape).unsqueeze(dim=1).to(device))
-        # Tensor, shape (batch_size, node_feat_dim)
         node_raw_features = self.node_raw_features[torch.from_numpy(node_ids)]
 
         if current_layer_num == 0:
             return node_raw_features
         else:
-            # get source node representations by aggregating embeddings from the previous (current_layer_num - 1)-th layer
-            # Tensor, shape (batch_size, node_feat_dim)
-            node_conv_features = self.compute_node_temporal_embeddings(node_ids=node_ids,
-                                                                       node_interact_times=node_interact_times,
-                                                                       current_layer_num=current_layer_num - 1,
-                                                                       num_neighbors=num_neighbors)
-
-            # get temporal neighbors, including neighbor ids, edge ids and time information
-            # neighbor_node_ids, ndarray, shape (batch_size, num_neighbors)
-            # neighbor_edge_ids, ndarray, shape (batch_size, num_neighbors)
-            # neighbor_times, ndarray, shape (batch_size, num_neighbors)
-            neighbor_node_ids, neighbor_edge_ids, neighbor_times = \
-                self.neighbor_sampler.get_historical_neighbors(node_ids=node_ids,
-                                                               node_interact_times=node_interact_times,
-                                                               num_neighbors=num_neighbors)
-
-            # get neighbor features from previous layers
-            # shape (batch_size * num_neighbors, node_feat_dim)
-            neighbor_node_conv_features = self.compute_node_temporal_embeddings(node_ids=neighbor_node_ids.flatten(),
-                                                                                node_interact_times=neighbor_times.flatten(),
-                                                                                current_layer_num=current_layer_num - 1,
-                                                                                num_neighbors=num_neighbors)
-            # shape (batch_size, num_neighbors, node_feat_dim)
-            neighbor_node_conv_features = neighbor_node_conv_features.reshape(node_ids.shape[0], num_neighbors, self.node_feat_dim)
-
-            """ # compute time interval between current time and historical interaction time
-            # adarray, shape (batch_size, num_neighbors)
-            neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
-
-            # shape (batch_size, num_neighbors, time_feat_dim)
-            neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(neighbor_delta_times).float().to(device))"""
+            node_conv_features = self.compute_node_temporal_embeddings(node_ids, node_interact_times, current_layer_num - 1, num_neighbors)
             
-            # --- MODIFICATION START ---
-            # Get absolute and relative time for the neighbors
-            # t_abs is the historical interaction time of the neighbor.
-            neighbor_t_abs = torch.from_numpy(neighbor_times).float().to(device)
-            # t_rel is the time difference.
+            neighbor_node_ids, neighbor_edge_ids, neighbor_times = \
+                self.neighbor_sampler.get_historical_neighbors(node_ids, node_interact_times, num_neighbors)
+            
+            neighbor_conv_features = self.compute_node_temporal_embeddings(neighbor_node_ids.flatten(), neighbor_times.flatten(), current_layer_num - 1, num_neighbors)
+            neighbor_conv_features = neighbor_conv_features.reshape(len(node_ids), num_neighbors, self.node_feat_dim)
+
+            # --- Cleaned Time Logic ---
             neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
-            neighbor_t_rel = torch.from_numpy(neighbor_delta_times).float().to(device)
-
-            # Pass both to the time encoder
+            
+            neighbor_t_abs = torch.from_numpy(neighbor_times).float().to(self.device).unsqueeze(-1)
+            neighbor_t_rel = torch.from_numpy(neighbor_delta_times).float().to(self.device).unsqueeze(-1)
+            
+            # This single call works for both KAN-MAMMOTE and the wrapped TimeEncoder
             neighbor_time_features = self.time_encoder(t_abs=neighbor_t_abs, t_rel=neighbor_t_rel)
-            # --- MODIFICATION END ---
 
-            # get edge features, shape (batch_size, num_neighbors, edge_feat_dim)
+            source_t_abs = torch.from_numpy(node_interact_times).float().to(self.device).unsqueeze(-1).unsqueeze(-1)
+            source_t_rel = torch.zeros_like(source_t_abs)
+            node_time_features = self.time_encoder(t_abs=source_t_abs, t_rel=source_t_rel).squeeze(1)
+            
             neighbor_edge_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]
-            # temporal graph convolution
-            # Tensor, output shape (batch_size, node_feat_dim + time_feat_dim)
-            output, _ = self.temporal_conv_layers[current_layer_num - 1](node_features=node_conv_features,
-                                                                         node_time_features=node_time_features,
-                                                                         neighbor_node_features=neighbor_node_conv_features,
-                                                                         neighbor_node_time_features=neighbor_time_features,
-                                                                         neighbor_node_edge_features=neighbor_edge_features,
-                                                                         neighbor_masks=neighbor_node_ids)
-
-            # Tensor, output shape (batch_size, node_feat_dim)
-            # follow the TGAT paper, use merge layer to combine the attention results and node original feature
+            
+            '''# DIMENSION FIXING: Ensure proper dimensions before attention
+            print(f"DEBUG TGAT: Tensor shapes before attention:")
+            print(f"  - node_conv_features: {node_conv_features.shape}")
+            print(f"  - node_time_features: {node_time_features.shape}")
+            print(f"  - neighbor_conv_features: {neighbor_conv_features.shape}")
+            print(f"  - neighbor_time_features: {neighbor_time_features.shape}")
+            print(f"  - neighbor_edge_features: {neighbor_edge_features.shape}")'''
+            
+            # Fix node_time_features dimensions - should be (batch_size, 1, time_feat_dim)
+            if node_time_features.dim() == 2:  # (batch_size, time_feat_dim)
+                node_time_features = node_time_features.unsqueeze(1)  # (batch_size, 1, time_feat_dim)
+            elif node_time_features.dim() == 3 and node_time_features.shape[1] != 1:
+                node_time_features = node_time_features.mean(dim=1, keepdim=True)  # Average sequence to single timestep
+            
+            # Fix neighbor_time_features dimensions - should be (batch_size, num_neighbors, time_feat_dim)
+            if neighbor_time_features.dim() == 2:  # (batch_size, time_feat_dim)
+                # Expand to match num_neighbors
+                neighbor_time_features = neighbor_time_features.unsqueeze(1).expand(-1, num_neighbors, -1)
+            elif neighbor_time_features.dim() == 4:  # (batch_size, num_neighbors, 1, time_feat_dim)
+                neighbor_time_features = neighbor_time_features.squeeze(2)
+            elif neighbor_time_features.dim() == 3:
+                # Check if we have the right number of neighbors
+                if neighbor_time_features.shape[1] != num_neighbors:
+                    if neighbor_time_features.shape[1] > num_neighbors:
+                        neighbor_time_features = neighbor_time_features[:, :num_neighbors, :]
+                    else:
+                        # Pad with zeros or repeat last
+                        pad_size = num_neighbors - neighbor_time_features.shape[1]
+                        padding = neighbor_time_features[:, -1:, :].expand(-1, pad_size, -1)
+                        neighbor_time_features = torch.cat([neighbor_time_features, padding], dim=1)
+            
+            ''' print(f"DEBUG TGAT: Tensor shapes after fixing:")
+            print(f"  - node_conv_features: {node_conv_features.shape}")
+            print(f"  - node_time_features: {node_time_features.shape}")
+            print(f"  - neighbor_conv_features: {neighbor_conv_features.shape}")
+            print(f"  - neighbor_time_features: {neighbor_time_features.shape}")
+            print(f"  - neighbor_edge_features: {neighbor_edge_features.shape}")'''
+            
+            output, _ = self.temporal_conv_layers[current_layer_num - 1](
+                node_features=node_conv_features,
+                node_time_features=node_time_features,
+                neighbor_node_features=neighbor_conv_features,
+                neighbor_node_time_features=neighbor_time_features,
+                neighbor_node_edge_features=neighbor_edge_features,
+                neighbor_masks=neighbor_node_ids
+            )
             output = self.merge_layers[current_layer_num - 1](input_1=output, input_2=node_raw_features)
-
             return output
 
     def set_neighbor_sampler(self, neighbor_sampler: NeighborSampler):
-        """
-        set neighbor sampler to neighbor_sampler and reset the random state (for reproducing the results for uniform and time_interval_aware sampling)
-        :param neighbor_sampler: NeighborSampler, neighbor sampler
-        :return:
-        """
         self.neighbor_sampler = neighbor_sampler
         if self.neighbor_sampler.sample_neighbor_strategy in ['uniform', 'time_interval_aware']:
             assert self.neighbor_sampler.seed is not None

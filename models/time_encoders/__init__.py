@@ -1,35 +1,46 @@
 """
-Time Encoders for KAN-MAMMOTE Framework
+Time Encoders Module
 
-This module provides various time encoding strategies for continuous-time dynamic graphs:
-- OriginalTimeEncoder: Traditional cosine-based time encoding
-- LeTE: Learnable Time Encoding with Fourier and spline components  
-- KANMammote: Novel dual-stream encoding with K-MOTE and SM-Kernel
+This module provides various time encoding methods for temporal graph neural networks.
 """
 
-from .factory import create_time_encoder, get_available_encoders, get_encoder_config
+from .kan_mammote import KAN_MAMMOTE
+from .factory import (
+    create_time_encoder, 
+    get_available_encoders, 
+    get_encoder_config,
+    TimeEncoderWrapper,
+    list_encoders,
+    create_encoder,  # Alias
+    get_encoders     # Alias
+)
 
-# Import your existing implementations
+# Optional encoders (import only if available)
 try:
-    from .original_encoder import OriginalTimeEncoder
+    from .time2vec_encoder import Time2VecEncoder
+    __all__ = ['KAN_MAMMOTE', 'Time2VecEncoder', 'create_time_encoder', 'get_available_encoders', 
+               'get_encoder_config', 'TimeEncoderWrapper', 'list_encoders']
 except ImportError:
-    OriginalTimeEncoder = None
+    __all__ = ['KAN_MAMMOTE', 'create_time_encoder', 'get_available_encoders', 
+               'get_encoder_config', 'TimeEncoderWrapper', 'list_encoders']
 
 try:
-    from .lete_baseline import CombinedLeTE
+    from .lete_encoder import LeTE
+    __all__.append('LeTE')
 except ImportError:
-    CombinedLeTE = None
+    pass
 
 try:
-    from .kan_mammote import KAN_MAMMOTE
+    from .bochner_encoder import BochnerTimeEncoder
+    __all__.append('BochnerTimeEncoder')
 except ImportError:
-    KAN_MAMMOTE = None
+    pass
 
-__all__ = [
-    'create_time_encoder',
-    'get_available_encoders', 
-    'get_encoder_config',
-    'OriginalTimeEncoder',
-    'CombinedLeTE',
-    'KAN_MAMMOTE'
-]
+try:
+    from .mercer_encoder import MercerTimeEncoder
+    __all__.append('MercerTimeEncoder')
+except ImportError:
+    pass
+
+# Version info
+__version__ = "1.0.0"
