@@ -5,8 +5,8 @@ import glob
 from datetime import datetime
 
 # Define model and dataset choices
-models = ['JODIE', 'DyRep', 'TGN', 'TCL', 'GraphMixer','DyGFormer', 'DyGMamba'] #'CAWN', 
-datasets = ['wikipedia',  'mooc',  'enron', 'SocialEvo', 'uci','reddit'] #,'lastfm',
+models = ['JODIE', 'DyRep', 'TGN', 'TCL', 'GraphMixer','DyGFormer', 'DyGMamba','CAWN', 'TGAT'] #, 
+datasets = ['wikipedia',  'mooc',  'enron', 'SocialEvo', 'uci','reddit','lastfm'] #,,
 
 # File to track completed runs (simple text file)
 log_file = 'completed_experiments_noTime.txt'

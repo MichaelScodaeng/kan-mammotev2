@@ -1,4 +1,4 @@
-# file: models/time_encoders/controllable_mamba2.py (Corrected with FiLM-affine transformation)
+# file: models/time_encoders/controllable_mamba2.py (The Final Fix)
 
 import torch
 import torch.nn as nn
@@ -14,20 +14,13 @@ from causal_conv1d import causal_conv1d_update
 class ControllableMamba2(Mamba2):
     """
     An extension of the Mamba2 model that allows its internal `dt` parameter
-    to be externally modulated by a FiLM-style affine transformation.
+    to be externally modulated. This version includes a definitive fix for the
+    CUDA kernel stride alignment issue.
     """
 
-    def forward(self, u, temporal_modulators, seqlen=None, seq_idx=None, cu_seqlens=None, inference_params=None):
-        """
-        Overrides the standard forward pass to incorporate the temporal modulators.
-
-        Args:
-            u (torch.Tensor): The primary input sequence (e.g., absolute time embeddings).
-            temporal_modulators (tuple): A tuple containing (gamma, beta) tensors for FiLM.
-                                         Both have shape: (B, S, nheads).
-        """
+    def forward(self, u, temporal_gate, seqlen=None, seq_idx=None, cu_seqlens=None, inference_params=None):
         if inference_params is not None and inference_params.seqlen_offset > 0:
-            return self.step_with_gate(u, temporal_modulators, inference_params)
+            return self.step_with_gate(u, temporal_gate, inference_params)
 
         seqlen_og = seqlen
         if seqlen is None:
@@ -42,25 +35,26 @@ class ControllableMamba2(Mamba2):
 
         d_mlp = (zxbcdt.shape[-1] - 2 * self.d_ssm - 2 * self.ngroups * self.d_state - self.nheads) // 2
         split_dims = [d_mlp, d_mlp, self.d_ssm, self.d_ssm + 2 * self.ngroups * self.d_state, self.nheads]
+        xbc_dim = self.d_ssm + 2 * self.ngroups * self.d_state
+        assert xbc_dim % 8 == 0, f"xBC channels ({xbc_dim}) must be divisible by 8 for causal_conv1d CUDA."
         z0, x0, z, xBC, dt_content = torch.split(zxbcdt, split_dims, dim=-1)
         
-        # --- START OF FiLM MODIFICATION ---
-        # Unpack the gamma and beta modulators
-        gamma, beta = temporal_modulators
-        #print("shape of gamma, beta, dt_content:", gamma.shape, beta.shape, dt_content.shape)
-        # Apply the affine transformation: y = gamma * x + beta
-        dt_fused = gamma * dt_content + beta
-        # --- END OF FiLM MODIFICATION ---
-        
-        
-        zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1).contiguous()
+        dt_fused = dt_content * temporal_gate
+        zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1)
+
+        # --- START OF THE DEFINITIVE FIX ---
+        # The split-and-cat operation above can create a tensor with a non-contiguous
+        # memory layout. The CUDA kernel requires a contiguous tensor with aligned strides.
+        # Calling .contiguous() creates a new, clean tensor in memory with the correct layout.
+        zxbcdt_aligned = zxbcdt_modified.contiguous()
+        # --- END OF THE DEFINITIVE FIX ---
 
         A = -torch.exp(self.A_log.float())
         dt_limit_kwargs = {} if self.dt_limit == (0.0, float("inf")) else dict(dt_limit=self.dt_limit)
 
         if self.use_mem_eff_path:
             out = mamba_split_conv1d_scan_combined(
-                zxbcdt_modified,
+                zxbcdt_aligned, # <-- Pass the aligned tensor to the kernel
                 rearrange(self.conv1d.weight, "d 1 w -> d w"),
                 self.conv1d.bias, self.dt_bias, A,
                 D=rearrange(self.D, "(h p) -> h p", p=self.headdim) if self.D_has_hdim else self.D,
@@ -84,15 +78,14 @@ class ControllableMamba2(Mamba2):
             
         return out
 
-    def step_with_gate(self, hidden_states, temporal_modulators, inference_params):
-        """ Wrapper for the step method. """
+    # The step method is unchanged and correct as it doesn't involve the same kind of batch operations
+    def step_with_gate(self, hidden_states, temporal_gate, inference_params):
         conv_state, ssm_state = self._get_states_from_cache(inference_params, batch_size=hidden_states.shape[0])
-        return self.step(hidden_states, conv_state, ssm_state, temporal_modulators)
+        return self.step(hidden_states, conv_state, ssm_state, temporal_gate)
 
-    def step(self, hidden_states, conv_state, ssm_state, temporal_modulators):
-        """ Overrides the step function for autoregressive inference. """
+    def step(self, hidden_states, conv_state, ssm_state, temporal_gate):
         dtype = hidden_states.dtype
-        assert hidden_states.shape[1] == 1
+        assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time"
         zxbcdt = self.in_proj(hidden_states.squeeze(1)).contiguous()
         d_mlp = (zxbcdt.shape[-1] - 2 * self.d_ssm - 2 * self.ngroups * self.d_state - self.nheads) // 2
         z0, x0, z, xBC, dt_content = torch.split(
@@ -100,14 +93,7 @@ class ControllableMamba2(Mamba2):
             [d_mlp, d_mlp, self.d_ssm, self.d_ssm + 2 * self.ngroups * self.d_state, self.nheads],
             dim=-1
         )
-
-        # --- START OF FiLM MODIFICATION (for step) ---
-        gamma, beta = temporal_modulators
-        # Squeeze the sequence length dim (which is 1) from the modulators
-        print("shape of gamma, beta, dt_content:", gamma.shape, beta.shape, dt_content.shape)
-        dt_fused = gamma.squeeze(1) * dt_content + beta.squeeze(1)
-        # --- END OF FiLM MODIFICATION (for step) ---
-
+        dt_fused = dt_content * temporal_gate.squeeze(1)
         xBC = causal_conv1d_update(
             xBC, conv_state, rearrange(self.conv1d.weight, "d 1 w -> d w"),
             self.conv1d.bias, self.activation,

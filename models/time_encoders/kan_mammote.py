@@ -31,12 +31,18 @@ class KAN_MAMMOTE(nn.Module):
             headdim=16                          # NEW: ensures nheads is nice (d_model/16)
         )
         
-        fusion_input_dim = embedding_dim + num_mixtures
+         # --- START OF DEFINITIVE FIX ---
+        # The Fusion MLP's input dimension MUST match the concatenated dimensions
+        # of the K-MOTE output (embedding_dim) and the SM-Kernel output (num_mixtures).
+        fusion_input_dim = num_mixtures
+        
+        # The MLP now needs to output TWO values per head: gamma (scale) and beta (shift).
         self.fusion_mlp = nn.Sequential(
-            nn.Linear(fusion_input_dim, embedding_dim),
+            nn.Linear(fusion_input_dim, embedding_dim), # Corrected input dimension
             nn.GELU(),
-            nn.Linear(embedding_dim, self.mamba2.nheads)
+            nn.Linear(embedding_dim, self.mamba2.nheads * 2) # Output 2 * nheads for gamma and beta
         )
+
         print("Initialized KAN-MAMMOTE Framework (with alignment checks).")
 
     # --- START OF CORRECTION ---
@@ -50,8 +56,15 @@ class KAN_MAMMOTE(nn.Module):
         # The forward pass is already correct
         u_k = self.k_mote(t_abs)
         v_k = self.sm_kernel(t_rel)
-        uv_concat = torch.cat([u_k, v_k], dim=-1)
-        temporal_gate_logits = self.fusion_mlp(uv_concat)
-        temporal_gate = 2 * torch.sigmoid(temporal_gate_logits)
-        final_embedding = self.mamba2(u=u_k, temporal_gate=temporal_gate)
+        uv_concat = v_k
+        
+        modulator_logits = self.fusion_mlp(uv_concat)
+        
+        gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
+        
+        gamma = 2 * torch.sigmoid(gamma_logits)
+        
+        temporal_modulators = (gamma, beta)
+        
+        final_embedding = self.mamba2(u=u_k, temporal_modulators=temporal_modulators)
         return final_embedding
