@@ -9,9 +9,10 @@ from .sm_kernel import SMKernelLayer
 from .controllable_mamba2 import ControllableMamba2
 
 class KAN_MAMMOTE(nn.Module):
-    # The __init__ method is already correct from our last fix.
+    """Enhanced KAN-MAMMOTE with Custom Shock Wavelet for abrupt change detection."""
     def __init__(self, embedding_dim: int, expert_dim: int, num_mixtures: int, 
-                 mamba_d_state: int = 16, mamba_d_conv: int = 4, mamba_expand: int = 2, **kwargs):
+                 mamba_d_state: int = 16, mamba_d_conv: int = 4, mamba_expand: int = 2, 
+                 wavelet_type: str = 'shock', **kwargs):
         super().__init__()
         
         # Enforce that dimensions are multiples of 16 for hardware compatibility.
@@ -21,14 +22,17 @@ class KAN_MAMMOTE(nn.Module):
             raise ValueError(f"mamba_d_state ({mamba_d_state}) must be a multiple of 16 for Mamba2 compatibility.")
         
         self.embedding_dim = embedding_dim
-        self.k_mote = KMOTE(input_dim=1, output_dim=embedding_dim)
+        self.wavelet_type = wavelet_type
+        
+        # Enhanced K-MOTE with configurable wavelet type
+        self.k_mote = KMOTE(input_dim=1, output_dim=embedding_dim, wavelet_type=wavelet_type)
         self.sm_kernel = SMKernelLayer(num_mixtures=num_mixtures, input_dim=1)
         self.mamba2 = ControllableMamba2(
-            d_model=self.embedding_dim,  # you already pad to /8
-            d_state=32,                         # was 16; 32 aligns better
+            d_model=self.embedding_dim,
+            d_state=32,
             d_conv=4,
             expand=2,
-            headdim=16                          # NEW: ensures nheads is nice (d_model/16)
+            headdim=16
         )
         
          # --- START OF DEFINITIVE FIX ---
@@ -43,7 +47,7 @@ class KAN_MAMMOTE(nn.Module):
             nn.Linear(embedding_dim, self.mamba2.nheads * 2) # Output 2 * nheads for gamma and beta
         )
 
-        print("Initialized KAN-MAMMOTE Framework (with alignment checks).")
+        print(f"Initialized Enhanced KAN-MAMMOTE Framework with {wavelet_type} wavelet.")
 
     # --- START OF CORRECTION ---
     # Add this missing helper method
