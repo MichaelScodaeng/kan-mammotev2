@@ -17,4 +17,4 @@ conda activate kan_mammote
 
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_sine.py > experiment_sine_a100_02.log 2>&1
+python experiment_kanmammote.py --single_encoder "kan_mammote" > experiment_kan_mammote_a100_02.log 2>&1

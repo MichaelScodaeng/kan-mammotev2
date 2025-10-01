@@ -30,7 +30,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model_with_loss_return(model, t_data, y_true, epochs=30000, lr=2e-4):
+def train_model_with_loss_return(model, t_data, y_true, epochs=100000, lr=2e-4):
     """Train model and return final loss"""
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5) # Added weight decay for stability
     loss_fn = nn.MSELoss()

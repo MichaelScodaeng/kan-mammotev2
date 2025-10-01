@@ -49,7 +49,7 @@ class TimeEncoderWrapper(torch.nn.Module):
             # Try the dual-stream interface first (t_abs, t_rel)
             try:
                 if t_abs is not None and t_rel is not None:
-                    print(f"DEBUG: Using dual-stream interface (t_abs: {t_abs}, t_rel: {t_rel})")
+                    #print(f"DEBUG: Using dual-stream interface (t_abs: {t_abs}, t_rel: {t_rel})")
                     result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
                 elif timestamps is not None:
                     # Check if encoder supports timestamps parameter

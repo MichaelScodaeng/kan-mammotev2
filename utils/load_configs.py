@@ -26,7 +26,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
     parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
     parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
-    parser.add_argument('--time_gap', type=int, default=2000, help='time gap for neighbors to compute node features')
+    parser.add_argument('--time_gap', type=int, default=2000, help='time ga`p for neighbors to compute node features')
     parser.add_argument('--time_feat_dim', type=int, default=128, help='dimension of the time embedding')
     parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--time_window_mode', type=str, default='fixed_proportion', help='how to select the time window size for time window memory',

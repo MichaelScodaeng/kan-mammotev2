@@ -60,9 +60,9 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TGAT', 'JODIE', 'DyRep', 'TGN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'CAWN']
+models = ['TGAT', 'JODIE', 'DyRep', 'TGN',  'GraphMixer', 'DyGFormer', 'DyGMamba','TCL'] #'TCL','CAWN'
 datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']
-time_encoders = ['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec']
+time_encoders = ['kan_mammote'] #'original', 
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -79,12 +79,15 @@ def parse_arguments():
                         help='Only resume incomplete experiments')
     parser.add_argument('--generate_report', action='store_true',
                         help='Generate experiment report and exit')
-    parser.add_argument('--num_runs', type=int, default=5,
+    parser.add_argument('--num_runs', type=int, default=1,
                         help='Number of runs per experiment (default: 5)')
     parser.add_argument('--timeout_hours', type=float, default=12.0,
                         help='Timeout in hours per experiment (default: 12)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Print commands without executing them')
+    # Optional: override number of epochs; if not set, use best-config defaults
+    parser.add_argument('--num_epochs', type=int, default=None,
+                        help='Override number of training epochs; if omitted, uses best-config default')
     
     return parser.parse_args()
 
@@ -254,32 +257,49 @@ def mark_experiment_complete(combo_key, time_encoder):
 
 def find_checkpoint_file(model_name, dataset_name, time_encoder_type):
     """Find the most recent checkpoint file for resuming"""
-    # Updated path structure to include time encoder type
-    checkpoint_pattern = f"./saved_models/{model_name}/{dataset_name}/*_seed0/checkpoint*.pth"
+    # Prefer encoder-specific run folders if present
+    checkpoint_pattern = f"./saved_models/{model_name}/{dataset_name}/*{time_encoder_type}*_seed0/checkpoint*.pth"
     checkpoint_files = glob.glob(checkpoint_pattern)
     
     if not checkpoint_files:
-        return None
+        # Fallback to legacy pattern without encoder in name
+        checkpoint_pattern = f"./saved_models/{model_name}/{dataset_name}/*_seed0/checkpoint*.pth"
+        checkpoint_files = glob.glob(checkpoint_pattern)
+        if not checkpoint_files:
+            return None
     
     # Return the most recent checkpoint
     checkpoint_files.sort(key=os.path.getmtime, reverse=True)
     return checkpoint_files[0]
 
 def check_training_completion(model_name, dataset_name, time_encoder_type):
-    """Check if training was completed by looking for final results"""
-    # Updated pattern to check for results with time encoder type
-    result_pattern = f"./saved_results/{model_name}/{dataset_name}/*_seed0_*.json"
+    """Check if training was completed by looking for final results (encoder-aware)."""
+    # Prefer encoder-specific filenames (save_model_name now includes encoder)
+    result_pattern = f"./saved_results/{model_name}/{dataset_name}/*{time_encoder_type}*_seed0_*.json"
     result_files = glob.glob(result_pattern)
+
+    # Fallback to legacy filenames if none match
+    if not result_files:
+        result_pattern = f"./saved_results/{model_name}/{dataset_name}/*_seed0_*.json"
+        result_files = glob.glob(result_pattern)
     
-    # Check if any result file contains the time encoder type in its content
+    # Check JSON content for encoder tag
     for result_file in result_files:
         try:
             with open(result_file, 'r') as f:
-                content = f.read()
-                if time_encoder_type in content:
+                data = json.load(f)
+                # New format includes explicit field
+                if isinstance(data, dict) and data.get('time_encoder_type') == time_encoder_type:
                     return True
-        except:
-            continue
+                # Backward-compat: search raw text if load failed or field missing
+        except Exception:
+            try:
+                with open(result_file, 'r') as f:
+                    content = f.read()
+                    if time_encoder_type in content:
+                        return True
+            except Exception:
+                continue
     
     return False
 
@@ -432,6 +452,8 @@ if __name__ == "__main__":
     print(f"Datasets: {datasets_to_run}")
     print(f"Runs per experiment: {args.num_runs}")
     print(f"Timeout: {args.timeout_hours} hours")
+    if args.num_epochs is not None:
+        print(f"Epochs override: {args.num_epochs} (otherwise uses best-config defaults)")
     
     log_file, status_file, progress_file, _ = get_log_files(time_encoder)
     print(f"Status File: {status_file}")
@@ -490,6 +512,10 @@ if __name__ == "__main__":
             '--num_runs', str(args.num_runs),
             '--load_best_configs'
         ]
+
+        # If epochs override provided, pass it through; otherwise rely on best-config defaults
+        if args.num_epochs is not None:
+            command.extend(['--num_epochs', str(args.num_epochs)])
         
         # Add time encoder specific arguments
         encoder_specific_args = get_time_encoder_args(time_encoder_name)

@@ -1,14 +1,8 @@
-#!/bin/csh
-
-#################################################################
-# A40 1GPU Job Script for HPC System "KAGAYAKI" 
-#                                       2022.3.3 k-miya
-#################################################################
-#PBS -N gpu
+#!/bin/bash
 #PBS -j oe
 #PBS -q GPU-1
 #PBS -l select=1:ngpus=1
-#PBS -M s2516027@jaist.ac.jp -m be
+#PBS -M s2516027@jaist.ac.jp
 #PBS -m be
 
 # Load module system
@@ -24,4 +18,4 @@ conda activate kan_mammote
 
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_no.py > experiment_no_1.log 2>&1
+python experiment_original.py --single_encoder "original" > experiment_original_1.log 2>&1

@@ -75,7 +75,8 @@ if __name__ == "__main__":
         set_random_seed(seed=run)
 
         args.seed = run
-        args.save_model_name = f'{args.model_name}_seed{args.seed}'
+        # Include time encoder in save name so logs/models/results are encoder-specific
+        args.save_model_name = f'{args.model_name}_{args.time_encoder_type}_seed{args.seed}'
 
         # set up logger
         logging.basicConfig(level=logging.INFO)
@@ -539,6 +540,7 @@ if __name__ == "__main__":
         # save model result
         if args.model_name not in ['JODIE', 'DyRep', 'TGN']:
             result_json = {
+                "time_encoder_type": args.time_encoder_type,
                 "validate metrics": {metric_name: f'{val_metric_dict[metric_name]:.4f}' for metric_name in val_metric_dict},
                 "new node validate metrics": {metric_name: f'{new_node_val_metric_dict[metric_name]:.4f}' for metric_name in new_node_val_metric_dict},
                 "test metrics": {metric_name: f'{test_metric_dict[metric_name]:.4f}' for metric_name in test_metric_dict},
@@ -546,6 +548,7 @@ if __name__ == "__main__":
             }
         else:
             result_json = {
+                "time_encoder_type": args.time_encoder_type,
                 "test metrics": {metric_name: f'{test_metric_dict[metric_name]:.4f}' for metric_name in test_metric_dict},
                 "new node test metrics": {metric_name: f'{new_node_test_metric_dict[metric_name]:.4f}' for metric_name in new_node_test_metric_dict}
             }

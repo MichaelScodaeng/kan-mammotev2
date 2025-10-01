@@ -59,18 +59,21 @@ class MercerTimeEncoder(BaseTimeEncoder):
             timestamps: Tensor of shape (batch_size,) or (batch_size, seq_len)
             time_deltas: Not used, kept for interface compatibility
             t_abs: Absolute timestamps (dual-stream interface)
-            t_rel: Relative timestamps (dual-stream interface, not used in Mercer)
+            t_rel: Relative timestamps (dual-stream interface). If provided, this is preferred.
         
         Returns:
             Time encodings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
         """
-        # Handle different input interfaces
-        if timestamps is not None:
+        # Handle different input interfaces (prefer relative time if available)
+        if t_rel is not None:
+            input_tensor = t_rel.squeeze(-1) if t_rel.dim() > 2 else t_rel
+        elif timestamps is not None:
             input_tensor = timestamps
         elif t_abs is not None:
+            raise ValueError("Got t_abs not t_rel")
             input_tensor = t_abs.squeeze(-1) if t_abs.dim() > 2 else t_abs
         else:
-            raise ValueError("Either 'timestamps' or 't_abs' must be provided")
+            raise ValueError("One of 't_rel', 'timestamps', or 't_abs' must be provided")
         
         # Handle input shapes
         original_shape = input_tensor.shape

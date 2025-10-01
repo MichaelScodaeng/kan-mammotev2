@@ -25,7 +25,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model(model, t_data, y_true, epochs=3000, lr=2e-4):
+def train_model(model, t_data, y_true, epochs=10000, lr=2e-4):
     """ฟังก์ชันสำหรับเทรนโมเดลเพื่อ fit ข้อมูล"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -194,7 +194,7 @@ def run_fitting_analysis():
         plt.savefig(f'analysis_figures/expert_performance_{safe_filename}.png', dpi=300, bbox_inches='tight')
         plt.show()
 
-def train_model_with_loss_return(model, t_data, y_true, epochs=3000, lr=2e-4):
+def train_model_with_loss_return(model, t_data, y_true, epochs=10000, lr=2e-4):
     """Train model and return final loss"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -265,7 +265,7 @@ def run_interpretability_analysis():
     
     print("[INFO] Training K-MOTE on mixed pattern data...")
     k_mote_model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')  # Use stable wavelet
-    train_model(k_mote_model, t_mixed, y_mixed, epochs=3000, lr=2e-4)
+    train_model(k_mote_model, t_mixed, y_mixed, epochs=10000, lr=2e-4)
     
     # 2. ดึงค่า prediction และ gating weights ออกมา
     k_mote_model.eval()
@@ -418,7 +418,7 @@ def run_expert_capability_matrix():
             model = expert_factory()
             
             # Train and get final loss
-            final_loss = train_model_with_loss_return(model, t, y_data, epochs=3000, lr=2e-4)
+            final_loss = train_model_with_loss_return(model, t, y_data, epochs=10000, lr=2e-4)
             results_matrix[dataset_name][expert_name] = final_loss
             
             print(f"Loss: {final_loss:.6f}")

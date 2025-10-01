@@ -1,0 +1,371 @@
+2025-09-29 23:36:14,276 - root - INFO - ********** Run 1 starts. **********
+2025-09-29 23:36:14,277 - root - INFO - configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='TGAT_seed0')
+2025-09-29 23:36:14,291 - root - INFO - time encoder type: kan_mammote
+2025-09-29 23:36:14,810 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): KAN_MAMMOTE(
+      (k_mote): KMOTE(
+        (experts): ModuleList(
+          (0): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+          )
+          (1): FourierKANLayer()
+          (2): WaveletKANLayer(
+            (linear): Linear(in_features=16, out_features=128, bias=True)
+          )
+          (3): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+            (local_linear): Linear(in_features=8, out_features=128, bias=True)
+          )
+        )
+        (gating_network): Sequential(
+          (0): Linear(in_features=1, out_features=64, bias=True)
+          (1): GELU(approximate='none')
+          (2): Linear(in_features=64, out_features=4, bias=True)
+        )
+        (layer_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      )
+      (sm_kernel): SMKernelLayer(
+        (kernel): SpectralMixtureKernel(
+          (raw_mixture_scales_constraint): Positive()
+          (raw_mixture_means_constraint): Positive()
+          (raw_mixture_weights_constraint): Positive()
+        )
+        (layer_norm): LayerNorm((4,), eps=1e-05, elementwise_affine=True)
+      )
+      (mamba2): ControllableMamba2(
+        (in_proj): Linear(in_features=128, out_features=592, bias=False)
+        (conv1d): Conv1d(320, 320, kernel_size=(4,), stride=(1,), padding=(3,), groups=320)
+        (act): SiLU()
+        (norm): RMSNorm()
+        (out_proj): Linear(in_features=256, out_features=128, bias=False)
+      )
+      (fusion_mlp): Sequential(
+        (0): Linear(in_features=4, out_features=128, bias=True)
+        (1): GELU(approximate='none')
+        (2): Linear(in_features=128, out_features=32, bias=True)
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=300, out_features=300, bias=False)
+        (key_projection): Linear(in_features=472, out_features=300, bias=False)
+        (value_projection): Linear(in_features=472, out_features=300, bias=False)
+        (layer_norm): LayerNorm((300,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=300, out_features=300, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=472, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-09-29 23:36:14,810 - root - INFO - model name: TGAT, #parameters: 5381940 B, 5255.80078125 KB, 5.132617950439453 MB.
+2025-09-30 00:12:21,236 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.2969
+2025-09-30 00:12:21,237 - root - INFO - train average_precision, 0.9395
+2025-09-30 00:12:21,237 - root - INFO - train roc_auc, 0.9433
+2025-09-30 00:12:21,237 - root - INFO - validate loss: 0.2669
+2025-09-30 00:12:21,238 - root - INFO - validate average_precision, 0.9564
+2025-09-30 00:12:21,238 - root - INFO - validate roc_auc, 0.9582
+2025-09-30 00:12:21,238 - root - INFO - new node validate loss: 0.3564
+2025-09-30 00:12:21,238 - root - INFO - new node validate average_precision, 0.9213
+2025-09-30 00:12:21,238 - root - INFO - new node validate roc_auc, 0.9270
+2025-09-30 00:17:56,478 - root - INFO - test loss: 0.2743
+2025-09-30 00:17:56,479 - root - INFO - test average_precision, 0.9549
+2025-09-30 00:17:56,479 - root - INFO - best test average_precision: 0.9549
+2025-09-30 00:17:56,479 - root - INFO - test roc_auc, 0.9568
+2025-09-30 00:17:56,479 - root - INFO - new node test loss: 0.3635
+2025-09-30 00:17:56,479 - root - INFO - new node test average_precision, 0.9186
+2025-09-30 00:17:56,480 - root - INFO - new node test roc_auc, 0.9249
+2025-09-30 00:17:56,480 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 00:53:45,794 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.2711
+2025-09-30 00:53:45,795 - root - INFO - train average_precision, 0.9549
+2025-09-30 00:53:45,795 - root - INFO - train roc_auc, 0.9549
+2025-09-30 00:53:45,796 - root - INFO - validate loss: 0.2355
+2025-09-30 00:53:45,796 - root - INFO - validate average_precision, 0.9664
+2025-09-30 00:53:45,796 - root - INFO - validate roc_auc, 0.9664
+2025-09-30 00:53:45,796 - root - INFO - new node validate loss: 0.3042
+2025-09-30 00:53:45,796 - root - INFO - new node validate average_precision, 0.9399
+2025-09-30 00:53:45,796 - root - INFO - new node validate roc_auc, 0.9436
+2025-09-30 00:59:20,807 - root - INFO - test loss: 0.2395
+2025-09-30 00:59:20,808 - root - INFO - test average_precision, 0.9655
+2025-09-30 00:59:20,808 - root - INFO - best test average_precision: 0.9655
+2025-09-30 00:59:20,808 - root - INFO - test roc_auc, 0.9655
+2025-09-30 00:59:20,808 - root - INFO - new node test loss: 0.3080
+2025-09-30 00:59:20,808 - root - INFO - new node test average_precision, 0.9395
+2025-09-30 00:59:20,808 - root - INFO - new node test roc_auc, 0.9426
+2025-09-30 00:59:20,809 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 01:35:12,899 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.2212
+2025-09-30 01:35:12,900 - root - INFO - train average_precision, 0.9706
+2025-09-30 01:35:12,901 - root - INFO - train roc_auc, 0.9699
+2025-09-30 01:35:12,901 - root - INFO - validate loss: 0.2115
+2025-09-30 01:35:12,901 - root - INFO - validate average_precision, 0.9734
+2025-09-30 01:35:12,901 - root - INFO - validate roc_auc, 0.9730
+2025-09-30 01:35:12,901 - root - INFO - new node validate loss: 0.2777
+2025-09-30 01:35:12,901 - root - INFO - new node validate average_precision, 0.9524
+2025-09-30 01:35:12,901 - root - INFO - new node validate roc_auc, 0.9540
+2025-09-30 01:40:48,863 - root - INFO - test loss: 0.2146
+2025-09-30 01:40:48,863 - root - INFO - test average_precision, 0.9730
+2025-09-30 01:40:48,863 - root - INFO - best test average_precision: 0.9730
+2025-09-30 01:40:48,864 - root - INFO - test roc_auc, 0.9724
+2025-09-30 01:40:48,864 - root - INFO - new node test loss: 0.2807
+2025-09-30 01:40:48,864 - root - INFO - new node test average_precision, 0.9513
+2025-09-30 01:40:48,864 - root - INFO - new node test roc_auc, 0.9530
+2025-09-30 01:40:48,864 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 02:16:35,382 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.2070
+2025-09-30 02:16:35,383 - root - INFO - train average_precision, 0.9743
+2025-09-30 02:16:35,383 - root - INFO - train roc_auc, 0.9735
+2025-09-30 02:16:35,384 - root - INFO - validate loss: 0.2030
+2025-09-30 02:16:35,384 - root - INFO - validate average_precision, 0.9753
+2025-09-30 02:16:35,384 - root - INFO - validate roc_auc, 0.9748
+2025-09-30 02:16:35,384 - root - INFO - new node validate loss: 0.2712
+2025-09-30 02:16:35,384 - root - INFO - new node validate average_precision, 0.9544
+2025-09-30 02:16:35,384 - root - INFO - new node validate roc_auc, 0.9554
+2025-09-30 02:22:10,227 - root - INFO - test loss: 0.2060
+2025-09-30 02:22:10,228 - root - INFO - test average_precision, 0.9749
+2025-09-30 02:22:10,228 - root - INFO - best test average_precision: 0.9749
+2025-09-30 02:22:10,228 - root - INFO - test roc_auc, 0.9743
+2025-09-30 02:22:10,228 - root - INFO - new node test loss: 0.2743
+2025-09-30 02:22:10,228 - root - INFO - new node test average_precision, 0.9535
+2025-09-30 02:22:10,228 - root - INFO - new node test roc_auc, 0.9545
+2025-09-30 02:22:10,228 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 02:57:59,249 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.1981
+2025-09-30 02:57:59,250 - root - INFO - train average_precision, 0.9764
+2025-09-30 02:57:59,251 - root - INFO - train roc_auc, 0.9757
+2025-09-30 02:57:59,251 - root - INFO - validate loss: 0.1955
+2025-09-30 02:57:59,251 - root - INFO - validate average_precision, 0.9773
+2025-09-30 02:57:59,251 - root - INFO - validate roc_auc, 0.9767
+2025-09-30 02:57:59,251 - root - INFO - new node validate loss: 0.2615
+2025-09-30 02:57:59,251 - root - INFO - new node validate average_precision, 0.9583
+2025-09-30 02:57:59,251 - root - INFO - new node validate roc_auc, 0.9589
+2025-09-30 03:03:35,287 - root - INFO - test loss: 0.1980
+2025-09-30 03:03:35,288 - root - INFO - test average_precision, 0.9769
+2025-09-30 03:03:35,288 - root - INFO - best test average_precision: 0.9769
+2025-09-30 03:03:35,288 - root - INFO - test roc_auc, 0.9762
+2025-09-30 03:03:35,288 - root - INFO - new node test loss: 0.2654
+2025-09-30 03:03:35,288 - root - INFO - new node test average_precision, 0.9573
+2025-09-30 03:03:35,288 - root - INFO - new node test roc_auc, 0.9576
+2025-09-30 03:03:35,289 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 03:39:23,080 - root - INFO - Epoch: 6, learning rate: 0.0001, train loss: 0.1933
+2025-09-30 03:39:23,081 - root - INFO - train average_precision, 0.9776
+2025-09-30 03:39:23,082 - root - INFO - train roc_auc, 0.9768
+2025-09-30 03:39:23,082 - root - INFO - validate loss: 0.1915
+2025-09-30 03:39:23,082 - root - INFO - validate average_precision, 0.9780
+2025-09-30 03:39:23,082 - root - INFO - validate roc_auc, 0.9775
+2025-09-30 03:39:23,082 - root - INFO - new node validate loss: 0.2595
+2025-09-30 03:39:23,082 - root - INFO - new node validate average_precision, 0.9587
+2025-09-30 03:39:23,082 - root - INFO - new node validate roc_auc, 0.9592
+2025-09-30 03:44:59,027 - root - INFO - test loss: 0.1948
+2025-09-30 03:44:59,028 - root - INFO - test average_precision, 0.9774
+2025-09-30 03:44:59,028 - root - INFO - best test average_precision: 0.9774
+2025-09-30 03:44:59,028 - root - INFO - test roc_auc, 0.9768
+2025-09-30 03:44:59,028 - root - INFO - new node test loss: 0.2625
+2025-09-30 03:44:59,028 - root - INFO - new node test average_precision, 0.9578
+2025-09-30 03:44:59,028 - root - INFO - new node test roc_auc, 0.9582
+2025-09-30 03:44:59,028 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 04:20:46,641 - root - INFO - Epoch: 7, learning rate: 0.0001, train loss: 0.1898
+2025-09-30 04:20:46,642 - root - INFO - train average_precision, 0.9782
+2025-09-30 04:20:46,642 - root - INFO - train roc_auc, 0.9776
+2025-09-30 04:20:46,642 - root - INFO - validate loss: 0.1886
+2025-09-30 04:20:46,642 - root - INFO - validate average_precision, 0.9789
+2025-09-30 04:20:46,642 - root - INFO - validate roc_auc, 0.9784
+2025-09-30 04:20:46,642 - root - INFO - new node validate loss: 0.2536
+2025-09-30 04:20:46,642 - root - INFO - new node validate average_precision, 0.9610
+2025-09-30 04:20:46,643 - root - INFO - new node validate roc_auc, 0.9614
+2025-09-30 04:26:21,708 - root - INFO - test loss: 0.1918
+2025-09-30 04:26:21,709 - root - INFO - test average_precision, 0.9784
+2025-09-30 04:26:21,709 - root - INFO - best test average_precision: 0.9784
+2025-09-30 04:26:21,709 - root - INFO - test roc_auc, 0.9778
+2025-09-30 04:26:21,709 - root - INFO - new node test loss: 0.2583
+2025-09-30 04:26:21,709 - root - INFO - new node test average_precision, 0.9596
+2025-09-30 04:26:21,709 - root - INFO - new node test roc_auc, 0.9600
+2025-09-30 04:26:21,710 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 05:02:11,180 - root - INFO - Epoch: 8, learning rate: 0.0001, train loss: 0.1861
+2025-09-30 05:02:11,181 - root - INFO - train average_precision, 0.9790
+2025-09-30 05:02:11,181 - root - INFO - train roc_auc, 0.9784
+2025-09-30 05:02:11,181 - root - INFO - validate loss: 0.1860
+2025-09-30 05:02:11,181 - root - INFO - validate average_precision, 0.9795
+2025-09-30 05:02:11,181 - root - INFO - validate roc_auc, 0.9791
+2025-09-30 05:02:11,181 - root - INFO - new node validate loss: 0.2561
+2025-09-30 05:02:11,181 - root - INFO - new node validate average_precision, 0.9606
+2025-09-30 05:02:11,181 - root - INFO - new node validate roc_auc, 0.9612
+2025-09-30 05:07:46,966 - root - INFO - test loss: 0.1896
+2025-09-30 05:07:46,967 - root - INFO - test average_precision, 0.9789
+2025-09-30 05:07:46,967 - root - INFO - best test average_precision: 0.9789
+2025-09-30 05:07:46,967 - root - INFO - test roc_auc, 0.9784
+2025-09-30 05:07:46,967 - root - INFO - new node test loss: 0.2596
+2025-09-30 05:07:46,967 - root - INFO - new node test average_precision, 0.9597
+2025-09-30 05:07:46,967 - root - INFO - new node test roc_auc, 0.9603
+2025-09-30 05:07:46,967 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 05:43:36,048 - root - INFO - Epoch: 9, learning rate: 0.0001, train loss: 0.1831
+2025-09-30 05:43:36,050 - root - INFO - train average_precision, 0.9797
+2025-09-30 05:43:36,050 - root - INFO - train roc_auc, 0.9790
+2025-09-30 05:43:36,050 - root - INFO - validate loss: 0.1854
+2025-09-30 05:43:36,050 - root - INFO - validate average_precision, 0.9796
+2025-09-30 05:43:36,050 - root - INFO - validate roc_auc, 0.9792
+2025-09-30 05:43:36,050 - root - INFO - new node validate loss: 0.2547
+2025-09-30 05:43:36,050 - root - INFO - new node validate average_precision, 0.9612
+2025-09-30 05:43:36,050 - root - INFO - new node validate roc_auc, 0.9616
+2025-09-30 05:49:11,403 - root - INFO - test loss: 0.1893
+2025-09-30 05:49:11,404 - root - INFO - test average_precision, 0.9789
+2025-09-30 05:49:11,404 - root - INFO - best test average_precision: 0.9789
+2025-09-30 05:49:11,404 - root - INFO - test roc_auc, 0.9784
+2025-09-30 05:49:11,404 - root - INFO - new node test loss: 0.2590
+2025-09-30 05:49:11,404 - root - INFO - new node test average_precision, 0.9601
+2025-09-30 05:49:11,404 - root - INFO - new node test roc_auc, 0.9604
+2025-09-30 05:49:11,405 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 06:25:00,476 - root - INFO - Epoch: 10, learning rate: 0.0001, train loss: 0.1797
+2025-09-30 06:25:00,476 - root - INFO - train average_precision, 0.9803
+2025-09-30 06:25:00,477 - root - INFO - train roc_auc, 0.9797
+2025-09-30 06:25:00,477 - root - INFO - validate loss: 0.1817
+2025-09-30 06:25:00,477 - root - INFO - validate average_precision, 0.9803
+2025-09-30 06:25:00,477 - root - INFO - validate roc_auc, 0.9798
+2025-09-30 06:25:00,477 - root - INFO - new node validate loss: 0.2518
+2025-09-30 06:25:00,477 - root - INFO - new node validate average_precision, 0.9616
+2025-09-30 06:25:00,477 - root - INFO - new node validate roc_auc, 0.9621
+2025-09-30 06:30:35,870 - root - INFO - test loss: 0.1855
+2025-09-30 06:30:35,871 - root - INFO - test average_precision, 0.9795
+2025-09-30 06:30:35,871 - root - INFO - best test average_precision: 0.9795
+2025-09-30 06:30:35,871 - root - INFO - test roc_auc, 0.9790
+2025-09-30 06:30:35,871 - root - INFO - new node test loss: 0.2519
+2025-09-30 06:30:35,871 - root - INFO - new node test average_precision, 0.9616
+2025-09-30 06:30:35,871 - root - INFO - new node test roc_auc, 0.9619
+2025-09-30 06:30:35,871 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 07:06:24,874 - root - INFO - Epoch: 11, learning rate: 0.0001, train loss: 0.1803
+2025-09-30 07:06:24,875 - root - INFO - train average_precision, 0.9802
+2025-09-30 07:06:24,876 - root - INFO - train roc_auc, 0.9795
+2025-09-30 07:06:24,876 - root - INFO - validate loss: 0.1774
+2025-09-30 07:06:24,876 - root - INFO - validate average_precision, 0.9813
+2025-09-30 07:06:24,876 - root - INFO - validate roc_auc, 0.9809
+2025-09-30 07:06:24,876 - root - INFO - new node validate loss: 0.2399
+2025-09-30 07:06:24,876 - root - INFO - new node validate average_precision, 0.9662
+2025-09-30 07:06:24,876 - root - INFO - new node validate roc_auc, 0.9662
+2025-09-30 07:12:00,474 - root - INFO - test loss: 0.1804
+2025-09-30 07:12:00,475 - root - INFO - test average_precision, 0.9809
+2025-09-30 07:12:00,475 - root - INFO - best test average_precision: 0.9809
+2025-09-30 07:12:00,475 - root - INFO - test roc_auc, 0.9804
+2025-09-30 07:12:00,475 - root - INFO - new node test loss: 0.2453
+2025-09-30 07:12:00,476 - root - INFO - new node test average_precision, 0.9647
+2025-09-30 07:12:00,476 - root - INFO - new node test roc_auc, 0.9647
+2025-09-30 07:12:00,476 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 07:47:53,772 - root - INFO - Epoch: 12, learning rate: 0.0001, train loss: 0.1746
+2025-09-30 07:47:53,773 - root - INFO - train average_precision, 0.9813
+2025-09-30 07:47:53,773 - root - INFO - train roc_auc, 0.9807
+2025-09-30 07:47:53,773 - root - INFO - validate loss: 0.1746
+2025-09-30 07:47:53,774 - root - INFO - validate average_precision, 0.9818
+2025-09-30 07:47:53,774 - root - INFO - validate roc_auc, 0.9815
+2025-09-30 07:47:53,774 - root - INFO - new node validate loss: 0.2395
+2025-09-30 07:47:53,774 - root - INFO - new node validate average_precision, 0.9660
+2025-09-30 07:47:53,774 - root - INFO - new node validate roc_auc, 0.9662
+2025-09-30 07:53:28,593 - root - INFO - test loss: 0.1786
+2025-09-30 07:53:28,594 - root - INFO - test average_precision, 0.9813
+2025-09-30 07:53:28,594 - root - INFO - best test average_precision: 0.9813
+2025-09-30 07:53:28,594 - root - INFO - test roc_auc, 0.9808
+2025-09-30 07:53:28,594 - root - INFO - new node test loss: 0.2442
+2025-09-30 07:53:28,594 - root - INFO - new node test average_precision, 0.9648
+2025-09-30 07:53:28,594 - root - INFO - new node test roc_auc, 0.9650
+2025-09-30 07:53:28,595 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 08:29:18,586 - root - INFO - Epoch: 13, learning rate: 0.0001, train loss: 0.1718
+2025-09-30 08:29:18,586 - root - INFO - train average_precision, 0.9821
+2025-09-30 08:29:18,587 - root - INFO - train roc_auc, 0.9814
+2025-09-30 08:29:18,587 - root - INFO - validate loss: 0.1725
+2025-09-30 08:29:18,587 - root - INFO - validate average_precision, 0.9821
+2025-09-30 08:29:18,587 - root - INFO - validate roc_auc, 0.9818
+2025-09-30 08:29:18,587 - root - INFO - new node validate loss: 0.2372
+2025-09-30 08:29:18,587 - root - INFO - new node validate average_precision, 0.9660
+2025-09-30 08:29:18,587 - root - INFO - new node validate roc_auc, 0.9664
+2025-09-30 08:34:51,967 - root - INFO - test loss: 0.1769
+2025-09-30 08:34:51,967 - root - INFO - test average_precision, 0.9815
+2025-09-30 08:34:51,967 - root - INFO - best test average_precision: 0.9815
+2025-09-30 08:34:51,967 - root - INFO - test roc_auc, 0.9810
+2025-09-30 08:34:51,967 - root - INFO - new node test loss: 0.2415
+2025-09-30 08:34:51,967 - root - INFO - new node test average_precision, 0.9653
+2025-09-30 08:34:51,968 - root - INFO - new node test roc_auc, 0.9654
+2025-09-30 08:34:51,968 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 09:10:42,118 - root - INFO - Epoch: 14, learning rate: 0.0001, train loss: 0.1697
+2025-09-30 09:10:42,118 - root - INFO - train average_precision, 0.9824
+2025-09-30 09:10:42,119 - root - INFO - train roc_auc, 0.9818
+2025-09-30 09:10:42,119 - root - INFO - validate loss: 0.1697
+2025-09-30 09:10:42,119 - root - INFO - validate average_precision, 0.9828
+2025-09-30 09:10:42,119 - root - INFO - validate roc_auc, 0.9824
+2025-09-30 09:10:42,119 - root - INFO - new node validate loss: 0.2298
+2025-09-30 09:10:42,119 - root - INFO - new node validate average_precision, 0.9684
+2025-09-30 09:10:42,119 - root - INFO - new node validate roc_auc, 0.9684
+2025-09-30 09:16:17,966 - root - INFO - test loss: 0.1732
+2025-09-30 09:16:17,967 - root - INFO - test average_precision, 0.9822
+2025-09-30 09:16:17,967 - root - INFO - best test average_precision: 0.9822
+2025-09-30 09:16:17,967 - root - INFO - test roc_auc, 0.9818
+2025-09-30 09:16:17,967 - root - INFO - new node test loss: 0.2360
+2025-09-30 09:16:17,968 - root - INFO - new node test average_precision, 0.9669
+2025-09-30 09:16:17,968 - root - INFO - new node test roc_auc, 0.9670
+2025-09-30 09:16:17,968 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 09:52:06,409 - root - INFO - Epoch: 15, learning rate: 0.0001, train loss: 0.1673
+2025-09-30 09:52:06,410 - root - INFO - train average_precision, 0.9826
+2025-09-30 09:52:06,410 - root - INFO - train roc_auc, 0.9822
+2025-09-30 09:52:06,410 - root - INFO - validate loss: 0.1695
+2025-09-30 09:52:06,410 - root - INFO - validate average_precision, 0.9826
+2025-09-30 09:52:06,410 - root - INFO - validate roc_auc, 0.9824
+2025-09-30 09:52:06,410 - root - INFO - new node validate loss: 0.2350
+2025-09-30 09:52:06,410 - root - INFO - new node validate average_precision, 0.9667
+2025-09-30 09:52:06,410 - root - INFO - new node validate roc_auc, 0.9671
+2025-09-30 09:57:41,301 - root - INFO - test loss: 0.1738
+2025-09-30 09:57:41,302 - root - INFO - test average_precision, 0.9821
+2025-09-30 09:57:41,302 - root - INFO - best test average_precision: 0.9822
+2025-09-30 09:57:41,302 - root - INFO - test roc_auc, 0.9817
+2025-09-30 09:57:41,302 - root - INFO - new node test loss: 0.2411
+2025-09-30 09:57:41,302 - root - INFO - new node test average_precision, 0.9658
+2025-09-30 09:57:41,302 - root - INFO - new node test roc_auc, 0.9657
+2025-09-30 10:33:29,102 - root - INFO - Epoch: 16, learning rate: 0.0001, train loss: 0.1653
+2025-09-30 10:33:29,103 - root - INFO - train average_precision, 0.9832
+2025-09-30 10:33:29,103 - root - INFO - train roc_auc, 0.9826
+2025-09-30 10:33:29,103 - root - INFO - validate loss: 0.1673
+2025-09-30 10:33:29,103 - root - INFO - validate average_precision, 0.9830
+2025-09-30 10:33:29,103 - root - INFO - validate roc_auc, 0.9828
+2025-09-30 10:33:29,103 - root - INFO - new node validate loss: 0.2287
+2025-09-30 10:33:29,103 - root - INFO - new node validate average_precision, 0.9688
+2025-09-30 10:33:29,103 - root - INFO - new node validate roc_auc, 0.9689
+2025-09-30 10:39:04,093 - root - INFO - test loss: 0.1713
+2025-09-30 10:39:04,093 - root - INFO - test average_precision, 0.9825
+2025-09-30 10:39:04,093 - root - INFO - best test average_precision: 0.9825
+2025-09-30 10:39:04,093 - root - INFO - test roc_auc, 0.9822
+2025-09-30 10:39:04,093 - root - INFO - new node test loss: 0.2342
+2025-09-30 10:39:04,094 - root - INFO - new node test average_precision, 0.9677
+2025-09-30 10:39:04,094 - root - INFO - new node test roc_auc, 0.9678
+2025-09-30 10:39:04,094 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
+2025-09-30 11:14:54,338 - root - INFO - Epoch: 17, learning rate: 0.0001, train loss: 0.1651
+2025-09-30 11:14:54,339 - root - INFO - train average_precision, 0.9832
+2025-09-30 11:14:54,339 - root - INFO - train roc_auc, 0.9827
+2025-09-30 11:14:54,339 - root - INFO - validate loss: 0.1659
+2025-09-30 11:14:54,339 - root - INFO - validate average_precision, 0.9833
+2025-09-30 11:14:54,339 - root - INFO - validate roc_auc, 0.9830
+2025-09-30 11:14:54,339 - root - INFO - new node validate loss: 0.2243
+2025-09-30 11:14:54,339 - root - INFO - new node validate average_precision, 0.9695
+2025-09-30 11:14:54,339 - root - INFO - new node validate roc_auc, 0.9694
+2025-09-30 11:20:29,575 - root - INFO - test loss: 0.1690
+2025-09-30 11:20:29,576 - root - INFO - test average_precision, 0.9828
+2025-09-30 11:20:29,576 - root - INFO - best test average_precision: 0.9828
+2025-09-30 11:20:29,576 - root - INFO - test roc_auc, 0.9825
+2025-09-30 11:20:29,576 - root - INFO - new node test loss: 0.2296
+2025-09-30 11:20:29,576 - root - INFO - new node test average_precision, 0.9680
+2025-09-30 11:20:29,576 - root - INFO - new node test roc_auc, 0.9680
+2025-09-30 11:20:29,576 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_seed0/TGAT_seed0.pkl
