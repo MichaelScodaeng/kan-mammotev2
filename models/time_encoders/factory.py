@@ -318,7 +318,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             print("Initializing SM-Kernel for KAN-MAMMOTE Lite from training data...")
             batch_size = 200
             node_interact_times = train_data.node_interact_times
-            node_idx_array = np.arange(train_data.num_nodes)
+            node_idx_array = np.arange(train_data.num_unique_nodes)  # Fixed: use num_unique_nodes
             
             sampled_indices = np.random.choice(len(node_idx_array), size=min(batch_size, len(node_idx_array)), replace=False)
             sampled_node_ids = node_idx_array[sampled_indices]
