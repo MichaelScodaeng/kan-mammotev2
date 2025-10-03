@@ -1,0 +1,103 @@
+2025-10-02 22:19:59,681 - root - INFO - ********** Run 1 starts. **********
+2025-10-02 22:19:59,681 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TCL', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='TCL_kan_mammote_seed0')
+2025-10-02 22:19:59,694 - root - INFO - time encoder type: kan_mammote
+2025-10-02 22:19:59,937 - root - INFO - model -> Sequential(
+  (0): TCL(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=128, bias=True)
+    )
+    (depth_embedding): Embedding(21, 172)
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=172, bias=True)
+      (edge): Linear(in_features=172, out_features=172, bias=True)
+      (time): Linear(in_features=128, out_features=172, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=172, out_features=172, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=172, out_features=688, bias=True)
+          (1): Linear(in_features=688, out_features=172, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=172, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-02 22:19:59,938 - root - INFO - model name: TCL, #parameters: 3557300 B, 3473.92578125 KB, 3.392505645751953 MB.
+2025-10-02 22:20:21,750 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.3443
+2025-10-02 22:20:21,751 - root - INFO - train average_precision, 0.9234
+2025-10-02 22:20:21,751 - root - INFO - train roc_auc, 0.9224
+2025-10-02 22:20:21,751 - root - INFO - validate loss: 0.3205
+2025-10-02 22:20:21,752 - root - INFO - validate average_precision, 0.9398
+2025-10-02 22:20:21,752 - root - INFO - validate roc_auc, 0.9353
+2025-10-02 22:20:21,752 - root - INFO - new node validate loss: 0.3034
+2025-10-02 22:20:21,752 - root - INFO - new node validate average_precision, 0.9403
+2025-10-02 22:20:21,752 - root - INFO - new node validate roc_auc, 0.9416
+2025-10-02 22:20:25,158 - root - INFO - test loss: 0.3483
+2025-10-02 22:20:25,158 - root - INFO - test average_precision, 0.9291
+2025-10-02 22:20:25,158 - root - INFO - best test average_precision: 0.9291
+2025-10-02 22:20:25,158 - root - INFO - test roc_auc, 0.9217
+2025-10-02 22:20:25,158 - root - INFO - new node test loss: 0.3441
+2025-10-02 22:20:25,159 - root - INFO - new node test average_precision, 0.9277
+2025-10-02 22:20:25,159 - root - INFO - new node test roc_auc, 0.9240
+2025-10-02 22:20:25,159 - root - INFO - save model ./saved_models/TCL/wikipedia/TCL_kan_mammote_seed0/TCL_kan_mammote_seed0.pkl
+2025-10-02 22:20:45,941 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.3028
+2025-10-02 22:20:45,942 - root - INFO - train average_precision, 0.9448
+2025-10-02 22:20:45,942 - root - INFO - train roc_auc, 0.9408
+2025-10-02 22:20:45,942 - root - INFO - validate loss: 0.3221
+2025-10-02 22:20:45,942 - root - INFO - validate average_precision, 0.9414
+2025-10-02 22:20:45,942 - root - INFO - validate roc_auc, 0.9342
+2025-10-02 22:20:45,942 - root - INFO - new node validate loss: 0.3040
+2025-10-02 22:20:45,942 - root - INFO - new node validate average_precision, 0.9454
+2025-10-02 22:20:45,942 - root - INFO - new node validate roc_auc, 0.9415
+2025-10-02 22:20:49,326 - root - INFO - test loss: 0.3533
+2025-10-02 22:20:49,326 - root - INFO - test average_precision, 0.9285
+2025-10-02 22:20:49,326 - root - INFO - best test average_precision: 0.9291
+2025-10-02 22:20:49,326 - root - INFO - test roc_auc, 0.9185
+2025-10-02 22:20:49,326 - root - INFO - new node test loss: 0.3445
+2025-10-02 22:20:49,326 - root - INFO - new node test average_precision, 0.9299
+2025-10-02 22:20:49,326 - root - INFO - new node test roc_auc, 0.9230
+2025-10-02 22:20:49,326 - root - INFO - load model ./saved_models/TCL/wikipedia/TCL_kan_mammote_seed0/TCL_kan_mammote_seed0.pkl
+2025-10-02 22:20:49,336 - root - INFO - get final performance on dataset wikipedia...
+2025-10-02 22:20:56,133 - root - INFO - validate loss: 0.3205
+2025-10-02 22:20:56,133 - root - INFO - validate average_precision, 0.9398
+2025-10-02 22:20:56,134 - root - INFO - validate roc_auc, 0.9353
+2025-10-02 22:20:56,134 - root - INFO - new node validate loss: 0.3034
+2025-10-02 22:20:56,134 - root - INFO - new node validate average_precision, 0.9403
+2025-10-02 22:20:56,134 - root - INFO - new node validate roc_auc, 0.9416
+2025-10-02 22:20:56,134 - root - INFO - test loss: 0.3483
+2025-10-02 22:20:56,134 - root - INFO - test average_precision, 0.9291
+2025-10-02 22:20:56,134 - root - INFO - test roc_auc, 0.9217
+2025-10-02 22:20:56,134 - root - INFO - new node test loss: 0.3441
+2025-10-02 22:20:56,134 - root - INFO - new node test average_precision, 0.9277
+2025-10-02 22:20:56,134 - root - INFO - new node test roc_auc, 0.9240
+2025-10-02 22:20:56,134 - root - INFO - Run 1 cost 56.45 seconds.
+2025-10-02 22:20:56,143 - root - INFO - metrics over 1 runs:
+2025-10-02 22:20:56,143 - root - INFO - validate average_precision, [np.float64(0.9397781315469004)]
+2025-10-02 22:20:56,143 - root - INFO - average validate average_precision, 0.9398 ± nan
+2025-10-02 22:20:56,143 - root - INFO - validate roc_auc, [np.float64(0.9353150388726922)]
+2025-10-02 22:20:56,143 - root - INFO - average validate roc_auc, 0.9353 ± nan
+2025-10-02 22:20:56,143 - root - INFO - new node validate average_precision, [np.float64(0.9403271077482656)]
+2025-10-02 22:20:56,144 - root - INFO - average new node validate average_precision, 0.9403 ± nan
+2025-10-02 22:20:56,144 - root - INFO - new node validate roc_auc, [np.float64(0.9415821721311477)]
+2025-10-02 22:20:56,144 - root - INFO - average new node validate roc_auc, 0.9416 ± nan
+2025-10-02 22:20:56,144 - root - INFO - test average_precision, [np.float64(0.9291474143865487)]
+2025-10-02 22:20:56,144 - root - INFO - average test average_precision, 0.9291 ± nan
+2025-10-02 22:20:56,144 - root - INFO - test roc_auc, [np.float64(0.9217210824806112)]
+2025-10-02 22:20:56,144 - root - INFO - average test roc_auc, 0.9217 ± nan
+2025-10-02 22:20:56,144 - root - INFO - new node test average_precision, [np.float64(0.9277118061031211)]
+2025-10-02 22:20:56,144 - root - INFO - average new node test average_precision, 0.9277 ± nan
+2025-10-02 22:20:56,144 - root - INFO - new node test roc_auc, [np.float64(0.9239657076030886)]
+2025-10-02 22:20:56,144 - root - INFO - average new node test roc_auc, 0.9240 ± nan

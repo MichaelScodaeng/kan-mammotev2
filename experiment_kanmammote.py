@@ -60,7 +60,7 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TGAT', 'JODIE', 'DyRep', 'TGN',  'GraphMixer', 'DyGFormer', 'DyGMamba','TCL'] #'TCL','CAWN'
+models = ['TGAT', 'JODIE', 'TGN',  'GraphMixer', 'DyGFormer', 'DyGMamba','TCL'] #'CAWN','DyRep',
 datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']
 time_encoders = ['kan_mammote'] #'original', 
 
@@ -73,7 +73,7 @@ def parse_arguments():
                         help='Datasets to test (default: all)')
     parser.add_argument('--time_encoders', nargs='+', choices=time_encoders, default=time_encoders,
                         help='Time encoders to test (default: all)')
-    parser.add_argument('--single_encoder', type=str, choices=time_encoders,
+    parser.add_argument('--single_encoder', type=str, choices=time_encoders, default="kan_mammote",
                         help='Run experiments for a single time encoder only (for HPC parallel execution)')
     parser.add_argument('--resume_only', action='store_true',
                         help='Only resume incomplete experiments')
@@ -312,7 +312,7 @@ def get_time_encoder_args(time_encoder):
     if time_encoder == 'kan_mammote':
         return [
             '--expert_dim', '64',
-            '--num_mixtures', '4'
+            '--num_mixtures', '16'
         ]
     elif time_encoder == 'lete':
         # LeTE might have specific parameters
@@ -375,7 +375,7 @@ def generate_experiment_report(time_encoder):
             
             # Generate missing experiments
             all_possible = set()
-            for model, dataset in itertools.product(models, datasets):
+            for dataset, model in itertools.product(datasets, models):
                 all_possible.add(create_experiment_key(model, dataset, time_encoder))
             
             missing = all_possible - completed - incomplete

@@ -1,0 +1,111 @@
+2025-10-02 22:11:12,834 - root - INFO - ********** Run 1 starts. **********
+2025-10-02 22:11:12,835 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='DyGFormer_kan_mammote_seed0')
+2025-10-02 22:11:12,841 - root - INFO - time encoder type: kan_mammote
+2025-10-02 22:11:13,083 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=128, bias=True)
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=128, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-02 22:11:13,083 - root - INFO - model name: DyGFormer, #parameters: 4353964 B, 4251.91796875 KB, 4.152263641357422 MB.
+2025-10-02 22:12:33,014 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.1839
+2025-10-02 22:12:33,015 - root - INFO - train average_precision, 0.9725
+2025-10-02 22:12:33,015 - root - INFO - train roc_auc, 0.9708
+2025-10-02 22:12:33,015 - root - INFO - validate loss: 0.1284
+2025-10-02 22:12:33,015 - root - INFO - validate average_precision, 0.9893
+2025-10-02 22:12:33,015 - root - INFO - validate roc_auc, 0.9881
+2025-10-02 22:12:33,015 - root - INFO - new node validate loss: 0.1459
+2025-10-02 22:12:33,015 - root - INFO - new node validate average_precision, 0.9858
+2025-10-02 22:12:33,015 - root - INFO - new node validate roc_auc, 0.9840
+2025-10-02 22:12:53,157 - root - INFO - test loss: 0.1458
+2025-10-02 22:12:53,158 - root - INFO - test average_precision, 0.9876
+2025-10-02 22:12:53,158 - root - INFO - best test average_precision: 0.9876
+2025-10-02 22:12:53,158 - root - INFO - test roc_auc, 0.9857
+2025-10-02 22:12:53,158 - root - INFO - new node test loss: 0.1719
+2025-10-02 22:12:53,158 - root - INFO - new node test average_precision, 0.9810
+2025-10-02 22:12:53,159 - root - INFO - new node test roc_auc, 0.9794
+2025-10-02 22:12:53,159 - root - INFO - save model ./saved_models/DyGFormer/wikipedia/DyGFormer_kan_mammote_seed0/DyGFormer_kan_mammote_seed0.pkl
+2025-10-02 22:14:12,760 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.1356
+2025-10-02 22:14:12,761 - root - INFO - train average_precision, 0.9877
+2025-10-02 22:14:12,762 - root - INFO - train roc_auc, 0.9861
+2025-10-02 22:14:12,762 - root - INFO - validate loss: 0.1207
+2025-10-02 22:14:12,762 - root - INFO - validate average_precision, 0.9904
+2025-10-02 22:14:12,762 - root - INFO - validate roc_auc, 0.9890
+2025-10-02 22:14:12,762 - root - INFO - new node validate loss: 0.1364
+2025-10-02 22:14:12,762 - root - INFO - new node validate average_precision, 0.9877
+2025-10-02 22:14:12,762 - root - INFO - new node validate roc_auc, 0.9858
+2025-10-02 22:14:32,817 - root - INFO - test loss: 0.1378
+2025-10-02 22:14:32,817 - root - INFO - test average_precision, 0.9881
+2025-10-02 22:14:32,817 - root - INFO - best test average_precision: 0.9881
+2025-10-02 22:14:32,817 - root - INFO - test roc_auc, 0.9865
+2025-10-02 22:14:32,817 - root - INFO - new node test loss: 0.1617
+2025-10-02 22:14:32,817 - root - INFO - new node test average_precision, 0.9836
+2025-10-02 22:14:32,817 - root - INFO - new node test roc_auc, 0.9816
+2025-10-02 22:14:32,818 - root - INFO - save model ./saved_models/DyGFormer/wikipedia/DyGFormer_kan_mammote_seed0/DyGFormer_kan_mammote_seed0.pkl
+2025-10-02 22:14:32,867 - root - INFO - load model ./saved_models/DyGFormer/wikipedia/DyGFormer_kan_mammote_seed0/DyGFormer_kan_mammote_seed0.pkl
+2025-10-02 22:14:32,891 - root - INFO - get final performance on dataset wikipedia...
+2025-10-02 22:15:13,178 - root - INFO - validate loss: 0.1207
+2025-10-02 22:15:13,178 - root - INFO - validate average_precision, 0.9904
+2025-10-02 22:15:13,179 - root - INFO - validate roc_auc, 0.9890
+2025-10-02 22:15:13,179 - root - INFO - new node validate loss: 0.1364
+2025-10-02 22:15:13,179 - root - INFO - new node validate average_precision, 0.9877
+2025-10-02 22:15:13,179 - root - INFO - new node validate roc_auc, 0.9858
+2025-10-02 22:15:13,179 - root - INFO - test loss: 0.1378
+2025-10-02 22:15:13,179 - root - INFO - test average_precision, 0.9881
+2025-10-02 22:15:13,179 - root - INFO - test roc_auc, 0.9865
+2025-10-02 22:15:13,179 - root - INFO - new node test loss: 0.1617
+2025-10-02 22:15:13,179 - root - INFO - new node test average_precision, 0.9836
+2025-10-02 22:15:13,179 - root - INFO - new node test roc_auc, 0.9816
+2025-10-02 22:15:13,179 - root - INFO - Run 1 cost 240.34 seconds.
+2025-10-02 22:15:13,188 - root - INFO - metrics over 1 runs:
+2025-10-02 22:15:13,188 - root - INFO - validate average_precision, [np.float64(0.9903923234267578)]
+2025-10-02 22:15:13,188 - root - INFO - average validate average_precision, 0.9904 ± nan
+2025-10-02 22:15:13,188 - root - INFO - validate roc_auc, [np.float64(0.9889936943825149)]
+2025-10-02 22:15:13,188 - root - INFO - average validate roc_auc, 0.9890 ± nan
+2025-10-02 22:15:13,188 - root - INFO - new node validate average_precision, [np.float64(0.9877213855611936)]
+2025-10-02 22:15:13,188 - root - INFO - average new node validate average_precision, 0.9877 ± nan
+2025-10-02 22:15:13,188 - root - INFO - new node validate roc_auc, [np.float64(0.9858244877049179)]
+2025-10-02 22:15:13,189 - root - INFO - average new node validate roc_auc, 0.9858 ± nan
+2025-10-02 22:15:13,189 - root - INFO - test average_precision, [np.float64(0.988091400844975)]
+2025-10-02 22:15:13,189 - root - INFO - average test average_precision, 0.9881 ± nan
+2025-10-02 22:15:13,189 - root - INFO - test roc_auc, [np.float64(0.9864662357800263)]
+2025-10-02 22:15:13,189 - root - INFO - average test roc_auc, 0.9865 ± nan
+2025-10-02 22:15:13,189 - root - INFO - new node test average_precision, [np.float64(0.983608876440549)]
+2025-10-02 22:15:13,189 - root - INFO - average new node test average_precision, 0.9836 ± nan
+2025-10-02 22:15:13,189 - root - INFO - new node test roc_auc, [np.float64(0.9815568313254941)]
+2025-10-02 22:15:13,190 - root - INFO - average new node test roc_auc, 0.9816 ± nan

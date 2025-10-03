@@ -1,0 +1,1687 @@
+2025-10-02 01:00:15,998 - root - INFO - ********** Run 5 starts. **********
+2025-10-02 01:00:15,999 - root - INFO - configuration is Namespace(dataset_name='uci', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='original', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=5, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=4, save_model_name='TGAT_original_seed4')
+2025-10-02 01:00:15,999 - root - INFO - time encoder type: original
+2025-10-02 01:00:16,032 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=128, bias=True)
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=300, out_features=300, bias=False)
+        (key_projection): Linear(in_features=472, out_features=300, bias=False)
+        (value_projection): Linear(in_features=472, out_features=300, bias=False)
+        (layer_norm): LayerNorm((300,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=300, out_features=300, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=472, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-02 01:00:16,032 - root - INFO - model name: TGAT, #parameters: 4840772 B, 4727.31640625 KB, 4.616519927978516 MB.
+2025-10-02 01:00:48,534 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6186
+2025-10-02 01:00:48,535 - root - INFO - train average_precision, 0.6088
+2025-10-02 01:00:48,535 - root - INFO - train roc_auc, 0.6669
+2025-10-02 01:00:48,535 - root - INFO - validate loss: 0.6551
+2025-10-02 01:00:48,535 - root - INFO - validate average_precision, 0.5363
+2025-10-02 01:00:48,535 - root - INFO - validate roc_auc, 0.5815
+2025-10-02 01:00:48,535 - root - INFO - new node validate loss: 0.6857
+2025-10-02 01:00:48,536 - root - INFO - new node validate average_precision, 0.5210
+2025-10-02 01:00:48,536 - root - INFO - new node validate roc_auc, 0.5310
+2025-10-02 01:00:56,554 - root - INFO - test loss: 0.6756
+2025-10-02 01:00:56,554 - root - INFO - test average_precision, 0.5165
+2025-10-02 01:00:56,554 - root - INFO - best test average_precision: 0.5165
+2025-10-02 01:00:56,554 - root - INFO - test roc_auc, 0.5505
+2025-10-02 01:00:56,554 - root - INFO - new node test loss: 0.6654
+2025-10-02 01:00:56,554 - root - INFO - new node test average_precision, 0.5441
+2025-10-02 01:00:56,554 - root - INFO - new node test roc_auc, 0.5779
+2025-10-02 01:00:56,554 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:01:29,125 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5838
+2025-10-02 01:01:29,125 - root - INFO - train average_precision, 0.6420
+2025-10-02 01:01:29,125 - root - INFO - train roc_auc, 0.6971
+2025-10-02 01:01:29,126 - root - INFO - validate loss: 0.6464
+2025-10-02 01:01:29,126 - root - INFO - validate average_precision, 0.6074
+2025-10-02 01:01:29,126 - root - INFO - validate roc_auc, 0.6431
+2025-10-02 01:01:29,126 - root - INFO - new node validate loss: 0.6842
+2025-10-02 01:01:29,126 - root - INFO - new node validate average_precision, 0.5625
+2025-10-02 01:01:29,126 - root - INFO - new node validate roc_auc, 0.5674
+2025-10-02 01:01:37,150 - root - INFO - test loss: 0.6665
+2025-10-02 01:01:37,150 - root - INFO - test average_precision, 0.5858
+2025-10-02 01:01:37,150 - root - INFO - best test average_precision: 0.5858
+2025-10-02 01:01:37,150 - root - INFO - test roc_auc, 0.6167
+2025-10-02 01:01:37,150 - root - INFO - new node test loss: 0.6613
+2025-10-02 01:01:37,150 - root - INFO - new node test average_precision, 0.5773
+2025-10-02 01:01:37,150 - root - INFO - new node test roc_auc, 0.6073
+2025-10-02 01:01:37,151 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:02:09,832 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.5769
+2025-10-02 01:02:09,832 - root - INFO - train average_precision, 0.6733
+2025-10-02 01:02:09,833 - root - INFO - train roc_auc, 0.7283
+2025-10-02 01:02:09,833 - root - INFO - validate loss: 0.6337
+2025-10-02 01:02:09,833 - root - INFO - validate average_precision, 0.6307
+2025-10-02 01:02:09,833 - root - INFO - validate roc_auc, 0.6751
+2025-10-02 01:02:09,833 - root - INFO - new node validate loss: 0.6796
+2025-10-02 01:02:09,833 - root - INFO - new node validate average_precision, 0.5803
+2025-10-02 01:02:09,833 - root - INFO - new node validate roc_auc, 0.5942
+2025-10-02 01:02:17,887 - root - INFO - test loss: 0.6561
+2025-10-02 01:02:17,887 - root - INFO - test average_precision, 0.6024
+2025-10-02 01:02:17,887 - root - INFO - best test average_precision: 0.6024
+2025-10-02 01:02:17,887 - root - INFO - test roc_auc, 0.6412
+2025-10-02 01:02:17,887 - root - INFO - new node test loss: 0.6602
+2025-10-02 01:02:17,887 - root - INFO - new node test average_precision, 0.5855
+2025-10-02 01:02:17,887 - root - INFO - new node test roc_auc, 0.6148
+2025-10-02 01:02:17,888 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:02:50,639 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.5657
+2025-10-02 01:02:50,639 - root - INFO - train average_precision, 0.6894
+2025-10-02 01:02:50,639 - root - INFO - train roc_auc, 0.7419
+2025-10-02 01:02:50,639 - root - INFO - validate loss: 0.6304
+2025-10-02 01:02:50,639 - root - INFO - validate average_precision, 0.6219
+2025-10-02 01:02:50,639 - root - INFO - validate roc_auc, 0.6696
+2025-10-02 01:02:50,639 - root - INFO - new node validate loss: 0.6847
+2025-10-02 01:02:50,639 - root - INFO - new node validate average_precision, 0.5665
+2025-10-02 01:02:50,639 - root - INFO - new node validate roc_auc, 0.5770
+2025-10-02 01:02:58,710 - root - INFO - test loss: 0.6438
+2025-10-02 01:02:58,711 - root - INFO - test average_precision, 0.6196
+2025-10-02 01:02:58,711 - root - INFO - best test average_precision: 0.6196
+2025-10-02 01:02:58,711 - root - INFO - test roc_auc, 0.6592
+2025-10-02 01:02:58,711 - root - INFO - new node test loss: 0.6499
+2025-10-02 01:02:58,711 - root - INFO - new node test average_precision, 0.6093
+2025-10-02 01:02:58,711 - root - INFO - new node test roc_auc, 0.6434
+2025-10-02 01:03:31,440 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.5598
+2025-10-02 01:03:31,440 - root - INFO - train average_precision, 0.7024
+2025-10-02 01:03:31,440 - root - INFO - train roc_auc, 0.7529
+2025-10-02 01:03:31,440 - root - INFO - validate loss: 0.6305
+2025-10-02 01:03:31,440 - root - INFO - validate average_precision, 0.6224
+2025-10-02 01:03:31,440 - root - INFO - validate roc_auc, 0.6679
+2025-10-02 01:03:31,440 - root - INFO - new node validate loss: 0.6909
+2025-10-02 01:03:31,440 - root - INFO - new node validate average_precision, 0.5871
+2025-10-02 01:03:31,440 - root - INFO - new node validate roc_auc, 0.5908
+2025-10-02 01:03:39,468 - root - INFO - test loss: 0.6470
+2025-10-02 01:03:39,468 - root - INFO - test average_precision, 0.6136
+2025-10-02 01:03:39,468 - root - INFO - best test average_precision: 0.6196
+2025-10-02 01:03:39,468 - root - INFO - test roc_auc, 0.6490
+2025-10-02 01:03:39,468 - root - INFO - new node test loss: 0.6571
+2025-10-02 01:03:39,468 - root - INFO - new node test average_precision, 0.5996
+2025-10-02 01:03:39,468 - root - INFO - new node test roc_auc, 0.6304
+2025-10-02 01:04:12,145 - root - INFO - Epoch: 6, learning rate: 0.0001, train loss: 0.5537
+2025-10-02 01:04:12,145 - root - INFO - train average_precision, 0.7094
+2025-10-02 01:04:12,145 - root - INFO - train roc_auc, 0.7581
+2025-10-02 01:04:12,145 - root - INFO - validate loss: 0.6190
+2025-10-02 01:04:12,145 - root - INFO - validate average_precision, 0.6347
+2025-10-02 01:04:12,145 - root - INFO - validate roc_auc, 0.6867
+2025-10-02 01:04:12,145 - root - INFO - new node validate loss: 0.6894
+2025-10-02 01:04:12,145 - root - INFO - new node validate average_precision, 0.5774
+2025-10-02 01:04:12,145 - root - INFO - new node validate roc_auc, 0.5967
+2025-10-02 01:04:20,195 - root - INFO - test loss: 0.6321
+2025-10-02 01:04:20,195 - root - INFO - test average_precision, 0.6275
+2025-10-02 01:04:20,195 - root - INFO - best test average_precision: 0.6275
+2025-10-02 01:04:20,195 - root - INFO - test roc_auc, 0.6725
+2025-10-02 01:04:20,195 - root - INFO - new node test loss: 0.6624
+2025-10-02 01:04:20,195 - root - INFO - new node test average_precision, 0.5768
+2025-10-02 01:04:20,195 - root - INFO - new node test roc_auc, 0.6134
+2025-10-02 01:04:20,196 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:04:53,035 - root - INFO - Epoch: 7, learning rate: 0.0001, train loss: 0.5474
+2025-10-02 01:04:53,035 - root - INFO - train average_precision, 0.7113
+2025-10-02 01:04:53,035 - root - INFO - train roc_auc, 0.7674
+2025-10-02 01:04:53,035 - root - INFO - validate loss: 0.6180
+2025-10-02 01:04:53,035 - root - INFO - validate average_precision, 0.6373
+2025-10-02 01:04:53,035 - root - INFO - validate roc_auc, 0.6878
+2025-10-02 01:04:53,035 - root - INFO - new node validate loss: 0.6950
+2025-10-02 01:04:53,035 - root - INFO - new node validate average_precision, 0.5747
+2025-10-02 01:04:53,035 - root - INFO - new node validate roc_auc, 0.5926
+2025-10-02 01:05:01,046 - root - INFO - test loss: 0.6302
+2025-10-02 01:05:01,046 - root - INFO - test average_precision, 0.6246
+2025-10-02 01:05:01,046 - root - INFO - best test average_precision: 0.6275
+2025-10-02 01:05:01,046 - root - INFO - test roc_auc, 0.6717
+2025-10-02 01:05:01,046 - root - INFO - new node test loss: 0.6556
+2025-10-02 01:05:01,046 - root - INFO - new node test average_precision, 0.5918
+2025-10-02 01:05:01,046 - root - INFO - new node test roc_auc, 0.6297
+2025-10-02 01:05:01,046 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:05:33,640 - root - INFO - Epoch: 8, learning rate: 0.0001, train loss: 0.5449
+2025-10-02 01:05:33,640 - root - INFO - train average_precision, 0.7169
+2025-10-02 01:05:33,640 - root - INFO - train roc_auc, 0.7709
+2025-10-02 01:05:33,640 - root - INFO - validate loss: 0.6109
+2025-10-02 01:05:33,640 - root - INFO - validate average_precision, 0.6481
+2025-10-02 01:05:33,640 - root - INFO - validate roc_auc, 0.6994
+2025-10-02 01:05:33,640 - root - INFO - new node validate loss: 0.6924
+2025-10-02 01:05:33,640 - root - INFO - new node validate average_precision, 0.5611
+2025-10-02 01:05:33,641 - root - INFO - new node validate roc_auc, 0.5841
+2025-10-02 01:05:41,694 - root - INFO - test loss: 0.6318
+2025-10-02 01:05:41,694 - root - INFO - test average_precision, 0.6255
+2025-10-02 01:05:41,695 - root - INFO - best test average_precision: 0.6275
+2025-10-02 01:05:41,695 - root - INFO - test roc_auc, 0.6713
+2025-10-02 01:05:41,695 - root - INFO - new node test loss: 0.6591
+2025-10-02 01:05:41,695 - root - INFO - new node test average_precision, 0.5927
+2025-10-02 01:05:41,695 - root - INFO - new node test roc_auc, 0.6271
+2025-10-02 01:05:41,695 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:06:14,368 - root - INFO - Epoch: 9, learning rate: 0.0001, train loss: 0.5442
+2025-10-02 01:06:14,368 - root - INFO - train average_precision, 0.7173
+2025-10-02 01:06:14,368 - root - INFO - train roc_auc, 0.7726
+2025-10-02 01:06:14,368 - root - INFO - validate loss: 0.6083
+2025-10-02 01:06:14,368 - root - INFO - validate average_precision, 0.6488
+2025-10-02 01:06:14,368 - root - INFO - validate roc_auc, 0.7049
+2025-10-02 01:06:14,368 - root - INFO - new node validate loss: 0.6923
+2025-10-02 01:06:14,368 - root - INFO - new node validate average_precision, 0.5764
+2025-10-02 01:06:14,368 - root - INFO - new node validate roc_auc, 0.5949
+2025-10-02 01:06:22,399 - root - INFO - test loss: 0.6244
+2025-10-02 01:06:22,399 - root - INFO - test average_precision, 0.6301
+2025-10-02 01:06:22,399 - root - INFO - best test average_precision: 0.6301
+2025-10-02 01:06:22,399 - root - INFO - test roc_auc, 0.6802
+2025-10-02 01:06:22,399 - root - INFO - new node test loss: 0.6566
+2025-10-02 01:06:22,399 - root - INFO - new node test average_precision, 0.5897
+2025-10-02 01:06:22,399 - root - INFO - new node test roc_auc, 0.6238
+2025-10-02 01:06:22,399 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:06:55,115 - root - INFO - Epoch: 10, learning rate: 0.0001, train loss: 0.5378
+2025-10-02 01:06:55,115 - root - INFO - train average_precision, 0.7281
+2025-10-02 01:06:55,115 - root - INFO - train roc_auc, 0.7804
+2025-10-02 01:06:55,115 - root - INFO - validate loss: 0.6083
+2025-10-02 01:06:55,115 - root - INFO - validate average_precision, 0.6504
+2025-10-02 01:06:55,115 - root - INFO - validate roc_auc, 0.7035
+2025-10-02 01:06:55,115 - root - INFO - new node validate loss: 0.6950
+2025-10-02 01:06:55,115 - root - INFO - new node validate average_precision, 0.5561
+2025-10-02 01:06:55,115 - root - INFO - new node validate roc_auc, 0.5818
+2025-10-02 01:07:03,162 - root - INFO - test loss: 0.6175
+2025-10-02 01:07:03,162 - root - INFO - test average_precision, 0.6320
+2025-10-02 01:07:03,163 - root - INFO - best test average_precision: 0.6320
+2025-10-02 01:07:03,163 - root - INFO - test roc_auc, 0.6850
+2025-10-02 01:07:03,163 - root - INFO - new node test loss: 0.6587
+2025-10-02 01:07:03,163 - root - INFO - new node test average_precision, 0.5812
+2025-10-02 01:07:03,163 - root - INFO - new node test roc_auc, 0.6203
+2025-10-02 01:07:35,960 - root - INFO - Epoch: 11, learning rate: 0.0001, train loss: 0.5315
+2025-10-02 01:07:35,960 - root - INFO - train average_precision, 0.7409
+2025-10-02 01:07:35,960 - root - INFO - train roc_auc, 0.7896
+2025-10-02 01:07:35,960 - root - INFO - validate loss: 0.5970
+2025-10-02 01:07:35,960 - root - INFO - validate average_precision, 0.6642
+2025-10-02 01:07:35,960 - root - INFO - validate roc_auc, 0.7188
+2025-10-02 01:07:35,960 - root - INFO - new node validate loss: 0.6887
+2025-10-02 01:07:35,960 - root - INFO - new node validate average_precision, 0.5900
+2025-10-02 01:07:35,960 - root - INFO - new node validate roc_auc, 0.6201
+2025-10-02 01:07:44,008 - root - INFO - test loss: 0.6122
+2025-10-02 01:07:44,008 - root - INFO - test average_precision, 0.6496
+2025-10-02 01:07:44,008 - root - INFO - best test average_precision: 0.6496
+2025-10-02 01:07:44,008 - root - INFO - test roc_auc, 0.6994
+2025-10-02 01:07:44,008 - root - INFO - new node test loss: 0.6594
+2025-10-02 01:07:44,008 - root - INFO - new node test average_precision, 0.5939
+2025-10-02 01:07:44,008 - root - INFO - new node test roc_auc, 0.6275
+2025-10-02 01:07:44,008 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:08:16,769 - root - INFO - Epoch: 12, learning rate: 0.0001, train loss: 0.5246
+2025-10-02 01:08:16,769 - root - INFO - train average_precision, 0.7458
+2025-10-02 01:08:16,769 - root - INFO - train roc_auc, 0.7944
+2025-10-02 01:08:16,769 - root - INFO - validate loss: 0.5978
+2025-10-02 01:08:16,770 - root - INFO - validate average_precision, 0.6638
+2025-10-02 01:08:16,770 - root - INFO - validate roc_auc, 0.7158
+2025-10-02 01:08:16,770 - root - INFO - new node validate loss: 0.6876
+2025-10-02 01:08:16,770 - root - INFO - new node validate average_precision, 0.6001
+2025-10-02 01:08:16,770 - root - INFO - new node validate roc_auc, 0.6146
+2025-10-02 01:08:24,803 - root - INFO - test loss: 0.6021
+2025-10-02 01:08:24,803 - root - INFO - test average_precision, 0.6729
+2025-10-02 01:08:24,803 - root - INFO - best test average_precision: 0.6729
+2025-10-02 01:08:24,803 - root - INFO - test roc_auc, 0.7140
+2025-10-02 01:08:24,803 - root - INFO - new node test loss: 0.6518
+2025-10-02 01:08:24,803 - root - INFO - new node test average_precision, 0.6143
+2025-10-02 01:08:24,803 - root - INFO - new node test roc_auc, 0.6466
+2025-10-02 01:08:57,955 - root - INFO - Epoch: 13, learning rate: 0.0001, train loss: 0.5257
+2025-10-02 01:08:57,955 - root - INFO - train average_precision, 0.7451
+2025-10-02 01:08:57,955 - root - INFO - train roc_auc, 0.7932
+2025-10-02 01:08:57,955 - root - INFO - validate loss: 0.5947
+2025-10-02 01:08:57,955 - root - INFO - validate average_precision, 0.6648
+2025-10-02 01:08:57,955 - root - INFO - validate roc_auc, 0.7176
+2025-10-02 01:08:57,955 - root - INFO - new node validate loss: 0.6932
+2025-10-02 01:08:57,955 - root - INFO - new node validate average_precision, 0.5803
+2025-10-02 01:08:57,955 - root - INFO - new node validate roc_auc, 0.6021
+2025-10-02 01:09:05,974 - root - INFO - test loss: 0.6034
+2025-10-02 01:09:05,974 - root - INFO - test average_precision, 0.6623
+2025-10-02 01:09:05,975 - root - INFO - best test average_precision: 0.6729
+2025-10-02 01:09:05,975 - root - INFO - test roc_auc, 0.7105
+2025-10-02 01:09:05,975 - root - INFO - new node test loss: 0.6532
+2025-10-02 01:09:05,975 - root - INFO - new node test average_precision, 0.6137
+2025-10-02 01:09:05,975 - root - INFO - new node test roc_auc, 0.6461
+2025-10-02 01:09:38,846 - root - INFO - Epoch: 14, learning rate: 0.0001, train loss: 0.5209
+2025-10-02 01:09:38,846 - root - INFO - train average_precision, 0.7485
+2025-10-02 01:09:38,846 - root - INFO - train roc_auc, 0.7969
+2025-10-02 01:09:38,847 - root - INFO - validate loss: 0.5885
+2025-10-02 01:09:38,847 - root - INFO - validate average_precision, 0.6757
+2025-10-02 01:09:38,847 - root - INFO - validate roc_auc, 0.7275
+2025-10-02 01:09:38,847 - root - INFO - new node validate loss: 0.6908
+2025-10-02 01:09:38,847 - root - INFO - new node validate average_precision, 0.5908
+2025-10-02 01:09:38,847 - root - INFO - new node validate roc_auc, 0.6142
+2025-10-02 01:09:46,879 - root - INFO - test loss: 0.5987
+2025-10-02 01:09:46,879 - root - INFO - test average_precision, 0.6681
+2025-10-02 01:09:46,879 - root - INFO - best test average_precision: 0.6729
+2025-10-02 01:09:46,879 - root - INFO - test roc_auc, 0.7173
+2025-10-02 01:09:46,879 - root - INFO - new node test loss: 0.6526
+2025-10-02 01:09:46,879 - root - INFO - new node test average_precision, 0.6123
+2025-10-02 01:09:46,879 - root - INFO - new node test roc_auc, 0.6490
+2025-10-02 01:09:46,880 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:10:19,556 - root - INFO - Epoch: 15, learning rate: 0.0001, train loss: 0.5209
+2025-10-02 01:10:19,556 - root - INFO - train average_precision, 0.7499
+2025-10-02 01:10:19,557 - root - INFO - train roc_auc, 0.7971
+2025-10-02 01:10:19,557 - root - INFO - validate loss: 0.5932
+2025-10-02 01:10:19,557 - root - INFO - validate average_precision, 0.6747
+2025-10-02 01:10:19,557 - root - INFO - validate roc_auc, 0.7227
+2025-10-02 01:10:19,557 - root - INFO - new node validate loss: 0.6781
+2025-10-02 01:10:19,557 - root - INFO - new node validate average_precision, 0.6107
+2025-10-02 01:10:19,557 - root - INFO - new node validate roc_auc, 0.6280
+2025-10-02 01:10:27,601 - root - INFO - test loss: 0.5976
+2025-10-02 01:10:27,601 - root - INFO - test average_precision, 0.6780
+2025-10-02 01:10:27,601 - root - INFO - best test average_precision: 0.6780
+2025-10-02 01:10:27,601 - root - INFO - test roc_auc, 0.7196
+2025-10-02 01:10:27,601 - root - INFO - new node test loss: 0.6431
+2025-10-02 01:10:27,601 - root - INFO - new node test average_precision, 0.6310
+2025-10-02 01:10:27,601 - root - INFO - new node test roc_auc, 0.6595
+2025-10-02 01:11:00,257 - root - INFO - Epoch: 16, learning rate: 0.0001, train loss: 0.5161
+2025-10-02 01:11:00,257 - root - INFO - train average_precision, 0.7604
+2025-10-02 01:11:00,257 - root - INFO - train roc_auc, 0.8047
+2025-10-02 01:11:00,257 - root - INFO - validate loss: 0.5916
+2025-10-02 01:11:00,257 - root - INFO - validate average_precision, 0.6821
+2025-10-02 01:11:00,257 - root - INFO - validate roc_auc, 0.7272
+2025-10-02 01:11:00,257 - root - INFO - new node validate loss: 0.6799
+2025-10-02 01:11:00,257 - root - INFO - new node validate average_precision, 0.6203
+2025-10-02 01:11:00,258 - root - INFO - new node validate roc_auc, 0.6379
+2025-10-02 01:11:08,288 - root - INFO - test loss: 0.5949
+2025-10-02 01:11:08,289 - root - INFO - test average_precision, 0.6931
+2025-10-02 01:11:08,289 - root - INFO - best test average_precision: 0.6931
+2025-10-02 01:11:08,289 - root - INFO - test roc_auc, 0.7302
+2025-10-02 01:11:08,289 - root - INFO - new node test loss: 0.6454
+2025-10-02 01:11:08,289 - root - INFO - new node test average_precision, 0.6370
+2025-10-02 01:11:08,289 - root - INFO - new node test roc_auc, 0.6650
+2025-10-02 01:11:41,050 - root - INFO - Epoch: 17, learning rate: 0.0001, train loss: 0.5118
+2025-10-02 01:11:41,050 - root - INFO - train average_precision, 0.7649
+2025-10-02 01:11:41,050 - root - INFO - train roc_auc, 0.8088
+2025-10-02 01:11:41,050 - root - INFO - validate loss: 0.5843
+2025-10-02 01:11:41,050 - root - INFO - validate average_precision, 0.6878
+2025-10-02 01:11:41,050 - root - INFO - validate roc_auc, 0.7351
+2025-10-02 01:11:41,050 - root - INFO - new node validate loss: 0.6909
+2025-10-02 01:11:41,050 - root - INFO - new node validate average_precision, 0.6122
+2025-10-02 01:11:41,050 - root - INFO - new node validate roc_auc, 0.6225
+2025-10-02 01:11:49,082 - root - INFO - test loss: 0.5906
+2025-10-02 01:11:49,082 - root - INFO - test average_precision, 0.6951
+2025-10-02 01:11:49,082 - root - INFO - best test average_precision: 0.6951
+2025-10-02 01:11:49,082 - root - INFO - test roc_auc, 0.7326
+2025-10-02 01:11:49,082 - root - INFO - new node test loss: 0.6461
+2025-10-02 01:11:49,083 - root - INFO - new node test average_precision, 0.6364
+2025-10-02 01:11:49,083 - root - INFO - new node test roc_auc, 0.6687
+2025-10-02 01:11:49,083 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:12:22,030 - root - INFO - Epoch: 18, learning rate: 0.0001, train loss: 0.5107
+2025-10-02 01:12:22,030 - root - INFO - train average_precision, 0.7685
+2025-10-02 01:12:22,030 - root - INFO - train roc_auc, 0.8107
+2025-10-02 01:12:22,030 - root - INFO - validate loss: 0.5867
+2025-10-02 01:12:22,030 - root - INFO - validate average_precision, 0.6868
+2025-10-02 01:12:22,030 - root - INFO - validate roc_auc, 0.7353
+2025-10-02 01:12:22,030 - root - INFO - new node validate loss: 0.6872
+2025-10-02 01:12:22,030 - root - INFO - new node validate average_precision, 0.6098
+2025-10-02 01:12:22,030 - root - INFO - new node validate roc_auc, 0.6206
+2025-10-02 01:12:30,094 - root - INFO - test loss: 0.5921
+2025-10-02 01:12:30,094 - root - INFO - test average_precision, 0.6803
+2025-10-02 01:12:30,094 - root - INFO - best test average_precision: 0.6951
+2025-10-02 01:12:30,094 - root - INFO - test roc_auc, 0.7284
+2025-10-02 01:12:30,094 - root - INFO - new node test loss: 0.6419
+2025-10-02 01:12:30,094 - root - INFO - new node test average_precision, 0.6404
+2025-10-02 01:12:30,094 - root - INFO - new node test roc_auc, 0.6730
+2025-10-02 01:13:02,846 - root - INFO - Epoch: 19, learning rate: 0.0001, train loss: 0.5125
+2025-10-02 01:13:02,846 - root - INFO - train average_precision, 0.7602
+2025-10-02 01:13:02,847 - root - INFO - train roc_auc, 0.8063
+2025-10-02 01:13:02,847 - root - INFO - validate loss: 0.5790
+2025-10-02 01:13:02,847 - root - INFO - validate average_precision, 0.7078
+2025-10-02 01:13:02,847 - root - INFO - validate roc_auc, 0.7474
+2025-10-02 01:13:02,847 - root - INFO - new node validate loss: 0.6798
+2025-10-02 01:13:02,847 - root - INFO - new node validate average_precision, 0.6230
+2025-10-02 01:13:02,847 - root - INFO - new node validate roc_auc, 0.6336
+2025-10-02 01:13:10,884 - root - INFO - test loss: 0.5886
+2025-10-02 01:13:10,884 - root - INFO - test average_precision, 0.6892
+2025-10-02 01:13:10,884 - root - INFO - best test average_precision: 0.6951
+2025-10-02 01:13:10,884 - root - INFO - test roc_auc, 0.7320
+2025-10-02 01:13:10,884 - root - INFO - new node test loss: 0.6386
+2025-10-02 01:13:10,884 - root - INFO - new node test average_precision, 0.6475
+2025-10-02 01:13:10,884 - root - INFO - new node test roc_auc, 0.6744
+2025-10-02 01:13:10,885 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:13:43,923 - root - INFO - Epoch: 20, learning rate: 0.0001, train loss: 0.5110
+2025-10-02 01:13:43,923 - root - INFO - train average_precision, 0.7706
+2025-10-02 01:13:43,923 - root - INFO - train roc_auc, 0.8112
+2025-10-02 01:13:43,923 - root - INFO - validate loss: 0.5880
+2025-10-02 01:13:43,923 - root - INFO - validate average_precision, 0.6941
+2025-10-02 01:13:43,923 - root - INFO - validate roc_auc, 0.7350
+2025-10-02 01:13:43,923 - root - INFO - new node validate loss: 0.6830
+2025-10-02 01:13:43,923 - root - INFO - new node validate average_precision, 0.6194
+2025-10-02 01:13:43,923 - root - INFO - new node validate roc_auc, 0.6291
+2025-10-02 01:13:51,965 - root - INFO - test loss: 0.5856
+2025-10-02 01:13:51,966 - root - INFO - test average_precision, 0.6998
+2025-10-02 01:13:51,966 - root - INFO - best test average_precision: 0.6998
+2025-10-02 01:13:51,966 - root - INFO - test roc_auc, 0.7389
+2025-10-02 01:13:51,966 - root - INFO - new node test loss: 0.6374
+2025-10-02 01:13:51,966 - root - INFO - new node test average_precision, 0.6455
+2025-10-02 01:13:51,966 - root - INFO - new node test roc_auc, 0.6783
+2025-10-02 01:14:25,191 - root - INFO - Epoch: 21, learning rate: 0.0001, train loss: 0.5138
+2025-10-02 01:14:25,192 - root - INFO - train average_precision, 0.7681
+2025-10-02 01:14:25,192 - root - INFO - train roc_auc, 0.8089
+2025-10-02 01:14:25,192 - root - INFO - validate loss: 0.5877
+2025-10-02 01:14:25,192 - root - INFO - validate average_precision, 0.6908
+2025-10-02 01:14:25,192 - root - INFO - validate roc_auc, 0.7344
+2025-10-02 01:14:25,192 - root - INFO - new node validate loss: 0.6943
+2025-10-02 01:14:25,192 - root - INFO - new node validate average_precision, 0.5958
+2025-10-02 01:14:25,192 - root - INFO - new node validate roc_auc, 0.6025
+2025-10-02 01:14:33,270 - root - INFO - test loss: 0.5879
+2025-10-02 01:14:33,270 - root - INFO - test average_precision, 0.6990
+2025-10-02 01:14:33,270 - root - INFO - best test average_precision: 0.6998
+2025-10-02 01:14:33,270 - root - INFO - test roc_auc, 0.7363
+2025-10-02 01:14:33,270 - root - INFO - new node test loss: 0.6395
+2025-10-02 01:14:33,270 - root - INFO - new node test average_precision, 0.6582
+2025-10-02 01:14:33,270 - root - INFO - new node test roc_auc, 0.6861
+2025-10-02 01:15:05,898 - root - INFO - Epoch: 22, learning rate: 0.0001, train loss: 0.5090
+2025-10-02 01:15:05,898 - root - INFO - train average_precision, 0.7736
+2025-10-02 01:15:05,898 - root - INFO - train roc_auc, 0.8130
+2025-10-02 01:15:05,898 - root - INFO - validate loss: 0.5796
+2025-10-02 01:15:05,898 - root - INFO - validate average_precision, 0.7048
+2025-10-02 01:15:05,898 - root - INFO - validate roc_auc, 0.7443
+2025-10-02 01:15:05,898 - root - INFO - new node validate loss: 0.6936
+2025-10-02 01:15:05,899 - root - INFO - new node validate average_precision, 0.6104
+2025-10-02 01:15:05,899 - root - INFO - new node validate roc_auc, 0.6113
+2025-10-02 01:15:13,945 - root - INFO - test loss: 0.5828
+2025-10-02 01:15:13,945 - root - INFO - test average_precision, 0.7150
+2025-10-02 01:15:13,945 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:15:13,945 - root - INFO - test roc_auc, 0.7446
+2025-10-02 01:15:13,945 - root - INFO - new node test loss: 0.6358
+2025-10-02 01:15:13,945 - root - INFO - new node test average_precision, 0.6615
+2025-10-02 01:15:13,945 - root - INFO - new node test roc_auc, 0.6841
+2025-10-02 01:15:46,534 - root - INFO - Epoch: 23, learning rate: 0.0001, train loss: 0.5080
+2025-10-02 01:15:46,534 - root - INFO - train average_precision, 0.7727
+2025-10-02 01:15:46,534 - root - INFO - train roc_auc, 0.8131
+2025-10-02 01:15:46,534 - root - INFO - validate loss: 0.5845
+2025-10-02 01:15:46,534 - root - INFO - validate average_precision, 0.6979
+2025-10-02 01:15:46,534 - root - INFO - validate roc_auc, 0.7381
+2025-10-02 01:15:46,534 - root - INFO - new node validate loss: 0.6747
+2025-10-02 01:15:46,534 - root - INFO - new node validate average_precision, 0.6294
+2025-10-02 01:15:46,534 - root - INFO - new node validate roc_auc, 0.6446
+2025-10-02 01:15:54,589 - root - INFO - test loss: 0.5886
+2025-10-02 01:15:54,589 - root - INFO - test average_precision, 0.6974
+2025-10-02 01:15:54,589 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:15:54,589 - root - INFO - test roc_auc, 0.7358
+2025-10-02 01:15:54,589 - root - INFO - new node test loss: 0.6367
+2025-10-02 01:15:54,589 - root - INFO - new node test average_precision, 0.6531
+2025-10-02 01:15:54,589 - root - INFO - new node test roc_auc, 0.6784
+2025-10-02 01:16:27,290 - root - INFO - Epoch: 24, learning rate: 0.0001, train loss: 0.5085
+2025-10-02 01:16:27,291 - root - INFO - train average_precision, 0.7720
+2025-10-02 01:16:27,291 - root - INFO - train roc_auc, 0.8134
+2025-10-02 01:16:27,291 - root - INFO - validate loss: 0.5800
+2025-10-02 01:16:27,291 - root - INFO - validate average_precision, 0.6949
+2025-10-02 01:16:27,291 - root - INFO - validate roc_auc, 0.7414
+2025-10-02 01:16:27,291 - root - INFO - new node validate loss: 0.6715
+2025-10-02 01:16:27,291 - root - INFO - new node validate average_precision, 0.6316
+2025-10-02 01:16:27,291 - root - INFO - new node validate roc_auc, 0.6472
+2025-10-02 01:16:35,321 - root - INFO - test loss: 0.5816
+2025-10-02 01:16:35,322 - root - INFO - test average_precision, 0.7038
+2025-10-02 01:16:35,322 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:16:35,322 - root - INFO - test roc_auc, 0.7414
+2025-10-02 01:16:35,322 - root - INFO - new node test loss: 0.6377
+2025-10-02 01:16:35,322 - root - INFO - new node test average_precision, 0.6616
+2025-10-02 01:16:35,322 - root - INFO - new node test roc_auc, 0.6823
+2025-10-02 01:17:07,948 - root - INFO - Epoch: 25, learning rate: 0.0001, train loss: 0.5037
+2025-10-02 01:17:07,948 - root - INFO - train average_precision, 0.7776
+2025-10-02 01:17:07,949 - root - INFO - train roc_auc, 0.8175
+2025-10-02 01:17:07,949 - root - INFO - validate loss: 0.5828
+2025-10-02 01:17:07,949 - root - INFO - validate average_precision, 0.7007
+2025-10-02 01:17:07,949 - root - INFO - validate roc_auc, 0.7436
+2025-10-02 01:17:07,949 - root - INFO - new node validate loss: 0.6850
+2025-10-02 01:17:07,949 - root - INFO - new node validate average_precision, 0.6134
+2025-10-02 01:17:07,949 - root - INFO - new node validate roc_auc, 0.6326
+2025-10-02 01:17:15,994 - root - INFO - test loss: 0.5827
+2025-10-02 01:17:15,994 - root - INFO - test average_precision, 0.7060
+2025-10-02 01:17:15,994 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:17:15,994 - root - INFO - test roc_auc, 0.7426
+2025-10-02 01:17:15,994 - root - INFO - new node test loss: 0.6361
+2025-10-02 01:17:15,994 - root - INFO - new node test average_precision, 0.6582
+2025-10-02 01:17:15,994 - root - INFO - new node test roc_auc, 0.6854
+2025-10-02 01:17:49,004 - root - INFO - Epoch: 26, learning rate: 0.0001, train loss: 0.5071
+2025-10-02 01:17:49,005 - root - INFO - train average_precision, 0.7749
+2025-10-02 01:17:49,005 - root - INFO - train roc_auc, 0.8145
+2025-10-02 01:17:49,005 - root - INFO - validate loss: 0.5862
+2025-10-02 01:17:49,005 - root - INFO - validate average_precision, 0.6942
+2025-10-02 01:17:49,005 - root - INFO - validate roc_auc, 0.7376
+2025-10-02 01:17:49,005 - root - INFO - new node validate loss: 0.6932
+2025-10-02 01:17:49,005 - root - INFO - new node validate average_precision, 0.6114
+2025-10-02 01:17:49,005 - root - INFO - new node validate roc_auc, 0.6210
+2025-10-02 01:17:57,053 - root - INFO - test loss: 0.5849
+2025-10-02 01:17:57,053 - root - INFO - test average_precision, 0.7035
+2025-10-02 01:17:57,053 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:17:57,053 - root - INFO - test roc_auc, 0.7392
+2025-10-02 01:17:57,053 - root - INFO - new node test loss: 0.6440
+2025-10-02 01:17:57,054 - root - INFO - new node test average_precision, 0.6529
+2025-10-02 01:17:57,054 - root - INFO - new node test roc_auc, 0.6746
+2025-10-02 01:18:29,804 - root - INFO - Epoch: 27, learning rate: 0.0001, train loss: 0.5070
+2025-10-02 01:18:29,804 - root - INFO - train average_precision, 0.7730
+2025-10-02 01:18:29,804 - root - INFO - train roc_auc, 0.8147
+2025-10-02 01:18:29,804 - root - INFO - validate loss: 0.5815
+2025-10-02 01:18:29,804 - root - INFO - validate average_precision, 0.6961
+2025-10-02 01:18:29,804 - root - INFO - validate roc_auc, 0.7421
+2025-10-02 01:18:29,805 - root - INFO - new node validate loss: 0.6884
+2025-10-02 01:18:29,805 - root - INFO - new node validate average_precision, 0.6164
+2025-10-02 01:18:29,805 - root - INFO - new node validate roc_auc, 0.6295
+2025-10-02 01:18:37,895 - root - INFO - test loss: 0.5868
+2025-10-02 01:18:37,895 - root - INFO - test average_precision, 0.6973
+2025-10-02 01:18:37,895 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:18:37,895 - root - INFO - test roc_auc, 0.7364
+2025-10-02 01:18:37,895 - root - INFO - new node test loss: 0.6374
+2025-10-02 01:18:37,895 - root - INFO - new node test average_precision, 0.6633
+2025-10-02 01:18:37,895 - root - INFO - new node test roc_auc, 0.6869
+2025-10-02 01:19:10,816 - root - INFO - Epoch: 28, learning rate: 0.0001, train loss: 0.5071
+2025-10-02 01:19:10,816 - root - INFO - train average_precision, 0.7745
+2025-10-02 01:19:10,816 - root - INFO - train roc_auc, 0.8151
+2025-10-02 01:19:10,817 - root - INFO - validate loss: 0.5825
+2025-10-02 01:19:10,817 - root - INFO - validate average_precision, 0.6921
+2025-10-02 01:19:10,817 - root - INFO - validate roc_auc, 0.7397
+2025-10-02 01:19:10,817 - root - INFO - new node validate loss: 0.6880
+2025-10-02 01:19:10,817 - root - INFO - new node validate average_precision, 0.6202
+2025-10-02 01:19:10,817 - root - INFO - new node validate roc_auc, 0.6361
+2025-10-02 01:19:18,871 - root - INFO - test loss: 0.5777
+2025-10-02 01:19:18,872 - root - INFO - test average_precision, 0.7075
+2025-10-02 01:19:18,872 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:19:18,872 - root - INFO - test roc_auc, 0.7466
+2025-10-02 01:19:18,872 - root - INFO - new node test loss: 0.6324
+2025-10-02 01:19:18,872 - root - INFO - new node test average_precision, 0.6691
+2025-10-02 01:19:18,872 - root - INFO - new node test roc_auc, 0.6934
+2025-10-02 01:19:51,549 - root - INFO - Epoch: 29, learning rate: 0.0001, train loss: 0.5046
+2025-10-02 01:19:51,550 - root - INFO - train average_precision, 0.7767
+2025-10-02 01:19:51,550 - root - INFO - train roc_auc, 0.8171
+2025-10-02 01:19:51,550 - root - INFO - validate loss: 0.5852
+2025-10-02 01:19:51,550 - root - INFO - validate average_precision, 0.6951
+2025-10-02 01:19:51,550 - root - INFO - validate roc_auc, 0.7366
+2025-10-02 01:19:51,550 - root - INFO - new node validate loss: 0.6957
+2025-10-02 01:19:51,550 - root - INFO - new node validate average_precision, 0.6014
+2025-10-02 01:19:51,550 - root - INFO - new node validate roc_auc, 0.5985
+2025-10-02 01:19:59,596 - root - INFO - test loss: 0.5799
+2025-10-02 01:19:59,596 - root - INFO - test average_precision, 0.7058
+2025-10-02 01:19:59,596 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:19:59,596 - root - INFO - test roc_auc, 0.7449
+2025-10-02 01:19:59,597 - root - INFO - new node test loss: 0.6309
+2025-10-02 01:19:59,597 - root - INFO - new node test average_precision, 0.6709
+2025-10-02 01:19:59,597 - root - INFO - new node test roc_auc, 0.6963
+2025-10-02 01:20:32,820 - root - INFO - Epoch: 30, learning rate: 0.0001, train loss: 0.5063
+2025-10-02 01:20:32,820 - root - INFO - train average_precision, 0.7765
+2025-10-02 01:20:32,820 - root - INFO - train roc_auc, 0.8156
+2025-10-02 01:20:32,820 - root - INFO - validate loss: 0.5784
+2025-10-02 01:20:32,820 - root - INFO - validate average_precision, 0.7098
+2025-10-02 01:20:32,820 - root - INFO - validate roc_auc, 0.7460
+2025-10-02 01:20:32,820 - root - INFO - new node validate loss: 0.6748
+2025-10-02 01:20:32,820 - root - INFO - new node validate average_precision, 0.6458
+2025-10-02 01:20:32,820 - root - INFO - new node validate roc_auc, 0.6585
+2025-10-02 01:20:40,846 - root - INFO - test loss: 0.5862
+2025-10-02 01:20:40,846 - root - INFO - test average_precision, 0.7023
+2025-10-02 01:20:40,846 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:20:40,846 - root - INFO - test roc_auc, 0.7395
+2025-10-02 01:20:40,846 - root - INFO - new node test loss: 0.6336
+2025-10-02 01:20:40,846 - root - INFO - new node test average_precision, 0.6660
+2025-10-02 01:20:40,846 - root - INFO - new node test roc_auc, 0.6912
+2025-10-02 01:21:13,949 - root - INFO - Epoch: 31, learning rate: 0.0001, train loss: 0.5035
+2025-10-02 01:21:13,949 - root - INFO - train average_precision, 0.7805
+2025-10-02 01:21:13,949 - root - INFO - train roc_auc, 0.8183
+2025-10-02 01:21:13,949 - root - INFO - validate loss: 0.5801
+2025-10-02 01:21:13,949 - root - INFO - validate average_precision, 0.6967
+2025-10-02 01:21:13,949 - root - INFO - validate roc_auc, 0.7431
+2025-10-02 01:21:13,949 - root - INFO - new node validate loss: 0.6858
+2025-10-02 01:21:13,949 - root - INFO - new node validate average_precision, 0.6297
+2025-10-02 01:21:13,949 - root - INFO - new node validate roc_auc, 0.6442
+2025-10-02 01:21:21,994 - root - INFO - test loss: 0.5790
+2025-10-02 01:21:21,994 - root - INFO - test average_precision, 0.7124
+2025-10-02 01:21:21,995 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:21:21,995 - root - INFO - test roc_auc, 0.7471
+2025-10-02 01:21:21,995 - root - INFO - new node test loss: 0.6318
+2025-10-02 01:21:21,995 - root - INFO - new node test average_precision, 0.6760
+2025-10-02 01:21:21,995 - root - INFO - new node test roc_auc, 0.6962
+2025-10-02 01:21:54,847 - root - INFO - Epoch: 32, learning rate: 0.0001, train loss: 0.5014
+2025-10-02 01:21:54,848 - root - INFO - train average_precision, 0.7808
+2025-10-02 01:21:54,848 - root - INFO - train roc_auc, 0.8198
+2025-10-02 01:21:54,848 - root - INFO - validate loss: 0.5825
+2025-10-02 01:21:54,848 - root - INFO - validate average_precision, 0.7010
+2025-10-02 01:21:54,848 - root - INFO - validate roc_auc, 0.7408
+2025-10-02 01:21:54,848 - root - INFO - new node validate loss: 0.6902
+2025-10-02 01:21:54,848 - root - INFO - new node validate average_precision, 0.6135
+2025-10-02 01:21:54,848 - root - INFO - new node validate roc_auc, 0.6249
+2025-10-02 01:22:02,889 - root - INFO - test loss: 0.5812
+2025-10-02 01:22:02,889 - root - INFO - test average_precision, 0.7111
+2025-10-02 01:22:02,890 - root - INFO - best test average_precision: 0.7150
+2025-10-02 01:22:02,890 - root - INFO - test roc_auc, 0.7449
+2025-10-02 01:22:02,890 - root - INFO - new node test loss: 0.6387
+2025-10-02 01:22:02,890 - root - INFO - new node test average_precision, 0.6565
+2025-10-02 01:22:02,890 - root - INFO - new node test roc_auc, 0.6803
+2025-10-02 01:22:36,037 - root - INFO - Epoch: 33, learning rate: 0.0001, train loss: 0.5073
+2025-10-02 01:22:36,038 - root - INFO - train average_precision, 0.7745
+2025-10-02 01:22:36,038 - root - INFO - train roc_auc, 0.8147
+2025-10-02 01:22:36,038 - root - INFO - validate loss: 0.5821
+2025-10-02 01:22:36,038 - root - INFO - validate average_precision, 0.6984
+2025-10-02 01:22:36,038 - root - INFO - validate roc_auc, 0.7416
+2025-10-02 01:22:36,038 - root - INFO - new node validate loss: 0.6773
+2025-10-02 01:22:36,038 - root - INFO - new node validate average_precision, 0.6398
+2025-10-02 01:22:36,038 - root - INFO - new node validate roc_auc, 0.6562
+2025-10-02 01:22:44,070 - root - INFO - test loss: 0.5694
+2025-10-02 01:22:44,070 - root - INFO - test average_precision, 0.7237
+2025-10-02 01:22:44,070 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:22:44,070 - root - INFO - test roc_auc, 0.7595
+2025-10-02 01:22:44,070 - root - INFO - new node test loss: 0.6350
+2025-10-02 01:22:44,070 - root - INFO - new node test average_precision, 0.6728
+2025-10-02 01:22:44,070 - root - INFO - new node test roc_auc, 0.6950
+2025-10-02 01:23:16,765 - root - INFO - Epoch: 34, learning rate: 0.0001, train loss: 0.5016
+2025-10-02 01:23:16,765 - root - INFO - train average_precision, 0.7831
+2025-10-02 01:23:16,765 - root - INFO - train roc_auc, 0.8203
+2025-10-02 01:23:16,766 - root - INFO - validate loss: 0.5816
+2025-10-02 01:23:16,766 - root - INFO - validate average_precision, 0.7059
+2025-10-02 01:23:16,766 - root - INFO - validate roc_auc, 0.7464
+2025-10-02 01:23:16,766 - root - INFO - new node validate loss: 0.6925
+2025-10-02 01:23:16,766 - root - INFO - new node validate average_precision, 0.6280
+2025-10-02 01:23:16,766 - root - INFO - new node validate roc_auc, 0.6381
+2025-10-02 01:23:24,839 - root - INFO - test loss: 0.5778
+2025-10-02 01:23:24,840 - root - INFO - test average_precision, 0.7175
+2025-10-02 01:23:24,840 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:23:24,840 - root - INFO - test roc_auc, 0.7516
+2025-10-02 01:23:24,840 - root - INFO - new node test loss: 0.6388
+2025-10-02 01:23:24,840 - root - INFO - new node test average_precision, 0.6655
+2025-10-02 01:23:24,840 - root - INFO - new node test roc_auc, 0.6916
+2025-10-02 01:23:57,488 - root - INFO - Epoch: 35, learning rate: 0.0001, train loss: 0.5069
+2025-10-02 01:23:57,488 - root - INFO - train average_precision, 0.7773
+2025-10-02 01:23:57,488 - root - INFO - train roc_auc, 0.8159
+2025-10-02 01:23:57,488 - root - INFO - validate loss: 0.5781
+2025-10-02 01:23:57,488 - root - INFO - validate average_precision, 0.7068
+2025-10-02 01:23:57,488 - root - INFO - validate roc_auc, 0.7474
+2025-10-02 01:23:57,489 - root - INFO - new node validate loss: 0.6845
+2025-10-02 01:23:57,489 - root - INFO - new node validate average_precision, 0.6154
+2025-10-02 01:23:57,489 - root - INFO - new node validate roc_auc, 0.6285
+2025-10-02 01:24:05,550 - root - INFO - test loss: 0.5781
+2025-10-02 01:24:05,550 - root - INFO - test average_precision, 0.7090
+2025-10-02 01:24:05,550 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:24:05,550 - root - INFO - test roc_auc, 0.7460
+2025-10-02 01:24:05,550 - root - INFO - new node test loss: 0.6380
+2025-10-02 01:24:05,550 - root - INFO - new node test average_precision, 0.6642
+2025-10-02 01:24:05,550 - root - INFO - new node test roc_auc, 0.6856
+2025-10-02 01:24:38,388 - root - INFO - Epoch: 36, learning rate: 0.0001, train loss: 0.5042
+2025-10-02 01:24:38,388 - root - INFO - train average_precision, 0.7786
+2025-10-02 01:24:38,388 - root - INFO - train roc_auc, 0.8177
+2025-10-02 01:24:38,388 - root - INFO - validate loss: 0.5816
+2025-10-02 01:24:38,388 - root - INFO - validate average_precision, 0.7007
+2025-10-02 01:24:38,388 - root - INFO - validate roc_auc, 0.7429
+2025-10-02 01:24:38,388 - root - INFO - new node validate loss: 0.6830
+2025-10-02 01:24:38,388 - root - INFO - new node validate average_precision, 0.6213
+2025-10-02 01:24:38,388 - root - INFO - new node validate roc_auc, 0.6375
+2025-10-02 01:24:46,439 - root - INFO - test loss: 0.5768
+2025-10-02 01:24:46,439 - root - INFO - test average_precision, 0.7078
+2025-10-02 01:24:46,439 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:24:46,439 - root - INFO - test roc_auc, 0.7483
+2025-10-02 01:24:46,439 - root - INFO - new node test loss: 0.6338
+2025-10-02 01:24:46,439 - root - INFO - new node test average_precision, 0.6713
+2025-10-02 01:24:46,439 - root - INFO - new node test roc_auc, 0.6931
+2025-10-02 01:25:19,271 - root - INFO - Epoch: 37, learning rate: 0.0001, train loss: 0.5038
+2025-10-02 01:25:19,271 - root - INFO - train average_precision, 0.7778
+2025-10-02 01:25:19,271 - root - INFO - train roc_auc, 0.8179
+2025-10-02 01:25:19,271 - root - INFO - validate loss: 0.5780
+2025-10-02 01:25:19,271 - root - INFO - validate average_precision, 0.7086
+2025-10-02 01:25:19,271 - root - INFO - validate roc_auc, 0.7478
+2025-10-02 01:25:19,271 - root - INFO - new node validate loss: 0.6787
+2025-10-02 01:25:19,271 - root - INFO - new node validate average_precision, 0.6459
+2025-10-02 01:25:19,271 - root - INFO - new node validate roc_auc, 0.6592
+2025-10-02 01:25:27,326 - root - INFO - test loss: 0.5829
+2025-10-02 01:25:27,327 - root - INFO - test average_precision, 0.7041
+2025-10-02 01:25:27,327 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:25:27,327 - root - INFO - test roc_auc, 0.7436
+2025-10-02 01:25:27,327 - root - INFO - new node test loss: 0.6428
+2025-10-02 01:25:27,327 - root - INFO - new node test average_precision, 0.6635
+2025-10-02 01:25:27,327 - root - INFO - new node test roc_auc, 0.6841
+2025-10-02 01:25:27,327 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:26:00,016 - root - INFO - Epoch: 38, learning rate: 0.0001, train loss: 0.5012
+2025-10-02 01:26:00,017 - root - INFO - train average_precision, 0.7845
+2025-10-02 01:26:00,017 - root - INFO - train roc_auc, 0.8218
+2025-10-02 01:26:00,017 - root - INFO - validate loss: 0.5758
+2025-10-02 01:26:00,017 - root - INFO - validate average_precision, 0.7100
+2025-10-02 01:26:00,017 - root - INFO - validate roc_auc, 0.7507
+2025-10-02 01:26:00,017 - root - INFO - new node validate loss: 0.6897
+2025-10-02 01:26:00,017 - root - INFO - new node validate average_precision, 0.6205
+2025-10-02 01:26:00,017 - root - INFO - new node validate roc_auc, 0.6343
+2025-10-02 01:26:08,065 - root - INFO - test loss: 0.5833
+2025-10-02 01:26:08,066 - root - INFO - test average_precision, 0.7137
+2025-10-02 01:26:08,066 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:26:08,066 - root - INFO - test roc_auc, 0.7451
+2025-10-02 01:26:08,066 - root - INFO - new node test loss: 0.6461
+2025-10-02 01:26:08,066 - root - INFO - new node test average_precision, 0.6613
+2025-10-02 01:26:08,066 - root - INFO - new node test roc_auc, 0.6849
+2025-10-02 01:26:08,066 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:26:40,789 - root - INFO - Epoch: 39, learning rate: 0.0001, train loss: 0.5026
+2025-10-02 01:26:40,789 - root - INFO - train average_precision, 0.7783
+2025-10-02 01:26:40,789 - root - INFO - train roc_auc, 0.8174
+2025-10-02 01:26:40,789 - root - INFO - validate loss: 0.5797
+2025-10-02 01:26:40,789 - root - INFO - validate average_precision, 0.6980
+2025-10-02 01:26:40,789 - root - INFO - validate roc_auc, 0.7431
+2025-10-02 01:26:40,789 - root - INFO - new node validate loss: 0.6968
+2025-10-02 01:26:40,790 - root - INFO - new node validate average_precision, 0.6078
+2025-10-02 01:26:40,790 - root - INFO - new node validate roc_auc, 0.6082
+2025-10-02 01:26:48,844 - root - INFO - test loss: 0.5765
+2025-10-02 01:26:48,844 - root - INFO - test average_precision, 0.7122
+2025-10-02 01:26:48,844 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:26:48,844 - root - INFO - test roc_auc, 0.7500
+2025-10-02 01:26:48,844 - root - INFO - new node test loss: 0.6321
+2025-10-02 01:26:48,844 - root - INFO - new node test average_precision, 0.6726
+2025-10-02 01:26:48,844 - root - INFO - new node test roc_auc, 0.6985
+2025-10-02 01:27:21,738 - root - INFO - Epoch: 40, learning rate: 0.0001, train loss: 0.5042
+2025-10-02 01:27:21,738 - root - INFO - train average_precision, 0.7772
+2025-10-02 01:27:21,738 - root - INFO - train roc_auc, 0.8177
+2025-10-02 01:27:21,738 - root - INFO - validate loss: 0.5749
+2025-10-02 01:27:21,738 - root - INFO - validate average_precision, 0.7049
+2025-10-02 01:27:21,738 - root - INFO - validate roc_auc, 0.7479
+2025-10-02 01:27:21,738 - root - INFO - new node validate loss: 0.6835
+2025-10-02 01:27:21,738 - root - INFO - new node validate average_precision, 0.6315
+2025-10-02 01:27:21,738 - root - INFO - new node validate roc_auc, 0.6447
+2025-10-02 01:27:29,782 - root - INFO - test loss: 0.5849
+2025-10-02 01:27:29,782 - root - INFO - test average_precision, 0.7010
+2025-10-02 01:27:29,782 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:27:29,782 - root - INFO - test roc_auc, 0.7375
+2025-10-02 01:27:29,782 - root - INFO - new node test loss: 0.6432
+2025-10-02 01:27:29,782 - root - INFO - new node test average_precision, 0.6513
+2025-10-02 01:27:29,782 - root - INFO - new node test roc_auc, 0.6759
+2025-10-02 01:28:02,498 - root - INFO - Epoch: 41, learning rate: 0.0001, train loss: 0.5036
+2025-10-02 01:28:02,498 - root - INFO - train average_precision, 0.7784
+2025-10-02 01:28:02,498 - root - INFO - train roc_auc, 0.8168
+2025-10-02 01:28:02,498 - root - INFO - validate loss: 0.5785
+2025-10-02 01:28:02,498 - root - INFO - validate average_precision, 0.7093
+2025-10-02 01:28:02,499 - root - INFO - validate roc_auc, 0.7493
+2025-10-02 01:28:02,499 - root - INFO - new node validate loss: 0.6821
+2025-10-02 01:28:02,499 - root - INFO - new node validate average_precision, 0.6325
+2025-10-02 01:28:02,499 - root - INFO - new node validate roc_auc, 0.6455
+2025-10-02 01:28:10,545 - root - INFO - test loss: 0.5782
+2025-10-02 01:28:10,545 - root - INFO - test average_precision, 0.7183
+2025-10-02 01:28:10,545 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:28:10,545 - root - INFO - test roc_auc, 0.7518
+2025-10-02 01:28:10,545 - root - INFO - new node test loss: 0.6313
+2025-10-02 01:28:10,545 - root - INFO - new node test average_precision, 0.6754
+2025-10-02 01:28:10,545 - root - INFO - new node test roc_auc, 0.6995
+2025-10-02 01:28:43,281 - root - INFO - Epoch: 42, learning rate: 0.0001, train loss: 0.5019
+2025-10-02 01:28:43,281 - root - INFO - train average_precision, 0.7833
+2025-10-02 01:28:43,281 - root - INFO - train roc_auc, 0.8193
+2025-10-02 01:28:43,281 - root - INFO - validate loss: 0.5818
+2025-10-02 01:28:43,282 - root - INFO - validate average_precision, 0.6976
+2025-10-02 01:28:43,282 - root - INFO - validate roc_auc, 0.7422
+2025-10-02 01:28:43,282 - root - INFO - new node validate loss: 0.6787
+2025-10-02 01:28:43,282 - root - INFO - new node validate average_precision, 0.6352
+2025-10-02 01:28:43,282 - root - INFO - new node validate roc_auc, 0.6532
+2025-10-02 01:28:51,345 - root - INFO - test loss: 0.5802
+2025-10-02 01:28:51,345 - root - INFO - test average_precision, 0.7173
+2025-10-02 01:28:51,345 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:28:51,345 - root - INFO - test roc_auc, 0.7461
+2025-10-02 01:28:51,345 - root - INFO - new node test loss: 0.6301
+2025-10-02 01:28:51,345 - root - INFO - new node test average_precision, 0.6837
+2025-10-02 01:28:51,345 - root - INFO - new node test roc_auc, 0.6990
+2025-10-02 01:29:24,533 - root - INFO - Epoch: 43, learning rate: 0.0001, train loss: 0.5026
+2025-10-02 01:29:24,534 - root - INFO - train average_precision, 0.7795
+2025-10-02 01:29:24,534 - root - INFO - train roc_auc, 0.8183
+2025-10-02 01:29:24,534 - root - INFO - validate loss: 0.5749
+2025-10-02 01:29:24,534 - root - INFO - validate average_precision, 0.7153
+2025-10-02 01:29:24,534 - root - INFO - validate roc_auc, 0.7542
+2025-10-02 01:29:24,534 - root - INFO - new node validate loss: 0.6859
+2025-10-02 01:29:24,534 - root - INFO - new node validate average_precision, 0.6278
+2025-10-02 01:29:24,534 - root - INFO - new node validate roc_auc, 0.6301
+2025-10-02 01:29:32,578 - root - INFO - test loss: 0.5766
+2025-10-02 01:29:32,578 - root - INFO - test average_precision, 0.7101
+2025-10-02 01:29:32,578 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:29:32,578 - root - INFO - test roc_auc, 0.7464
+2025-10-02 01:29:32,578 - root - INFO - new node test loss: 0.6324
+2025-10-02 01:29:32,578 - root - INFO - new node test average_precision, 0.6732
+2025-10-02 01:29:32,578 - root - INFO - new node test roc_auc, 0.6913
+2025-10-02 01:29:32,578 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:30:05,215 - root - INFO - Epoch: 44, learning rate: 0.0001, train loss: 0.5023
+2025-10-02 01:30:05,215 - root - INFO - train average_precision, 0.7798
+2025-10-02 01:30:05,215 - root - INFO - train roc_auc, 0.8199
+2025-10-02 01:30:05,215 - root - INFO - validate loss: 0.5783
+2025-10-02 01:30:05,215 - root - INFO - validate average_precision, 0.7050
+2025-10-02 01:30:05,215 - root - INFO - validate roc_auc, 0.7480
+2025-10-02 01:30:05,215 - root - INFO - new node validate loss: 0.6752
+2025-10-02 01:30:05,215 - root - INFO - new node validate average_precision, 0.6381
+2025-10-02 01:30:05,215 - root - INFO - new node validate roc_auc, 0.6519
+2025-10-02 01:30:13,254 - root - INFO - test loss: 0.5821
+2025-10-02 01:30:13,254 - root - INFO - test average_precision, 0.7016
+2025-10-02 01:30:13,254 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:30:13,254 - root - INFO - test roc_auc, 0.7400
+2025-10-02 01:30:13,254 - root - INFO - new node test loss: 0.6405
+2025-10-02 01:30:13,254 - root - INFO - new node test average_precision, 0.6601
+2025-10-02 01:30:13,254 - root - INFO - new node test roc_auc, 0.6802
+2025-10-02 01:30:45,857 - root - INFO - Epoch: 45, learning rate: 0.0001, train loss: 0.5053
+2025-10-02 01:30:45,857 - root - INFO - train average_precision, 0.7763
+2025-10-02 01:30:45,857 - root - INFO - train roc_auc, 0.8155
+2025-10-02 01:30:45,857 - root - INFO - validate loss: 0.5809
+2025-10-02 01:30:45,857 - root - INFO - validate average_precision, 0.7016
+2025-10-02 01:30:45,857 - root - INFO - validate roc_auc, 0.7413
+2025-10-02 01:30:45,857 - root - INFO - new node validate loss: 0.6810
+2025-10-02 01:30:45,857 - root - INFO - new node validate average_precision, 0.6257
+2025-10-02 01:30:45,857 - root - INFO - new node validate roc_auc, 0.6379
+2025-10-02 01:30:53,908 - root - INFO - test loss: 0.5838
+2025-10-02 01:30:53,908 - root - INFO - test average_precision, 0.7105
+2025-10-02 01:30:53,909 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:30:53,909 - root - INFO - test roc_auc, 0.7434
+2025-10-02 01:30:53,909 - root - INFO - new node test loss: 0.6401
+2025-10-02 01:30:53,909 - root - INFO - new node test average_precision, 0.6589
+2025-10-02 01:30:53,909 - root - INFO - new node test roc_auc, 0.6837
+2025-10-02 01:31:26,593 - root - INFO - Epoch: 46, learning rate: 0.0001, train loss: 0.5080
+2025-10-02 01:31:26,594 - root - INFO - train average_precision, 0.7773
+2025-10-02 01:31:26,594 - root - INFO - train roc_auc, 0.8158
+2025-10-02 01:31:26,594 - root - INFO - validate loss: 0.5793
+2025-10-02 01:31:26,594 - root - INFO - validate average_precision, 0.6992
+2025-10-02 01:31:26,594 - root - INFO - validate roc_auc, 0.7444
+2025-10-02 01:31:26,594 - root - INFO - new node validate loss: 0.6863
+2025-10-02 01:31:26,594 - root - INFO - new node validate average_precision, 0.6243
+2025-10-02 01:31:26,594 - root - INFO - new node validate roc_auc, 0.6429
+2025-10-02 01:31:34,618 - root - INFO - test loss: 0.5750
+2025-10-02 01:31:34,618 - root - INFO - test average_precision, 0.7166
+2025-10-02 01:31:34,618 - root - INFO - best test average_precision: 0.7237
+2025-10-02 01:31:34,618 - root - INFO - test roc_auc, 0.7523
+2025-10-02 01:31:34,618 - root - INFO - new node test loss: 0.6302
+2025-10-02 01:31:34,618 - root - INFO - new node test average_precision, 0.6678
+2025-10-02 01:31:34,618 - root - INFO - new node test roc_auc, 0.6987
+2025-10-02 01:32:07,578 - root - INFO - Epoch: 47, learning rate: 0.0001, train loss: 0.5020
+2025-10-02 01:32:07,578 - root - INFO - train average_precision, 0.7810
+2025-10-02 01:32:07,578 - root - INFO - train roc_auc, 0.8198
+2025-10-02 01:32:07,578 - root - INFO - validate loss: 0.5761
+2025-10-02 01:32:07,578 - root - INFO - validate average_precision, 0.7055
+2025-10-02 01:32:07,578 - root - INFO - validate roc_auc, 0.7498
+2025-10-02 01:32:07,578 - root - INFO - new node validate loss: 0.6818
+2025-10-02 01:32:07,579 - root - INFO - new node validate average_precision, 0.6401
+2025-10-02 01:32:07,579 - root - INFO - new node validate roc_auc, 0.6436
+2025-10-02 01:32:15,652 - root - INFO - test loss: 0.5711
+2025-10-02 01:32:15,652 - root - INFO - test average_precision, 0.7242
+2025-10-02 01:32:15,652 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:32:15,652 - root - INFO - test roc_auc, 0.7583
+2025-10-02 01:32:15,652 - root - INFO - new node test loss: 0.6348
+2025-10-02 01:32:15,653 - root - INFO - new node test average_precision, 0.6698
+2025-10-02 01:32:15,653 - root - INFO - new node test roc_auc, 0.6939
+2025-10-02 01:32:48,428 - root - INFO - Epoch: 48, learning rate: 0.0001, train loss: 0.5028
+2025-10-02 01:32:48,428 - root - INFO - train average_precision, 0.7806
+2025-10-02 01:32:48,428 - root - INFO - train roc_auc, 0.8186
+2025-10-02 01:32:48,428 - root - INFO - validate loss: 0.5744
+2025-10-02 01:32:48,428 - root - INFO - validate average_precision, 0.7153
+2025-10-02 01:32:48,428 - root - INFO - validate roc_auc, 0.7533
+2025-10-02 01:32:48,428 - root - INFO - new node validate loss: 0.6796
+2025-10-02 01:32:48,428 - root - INFO - new node validate average_precision, 0.6477
+2025-10-02 01:32:48,428 - root - INFO - new node validate roc_auc, 0.6580
+2025-10-02 01:32:56,486 - root - INFO - test loss: 0.5831
+2025-10-02 01:32:56,486 - root - INFO - test average_precision, 0.7028
+2025-10-02 01:32:56,486 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:32:56,486 - root - INFO - test roc_auc, 0.7405
+2025-10-02 01:32:56,486 - root - INFO - new node test loss: 0.6405
+2025-10-02 01:32:56,486 - root - INFO - new node test average_precision, 0.6524
+2025-10-02 01:32:56,486 - root - INFO - new node test roc_auc, 0.6806
+2025-10-02 01:33:29,216 - root - INFO - Epoch: 49, learning rate: 0.0001, train loss: 0.5025
+2025-10-02 01:33:29,216 - root - INFO - train average_precision, 0.7796
+2025-10-02 01:33:29,216 - root - INFO - train roc_auc, 0.8191
+2025-10-02 01:33:29,216 - root - INFO - validate loss: 0.5763
+2025-10-02 01:33:29,216 - root - INFO - validate average_precision, 0.7114
+2025-10-02 01:33:29,216 - root - INFO - validate roc_auc, 0.7504
+2025-10-02 01:33:29,216 - root - INFO - new node validate loss: 0.6844
+2025-10-02 01:33:29,217 - root - INFO - new node validate average_precision, 0.6475
+2025-10-02 01:33:29,217 - root - INFO - new node validate roc_auc, 0.6591
+2025-10-02 01:33:37,274 - root - INFO - test loss: 0.5829
+2025-10-02 01:33:37,274 - root - INFO - test average_precision, 0.7102
+2025-10-02 01:33:37,274 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:33:37,274 - root - INFO - test roc_auc, 0.7411
+2025-10-02 01:33:37,274 - root - INFO - new node test loss: 0.6368
+2025-10-02 01:33:37,274 - root - INFO - new node test average_precision, 0.6618
+2025-10-02 01:33:37,274 - root - INFO - new node test roc_auc, 0.6861
+2025-10-02 01:34:10,291 - root - INFO - Epoch: 50, learning rate: 0.0001, train loss: 0.5020
+2025-10-02 01:34:10,291 - root - INFO - train average_precision, 0.7814
+2025-10-02 01:34:10,291 - root - INFO - train roc_auc, 0.8192
+2025-10-02 01:34:10,291 - root - INFO - validate loss: 0.5758
+2025-10-02 01:34:10,291 - root - INFO - validate average_precision, 0.7068
+2025-10-02 01:34:10,291 - root - INFO - validate roc_auc, 0.7512
+2025-10-02 01:34:10,291 - root - INFO - new node validate loss: 0.6792
+2025-10-02 01:34:10,291 - root - INFO - new node validate average_precision, 0.6492
+2025-10-02 01:34:10,291 - root - INFO - new node validate roc_auc, 0.6584
+2025-10-02 01:34:18,314 - root - INFO - test loss: 0.5735
+2025-10-02 01:34:18,315 - root - INFO - test average_precision, 0.7207
+2025-10-02 01:34:18,315 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:34:18,315 - root - INFO - test roc_auc, 0.7552
+2025-10-02 01:34:18,315 - root - INFO - new node test loss: 0.6377
+2025-10-02 01:34:18,315 - root - INFO - new node test average_precision, 0.6680
+2025-10-02 01:34:18,315 - root - INFO - new node test roc_auc, 0.6955
+2025-10-02 01:34:50,847 - root - INFO - Epoch: 51, learning rate: 0.0001, train loss: 0.5043
+2025-10-02 01:34:50,847 - root - INFO - train average_precision, 0.7798
+2025-10-02 01:34:50,847 - root - INFO - train roc_auc, 0.8167
+2025-10-02 01:34:50,847 - root - INFO - validate loss: 0.5756
+2025-10-02 01:34:50,847 - root - INFO - validate average_precision, 0.7089
+2025-10-02 01:34:50,847 - root - INFO - validate roc_auc, 0.7505
+2025-10-02 01:34:50,847 - root - INFO - new node validate loss: 0.6778
+2025-10-02 01:34:50,847 - root - INFO - new node validate average_precision, 0.6321
+2025-10-02 01:34:50,847 - root - INFO - new node validate roc_auc, 0.6517
+2025-10-02 01:34:58,886 - root - INFO - test loss: 0.5764
+2025-10-02 01:34:58,886 - root - INFO - test average_precision, 0.7101
+2025-10-02 01:34:58,886 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:34:58,886 - root - INFO - test roc_auc, 0.7496
+2025-10-02 01:34:58,886 - root - INFO - new node test loss: 0.6363
+2025-10-02 01:34:58,886 - root - INFO - new node test average_precision, 0.6622
+2025-10-02 01:34:58,886 - root - INFO - new node test roc_auc, 0.6889
+2025-10-02 01:35:31,584 - root - INFO - Epoch: 52, learning rate: 0.0001, train loss: 0.5030
+2025-10-02 01:35:31,584 - root - INFO - train average_precision, 0.7809
+2025-10-02 01:35:31,585 - root - INFO - train roc_auc, 0.8185
+2025-10-02 01:35:31,585 - root - INFO - validate loss: 0.5722
+2025-10-02 01:35:31,585 - root - INFO - validate average_precision, 0.7174
+2025-10-02 01:35:31,585 - root - INFO - validate roc_auc, 0.7543
+2025-10-02 01:35:31,585 - root - INFO - new node validate loss: 0.6822
+2025-10-02 01:35:31,585 - root - INFO - new node validate average_precision, 0.6395
+2025-10-02 01:35:31,585 - root - INFO - new node validate roc_auc, 0.6453
+2025-10-02 01:35:39,638 - root - INFO - test loss: 0.5777
+2025-10-02 01:35:39,638 - root - INFO - test average_precision, 0.7150
+2025-10-02 01:35:39,638 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:35:39,638 - root - INFO - test roc_auc, 0.7510
+2025-10-02 01:35:39,638 - root - INFO - new node test loss: 0.6363
+2025-10-02 01:35:39,638 - root - INFO - new node test average_precision, 0.6751
+2025-10-02 01:35:39,638 - root - INFO - new node test roc_auc, 0.6959
+2025-10-02 01:35:39,638 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:36:12,293 - root - INFO - Epoch: 53, learning rate: 0.0001, train loss: 0.5007
+2025-10-02 01:36:12,293 - root - INFO - train average_precision, 0.7839
+2025-10-02 01:36:12,293 - root - INFO - train roc_auc, 0.8209
+2025-10-02 01:36:12,293 - root - INFO - validate loss: 0.5731
+2025-10-02 01:36:12,293 - root - INFO - validate average_precision, 0.7168
+2025-10-02 01:36:12,293 - root - INFO - validate roc_auc, 0.7552
+2025-10-02 01:36:12,293 - root - INFO - new node validate loss: 0.6836
+2025-10-02 01:36:12,293 - root - INFO - new node validate average_precision, 0.6445
+2025-10-02 01:36:12,293 - root - INFO - new node validate roc_auc, 0.6468
+2025-10-02 01:36:20,338 - root - INFO - test loss: 0.5769
+2025-10-02 01:36:20,339 - root - INFO - test average_precision, 0.7119
+2025-10-02 01:36:20,339 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:36:20,339 - root - INFO - test roc_auc, 0.7468
+2025-10-02 01:36:20,339 - root - INFO - new node test loss: 0.6357
+2025-10-02 01:36:20,339 - root - INFO - new node test average_precision, 0.6672
+2025-10-02 01:36:20,339 - root - INFO - new node test roc_auc, 0.6903
+2025-10-02 01:36:53,015 - root - INFO - Epoch: 54, learning rate: 0.0001, train loss: 0.5031
+2025-10-02 01:36:53,016 - root - INFO - train average_precision, 0.7801
+2025-10-02 01:36:53,016 - root - INFO - train roc_auc, 0.8189
+2025-10-02 01:36:53,016 - root - INFO - validate loss: 0.5786
+2025-10-02 01:36:53,016 - root - INFO - validate average_precision, 0.7099
+2025-10-02 01:36:53,016 - root - INFO - validate roc_auc, 0.7499
+2025-10-02 01:36:53,016 - root - INFO - new node validate loss: 0.6906
+2025-10-02 01:36:53,016 - root - INFO - new node validate average_precision, 0.6277
+2025-10-02 01:36:53,016 - root - INFO - new node validate roc_auc, 0.6308
+2025-10-02 01:37:01,050 - root - INFO - test loss: 0.5784
+2025-10-02 01:37:01,050 - root - INFO - test average_precision, 0.7209
+2025-10-02 01:37:01,050 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:37:01,050 - root - INFO - test roc_auc, 0.7512
+2025-10-02 01:37:01,050 - root - INFO - new node test loss: 0.6391
+2025-10-02 01:37:01,050 - root - INFO - new node test average_precision, 0.6768
+2025-10-02 01:37:01,050 - root - INFO - new node test roc_auc, 0.6923
+2025-10-02 01:37:33,806 - root - INFO - Epoch: 55, learning rate: 0.0001, train loss: 0.5044
+2025-10-02 01:37:33,806 - root - INFO - train average_precision, 0.7790
+2025-10-02 01:37:33,806 - root - INFO - train roc_auc, 0.8188
+2025-10-02 01:37:33,806 - root - INFO - validate loss: 0.5806
+2025-10-02 01:37:33,807 - root - INFO - validate average_precision, 0.7034
+2025-10-02 01:37:33,807 - root - INFO - validate roc_auc, 0.7441
+2025-10-02 01:37:33,807 - root - INFO - new node validate loss: 0.6746
+2025-10-02 01:37:33,807 - root - INFO - new node validate average_precision, 0.6301
+2025-10-02 01:37:33,807 - root - INFO - new node validate roc_auc, 0.6448
+2025-10-02 01:37:41,842 - root - INFO - test loss: 0.5817
+2025-10-02 01:37:41,842 - root - INFO - test average_precision, 0.7151
+2025-10-02 01:37:41,842 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:37:41,842 - root - INFO - test roc_auc, 0.7452
+2025-10-02 01:37:41,842 - root - INFO - new node test loss: 0.6295
+2025-10-02 01:37:41,843 - root - INFO - new node test average_precision, 0.6826
+2025-10-02 01:37:41,843 - root - INFO - new node test roc_auc, 0.6989
+2025-10-02 01:38:14,572 - root - INFO - Epoch: 56, learning rate: 0.0001, train loss: 0.5029
+2025-10-02 01:38:14,573 - root - INFO - train average_precision, 0.7795
+2025-10-02 01:38:14,573 - root - INFO - train roc_auc, 0.8182
+2025-10-02 01:38:14,573 - root - INFO - validate loss: 0.5787
+2025-10-02 01:38:14,573 - root - INFO - validate average_precision, 0.7080
+2025-10-02 01:38:14,573 - root - INFO - validate roc_auc, 0.7461
+2025-10-02 01:38:14,573 - root - INFO - new node validate loss: 0.6894
+2025-10-02 01:38:14,573 - root - INFO - new node validate average_precision, 0.6256
+2025-10-02 01:38:14,573 - root - INFO - new node validate roc_auc, 0.6318
+2025-10-02 01:38:22,611 - root - INFO - test loss: 0.5862
+2025-10-02 01:38:22,611 - root - INFO - test average_precision, 0.7070
+2025-10-02 01:38:22,611 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:38:22,611 - root - INFO - test roc_auc, 0.7385
+2025-10-02 01:38:22,611 - root - INFO - new node test loss: 0.6360
+2025-10-02 01:38:22,611 - root - INFO - new node test average_precision, 0.6776
+2025-10-02 01:38:22,611 - root - INFO - new node test roc_auc, 0.6921
+2025-10-02 01:38:55,737 - root - INFO - Epoch: 57, learning rate: 0.0001, train loss: 0.4985
+2025-10-02 01:38:55,737 - root - INFO - train average_precision, 0.7876
+2025-10-02 01:38:55,737 - root - INFO - train roc_auc, 0.8232
+2025-10-02 01:38:55,737 - root - INFO - validate loss: 0.5755
+2025-10-02 01:38:55,737 - root - INFO - validate average_precision, 0.7138
+2025-10-02 01:38:55,737 - root - INFO - validate roc_auc, 0.7527
+2025-10-02 01:38:55,737 - root - INFO - new node validate loss: 0.6898
+2025-10-02 01:38:55,737 - root - INFO - new node validate average_precision, 0.6384
+2025-10-02 01:38:55,737 - root - INFO - new node validate roc_auc, 0.6463
+2025-10-02 01:39:03,783 - root - INFO - test loss: 0.5735
+2025-10-02 01:39:03,783 - root - INFO - test average_precision, 0.7202
+2025-10-02 01:39:03,783 - root - INFO - best test average_precision: 0.7242
+2025-10-02 01:39:03,783 - root - INFO - test roc_auc, 0.7544
+2025-10-02 01:39:03,783 - root - INFO - new node test loss: 0.6342
+2025-10-02 01:39:03,783 - root - INFO - new node test average_precision, 0.6795
+2025-10-02 01:39:03,783 - root - INFO - new node test roc_auc, 0.6974
+2025-10-02 01:39:36,974 - root - INFO - Epoch: 58, learning rate: 0.0001, train loss: 0.5031
+2025-10-02 01:39:36,974 - root - INFO - train average_precision, 0.7803
+2025-10-02 01:39:36,974 - root - INFO - train roc_auc, 0.8184
+2025-10-02 01:39:36,974 - root - INFO - validate loss: 0.5752
+2025-10-02 01:39:36,974 - root - INFO - validate average_precision, 0.7145
+2025-10-02 01:39:36,974 - root - INFO - validate roc_auc, 0.7512
+2025-10-02 01:39:36,974 - root - INFO - new node validate loss: 0.6861
+2025-10-02 01:39:36,974 - root - INFO - new node validate average_precision, 0.6357
+2025-10-02 01:39:36,974 - root - INFO - new node validate roc_auc, 0.6422
+2025-10-02 01:39:45,009 - root - INFO - test loss: 0.5730
+2025-10-02 01:39:45,009 - root - INFO - test average_precision, 0.7258
+2025-10-02 01:39:45,009 - root - INFO - best test average_precision: 0.7258
+2025-10-02 01:39:45,009 - root - INFO - test roc_auc, 0.7552
+2025-10-02 01:39:45,009 - root - INFO - new node test loss: 0.6357
+2025-10-02 01:39:45,009 - root - INFO - new node test average_precision, 0.6796
+2025-10-02 01:39:45,009 - root - INFO - new node test roc_auc, 0.6976
+2025-10-02 01:40:17,739 - root - INFO - Epoch: 59, learning rate: 0.0001, train loss: 0.5005
+2025-10-02 01:40:17,740 - root - INFO - train average_precision, 0.7845
+2025-10-02 01:40:17,740 - root - INFO - train roc_auc, 0.8211
+2025-10-02 01:40:17,740 - root - INFO - validate loss: 0.5719
+2025-10-02 01:40:17,740 - root - INFO - validate average_precision, 0.7165
+2025-10-02 01:40:17,740 - root - INFO - validate roc_auc, 0.7543
+2025-10-02 01:40:17,740 - root - INFO - new node validate loss: 0.6769
+2025-10-02 01:40:17,740 - root - INFO - new node validate average_precision, 0.6534
+2025-10-02 01:40:17,740 - root - INFO - new node validate roc_auc, 0.6661
+2025-10-02 01:40:25,797 - root - INFO - test loss: 0.5678
+2025-10-02 01:40:25,797 - root - INFO - test average_precision, 0.7350
+2025-10-02 01:40:25,797 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:40:25,797 - root - INFO - test roc_auc, 0.7634
+2025-10-02 01:40:25,797 - root - INFO - new node test loss: 0.6338
+2025-10-02 01:40:25,797 - root - INFO - new node test average_precision, 0.6837
+2025-10-02 01:40:25,797 - root - INFO - new node test roc_auc, 0.7017
+2025-10-02 01:40:58,446 - root - INFO - Epoch: 60, learning rate: 0.0001, train loss: 0.5021
+2025-10-02 01:40:58,446 - root - INFO - train average_precision, 0.7824
+2025-10-02 01:40:58,446 - root - INFO - train roc_auc, 0.8193
+2025-10-02 01:40:58,446 - root - INFO - validate loss: 0.5738
+2025-10-02 01:40:58,446 - root - INFO - validate average_precision, 0.7125
+2025-10-02 01:40:58,446 - root - INFO - validate roc_auc, 0.7516
+2025-10-02 01:40:58,446 - root - INFO - new node validate loss: 0.6875
+2025-10-02 01:40:58,446 - root - INFO - new node validate average_precision, 0.6190
+2025-10-02 01:40:58,446 - root - INFO - new node validate roc_auc, 0.6188
+2025-10-02 01:41:06,492 - root - INFO - test loss: 0.5741
+2025-10-02 01:41:06,493 - root - INFO - test average_precision, 0.7203
+2025-10-02 01:41:06,493 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:41:06,493 - root - INFO - test roc_auc, 0.7539
+2025-10-02 01:41:06,493 - root - INFO - new node test loss: 0.6338
+2025-10-02 01:41:06,493 - root - INFO - new node test average_precision, 0.6794
+2025-10-02 01:41:06,493 - root - INFO - new node test roc_auc, 0.6960
+2025-10-02 01:41:39,125 - root - INFO - Epoch: 61, learning rate: 0.0001, train loss: 0.5011
+2025-10-02 01:41:39,125 - root - INFO - train average_precision, 0.7849
+2025-10-02 01:41:39,125 - root - INFO - train roc_auc, 0.8205
+2025-10-02 01:41:39,125 - root - INFO - validate loss: 0.5740
+2025-10-02 01:41:39,125 - root - INFO - validate average_precision, 0.7082
+2025-10-02 01:41:39,125 - root - INFO - validate roc_auc, 0.7512
+2025-10-02 01:41:39,125 - root - INFO - new node validate loss: 0.6783
+2025-10-02 01:41:39,125 - root - INFO - new node validate average_precision, 0.6460
+2025-10-02 01:41:39,125 - root - INFO - new node validate roc_auc, 0.6548
+2025-10-02 01:41:47,172 - root - INFO - test loss: 0.5727
+2025-10-02 01:41:47,172 - root - INFO - test average_precision, 0.7242
+2025-10-02 01:41:47,172 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:41:47,172 - root - INFO - test roc_auc, 0.7556
+2025-10-02 01:41:47,172 - root - INFO - new node test loss: 0.6330
+2025-10-02 01:41:47,172 - root - INFO - new node test average_precision, 0.6773
+2025-10-02 01:41:47,173 - root - INFO - new node test roc_auc, 0.6964
+2025-10-02 01:42:19,868 - root - INFO - Epoch: 62, learning rate: 0.0001, train loss: 0.4971
+2025-10-02 01:42:19,869 - root - INFO - train average_precision, 0.7899
+2025-10-02 01:42:19,869 - root - INFO - train roc_auc, 0.8248
+2025-10-02 01:42:19,869 - root - INFO - validate loss: 0.5762
+2025-10-02 01:42:19,869 - root - INFO - validate average_precision, 0.7130
+2025-10-02 01:42:19,869 - root - INFO - validate roc_auc, 0.7515
+2025-10-02 01:42:19,869 - root - INFO - new node validate loss: 0.6849
+2025-10-02 01:42:19,869 - root - INFO - new node validate average_precision, 0.6405
+2025-10-02 01:42:19,869 - root - INFO - new node validate roc_auc, 0.6486
+2025-10-02 01:42:27,958 - root - INFO - test loss: 0.5742
+2025-10-02 01:42:27,958 - root - INFO - test average_precision, 0.7265
+2025-10-02 01:42:27,958 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:42:27,958 - root - INFO - test roc_auc, 0.7541
+2025-10-02 01:42:27,958 - root - INFO - new node test loss: 0.6279
+2025-10-02 01:42:27,958 - root - INFO - new node test average_precision, 0.6835
+2025-10-02 01:42:27,958 - root - INFO - new node test roc_auc, 0.7034
+2025-10-02 01:43:00,613 - root - INFO - Epoch: 63, learning rate: 0.0001, train loss: 0.5025
+2025-10-02 01:43:00,614 - root - INFO - train average_precision, 0.7808
+2025-10-02 01:43:00,614 - root - INFO - train roc_auc, 0.8181
+2025-10-02 01:43:00,614 - root - INFO - validate loss: 0.5757
+2025-10-02 01:43:00,614 - root - INFO - validate average_precision, 0.7123
+2025-10-02 01:43:00,614 - root - INFO - validate roc_auc, 0.7515
+2025-10-02 01:43:00,614 - root - INFO - new node validate loss: 0.6831
+2025-10-02 01:43:00,614 - root - INFO - new node validate average_precision, 0.6402
+2025-10-02 01:43:00,614 - root - INFO - new node validate roc_auc, 0.6433
+2025-10-02 01:43:08,666 - root - INFO - test loss: 0.5760
+2025-10-02 01:43:08,666 - root - INFO - test average_precision, 0.7180
+2025-10-02 01:43:08,666 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:43:08,667 - root - INFO - test roc_auc, 0.7527
+2025-10-02 01:43:08,667 - root - INFO - new node test loss: 0.6433
+2025-10-02 01:43:08,667 - root - INFO - new node test average_precision, 0.6581
+2025-10-02 01:43:08,667 - root - INFO - new node test roc_auc, 0.6818
+2025-10-02 01:43:41,519 - root - INFO - Epoch: 64, learning rate: 0.0001, train loss: 0.5007
+2025-10-02 01:43:41,519 - root - INFO - train average_precision, 0.7859
+2025-10-02 01:43:41,519 - root - INFO - train roc_auc, 0.8212
+2025-10-02 01:43:41,520 - root - INFO - validate loss: 0.5766
+2025-10-02 01:43:41,520 - root - INFO - validate average_precision, 0.7104
+2025-10-02 01:43:41,520 - root - INFO - validate roc_auc, 0.7527
+2025-10-02 01:43:41,520 - root - INFO - new node validate loss: 0.6883
+2025-10-02 01:43:41,520 - root - INFO - new node validate average_precision, 0.6460
+2025-10-02 01:43:41,520 - root - INFO - new node validate roc_auc, 0.6588
+2025-10-02 01:43:49,547 - root - INFO - test loss: 0.5747
+2025-10-02 01:43:49,547 - root - INFO - test average_precision, 0.7185
+2025-10-02 01:43:49,547 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:43:49,547 - root - INFO - test roc_auc, 0.7518
+2025-10-02 01:43:49,547 - root - INFO - new node test loss: 0.6390
+2025-10-02 01:43:49,547 - root - INFO - new node test average_precision, 0.6670
+2025-10-02 01:43:49,547 - root - INFO - new node test roc_auc, 0.6908
+2025-10-02 01:44:22,208 - root - INFO - Epoch: 65, learning rate: 0.0001, train loss: 0.4999
+2025-10-02 01:44:22,208 - root - INFO - train average_precision, 0.7855
+2025-10-02 01:44:22,209 - root - INFO - train roc_auc, 0.8209
+2025-10-02 01:44:22,209 - root - INFO - validate loss: 0.5768
+2025-10-02 01:44:22,209 - root - INFO - validate average_precision, 0.7119
+2025-10-02 01:44:22,209 - root - INFO - validate roc_auc, 0.7500
+2025-10-02 01:44:22,209 - root - INFO - new node validate loss: 0.6857
+2025-10-02 01:44:22,209 - root - INFO - new node validate average_precision, 0.6279
+2025-10-02 01:44:22,209 - root - INFO - new node validate roc_auc, 0.6337
+2025-10-02 01:44:30,239 - root - INFO - test loss: 0.5800
+2025-10-02 01:44:30,239 - root - INFO - test average_precision, 0.7132
+2025-10-02 01:44:30,239 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:44:30,239 - root - INFO - test roc_auc, 0.7434
+2025-10-02 01:44:30,239 - root - INFO - new node test loss: 0.6349
+2025-10-02 01:44:30,239 - root - INFO - new node test average_precision, 0.6793
+2025-10-02 01:44:30,239 - root - INFO - new node test roc_auc, 0.6943
+2025-10-02 01:45:02,900 - root - INFO - Epoch: 66, learning rate: 0.0001, train loss: 0.5012
+2025-10-02 01:45:02,900 - root - INFO - train average_precision, 0.7855
+2025-10-02 01:45:02,901 - root - INFO - train roc_auc, 0.8210
+2025-10-02 01:45:02,901 - root - INFO - validate loss: 0.5720
+2025-10-02 01:45:02,901 - root - INFO - validate average_precision, 0.7192
+2025-10-02 01:45:02,901 - root - INFO - validate roc_auc, 0.7556
+2025-10-02 01:45:02,901 - root - INFO - new node validate loss: 0.6839
+2025-10-02 01:45:02,901 - root - INFO - new node validate average_precision, 0.6422
+2025-10-02 01:45:02,901 - root - INFO - new node validate roc_auc, 0.6513
+2025-10-02 01:45:10,943 - root - INFO - test loss: 0.5731
+2025-10-02 01:45:10,944 - root - INFO - test average_precision, 0.7230
+2025-10-02 01:45:10,944 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:45:10,944 - root - INFO - test roc_auc, 0.7544
+2025-10-02 01:45:10,944 - root - INFO - new node test loss: 0.6353
+2025-10-02 01:45:10,944 - root - INFO - new node test average_precision, 0.6766
+2025-10-02 01:45:10,944 - root - INFO - new node test roc_auc, 0.6949
+2025-10-02 01:45:10,944 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:45:43,834 - root - INFO - Epoch: 67, learning rate: 0.0001, train loss: 0.4996
+2025-10-02 01:45:43,834 - root - INFO - train average_precision, 0.7882
+2025-10-02 01:45:43,834 - root - INFO - train roc_auc, 0.8233
+2025-10-02 01:45:43,834 - root - INFO - validate loss: 0.5736
+2025-10-02 01:45:43,835 - root - INFO - validate average_precision, 0.7134
+2025-10-02 01:45:43,835 - root - INFO - validate roc_auc, 0.7532
+2025-10-02 01:45:43,835 - root - INFO - new node validate loss: 0.6788
+2025-10-02 01:45:43,835 - root - INFO - new node validate average_precision, 0.6423
+2025-10-02 01:45:43,835 - root - INFO - new node validate roc_auc, 0.6517
+2025-10-02 01:45:51,867 - root - INFO - test loss: 0.5724
+2025-10-02 01:45:51,867 - root - INFO - test average_precision, 0.7223
+2025-10-02 01:45:51,867 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:45:51,867 - root - INFO - test roc_auc, 0.7560
+2025-10-02 01:45:51,867 - root - INFO - new node test loss: 0.6328
+2025-10-02 01:45:51,867 - root - INFO - new node test average_precision, 0.6762
+2025-10-02 01:45:51,867 - root - INFO - new node test roc_auc, 0.6958
+2025-10-02 01:46:24,789 - root - INFO - Epoch: 68, learning rate: 0.0001, train loss: 0.4993
+2025-10-02 01:46:24,790 - root - INFO - train average_precision, 0.7855
+2025-10-02 01:46:24,790 - root - INFO - train roc_auc, 0.8211
+2025-10-02 01:46:24,790 - root - INFO - validate loss: 0.5719
+2025-10-02 01:46:24,790 - root - INFO - validate average_precision, 0.7219
+2025-10-02 01:46:24,790 - root - INFO - validate roc_auc, 0.7542
+2025-10-02 01:46:24,790 - root - INFO - new node validate loss: 0.6799
+2025-10-02 01:46:24,790 - root - INFO - new node validate average_precision, 0.6490
+2025-10-02 01:46:24,790 - root - INFO - new node validate roc_auc, 0.6555
+2025-10-02 01:46:32,844 - root - INFO - test loss: 0.5762
+2025-10-02 01:46:32,845 - root - INFO - test average_precision, 0.7170
+2025-10-02 01:46:32,845 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:46:32,845 - root - INFO - test roc_auc, 0.7497
+2025-10-02 01:46:32,845 - root - INFO - new node test loss: 0.6306
+2025-10-02 01:46:32,845 - root - INFO - new node test average_precision, 0.6897
+2025-10-02 01:46:32,845 - root - INFO - new node test roc_auc, 0.7024
+2025-10-02 01:47:05,496 - root - INFO - Epoch: 69, learning rate: 0.0001, train loss: 0.4986
+2025-10-02 01:47:05,497 - root - INFO - train average_precision, 0.7880
+2025-10-02 01:47:05,497 - root - INFO - train roc_auc, 0.8229
+2025-10-02 01:47:05,497 - root - INFO - validate loss: 0.5676
+2025-10-02 01:47:05,497 - root - INFO - validate average_precision, 0.7207
+2025-10-02 01:47:05,497 - root - INFO - validate roc_auc, 0.7585
+2025-10-02 01:47:05,497 - root - INFO - new node validate loss: 0.6749
+2025-10-02 01:47:05,497 - root - INFO - new node validate average_precision, 0.6330
+2025-10-02 01:47:05,497 - root - INFO - new node validate roc_auc, 0.6445
+2025-10-02 01:47:13,549 - root - INFO - test loss: 0.5743
+2025-10-02 01:47:13,549 - root - INFO - test average_precision, 0.7213
+2025-10-02 01:47:13,549 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:47:13,549 - root - INFO - test roc_auc, 0.7534
+2025-10-02 01:47:13,549 - root - INFO - new node test loss: 0.6302
+2025-10-02 01:47:13,549 - root - INFO - new node test average_precision, 0.6849
+2025-10-02 01:47:13,549 - root - INFO - new node test roc_auc, 0.7008
+2025-10-02 01:47:13,549 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:47:46,283 - root - INFO - Epoch: 70, learning rate: 0.0001, train loss: 0.5007
+2025-10-02 01:47:46,283 - root - INFO - train average_precision, 0.7866
+2025-10-02 01:47:46,283 - root - INFO - train roc_auc, 0.8212
+2025-10-02 01:47:46,283 - root - INFO - validate loss: 0.5689
+2025-10-02 01:47:46,283 - root - INFO - validate average_precision, 0.7214
+2025-10-02 01:47:46,283 - root - INFO - validate roc_auc, 0.7560
+2025-10-02 01:47:46,283 - root - INFO - new node validate loss: 0.6775
+2025-10-02 01:47:46,283 - root - INFO - new node validate average_precision, 0.6553
+2025-10-02 01:47:46,283 - root - INFO - new node validate roc_auc, 0.6613
+2025-10-02 01:47:54,349 - root - INFO - test loss: 0.5693
+2025-10-02 01:47:54,349 - root - INFO - test average_precision, 0.7293
+2025-10-02 01:47:54,349 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:47:54,349 - root - INFO - test roc_auc, 0.7584
+2025-10-02 01:47:54,349 - root - INFO - new node test loss: 0.6257
+2025-10-02 01:47:54,349 - root - INFO - new node test average_precision, 0.6882
+2025-10-02 01:47:54,349 - root - INFO - new node test roc_auc, 0.7027
+2025-10-02 01:48:26,980 - root - INFO - Epoch: 71, learning rate: 0.0001, train loss: 0.5022
+2025-10-02 01:48:26,980 - root - INFO - train average_precision, 0.7823
+2025-10-02 01:48:26,980 - root - INFO - train roc_auc, 0.8194
+2025-10-02 01:48:26,980 - root - INFO - validate loss: 0.5699
+2025-10-02 01:48:26,980 - root - INFO - validate average_precision, 0.7167
+2025-10-02 01:48:26,980 - root - INFO - validate roc_auc, 0.7558
+2025-10-02 01:48:26,980 - root - INFO - new node validate loss: 0.6784
+2025-10-02 01:48:26,980 - root - INFO - new node validate average_precision, 0.6435
+2025-10-02 01:48:26,980 - root - INFO - new node validate roc_auc, 0.6584
+2025-10-02 01:48:35,018 - root - INFO - test loss: 0.5740
+2025-10-02 01:48:35,018 - root - INFO - test average_precision, 0.7229
+2025-10-02 01:48:35,018 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:48:35,018 - root - INFO - test roc_auc, 0.7551
+2025-10-02 01:48:35,018 - root - INFO - new node test loss: 0.6375
+2025-10-02 01:48:35,018 - root - INFO - new node test average_precision, 0.6865
+2025-10-02 01:48:35,018 - root - INFO - new node test roc_auc, 0.6991
+2025-10-02 01:49:07,710 - root - INFO - Epoch: 72, learning rate: 0.0001, train loss: 0.4978
+2025-10-02 01:49:07,710 - root - INFO - train average_precision, 0.7854
+2025-10-02 01:49:07,710 - root - INFO - train roc_auc, 0.8224
+2025-10-02 01:49:07,710 - root - INFO - validate loss: 0.5732
+2025-10-02 01:49:07,710 - root - INFO - validate average_precision, 0.7164
+2025-10-02 01:49:07,710 - root - INFO - validate roc_auc, 0.7540
+2025-10-02 01:49:07,710 - root - INFO - new node validate loss: 0.6880
+2025-10-02 01:49:07,710 - root - INFO - new node validate average_precision, 0.6457
+2025-10-02 01:49:07,710 - root - INFO - new node validate roc_auc, 0.6438
+2025-10-02 01:49:15,731 - root - INFO - test loss: 0.5667
+2025-10-02 01:49:15,731 - root - INFO - test average_precision, 0.7348
+2025-10-02 01:49:15,731 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:49:15,731 - root - INFO - test roc_auc, 0.7644
+2025-10-02 01:49:15,731 - root - INFO - new node test loss: 0.6324
+2025-10-02 01:49:15,731 - root - INFO - new node test average_precision, 0.6915
+2025-10-02 01:49:15,731 - root - INFO - new node test roc_auc, 0.7057
+2025-10-02 01:49:48,342 - root - INFO - Epoch: 73, learning rate: 0.0001, train loss: 0.5011
+2025-10-02 01:49:48,342 - root - INFO - train average_precision, 0.7870
+2025-10-02 01:49:48,342 - root - INFO - train roc_auc, 0.8216
+2025-10-02 01:49:48,342 - root - INFO - validate loss: 0.5727
+2025-10-02 01:49:48,342 - root - INFO - validate average_precision, 0.7210
+2025-10-02 01:49:48,343 - root - INFO - validate roc_auc, 0.7560
+2025-10-02 01:49:48,343 - root - INFO - new node validate loss: 0.6934
+2025-10-02 01:49:48,343 - root - INFO - new node validate average_precision, 0.6264
+2025-10-02 01:49:48,343 - root - INFO - new node validate roc_auc, 0.6302
+2025-10-02 01:49:56,378 - root - INFO - test loss: 0.5734
+2025-10-02 01:49:56,378 - root - INFO - test average_precision, 0.7181
+2025-10-02 01:49:56,378 - root - INFO - best test average_precision: 0.7350
+2025-10-02 01:49:56,378 - root - INFO - test roc_auc, 0.7530
+2025-10-02 01:49:56,378 - root - INFO - new node test loss: 0.6367
+2025-10-02 01:49:56,378 - root - INFO - new node test average_precision, 0.6717
+2025-10-02 01:49:56,378 - root - INFO - new node test roc_auc, 0.6945
+2025-10-02 01:50:29,320 - root - INFO - Epoch: 74, learning rate: 0.0001, train loss: 0.5015
+2025-10-02 01:50:29,320 - root - INFO - train average_precision, 0.7871
+2025-10-02 01:50:29,320 - root - INFO - train roc_auc, 0.8217
+2025-10-02 01:50:29,320 - root - INFO - validate loss: 0.5675
+2025-10-02 01:50:29,321 - root - INFO - validate average_precision, 0.7319
+2025-10-02 01:50:29,321 - root - INFO - validate roc_auc, 0.7627
+2025-10-02 01:50:29,321 - root - INFO - new node validate loss: 0.6789
+2025-10-02 01:50:29,321 - root - INFO - new node validate average_precision, 0.6484
+2025-10-02 01:50:29,321 - root - INFO - new node validate roc_auc, 0.6557
+2025-10-02 01:50:37,355 - root - INFO - test loss: 0.5633
+2025-10-02 01:50:37,356 - root - INFO - test average_precision, 0.7417
+2025-10-02 01:50:37,356 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:50:37,356 - root - INFO - test roc_auc, 0.7684
+2025-10-02 01:50:37,356 - root - INFO - new node test loss: 0.6226
+2025-10-02 01:50:37,356 - root - INFO - new node test average_precision, 0.7036
+2025-10-02 01:50:37,356 - root - INFO - new node test roc_auc, 0.7142
+2025-10-02 01:50:37,356 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:51:10,061 - root - INFO - Epoch: 75, learning rate: 0.0001, train loss: 0.4982
+2025-10-02 01:51:10,061 - root - INFO - train average_precision, 0.7910
+2025-10-02 01:51:10,061 - root - INFO - train roc_auc, 0.8239
+2025-10-02 01:51:10,061 - root - INFO - validate loss: 0.5728
+2025-10-02 01:51:10,061 - root - INFO - validate average_precision, 0.7230
+2025-10-02 01:51:10,061 - root - INFO - validate roc_auc, 0.7556
+2025-10-02 01:51:10,061 - root - INFO - new node validate loss: 0.6776
+2025-10-02 01:51:10,061 - root - INFO - new node validate average_precision, 0.6390
+2025-10-02 01:51:10,062 - root - INFO - new node validate roc_auc, 0.6485
+2025-10-02 01:51:18,108 - root - INFO - test loss: 0.5691
+2025-10-02 01:51:18,108 - root - INFO - test average_precision, 0.7307
+2025-10-02 01:51:18,108 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:51:18,108 - root - INFO - test roc_auc, 0.7594
+2025-10-02 01:51:18,108 - root - INFO - new node test loss: 0.6291
+2025-10-02 01:51:18,109 - root - INFO - new node test average_precision, 0.6905
+2025-10-02 01:51:18,109 - root - INFO - new node test roc_auc, 0.7056
+2025-10-02 01:51:50,738 - root - INFO - Epoch: 76, learning rate: 0.0001, train loss: 0.5002
+2025-10-02 01:51:50,738 - root - INFO - train average_precision, 0.7886
+2025-10-02 01:51:50,738 - root - INFO - train roc_auc, 0.8225
+2025-10-02 01:51:50,738 - root - INFO - validate loss: 0.5677
+2025-10-02 01:51:50,738 - root - INFO - validate average_precision, 0.7296
+2025-10-02 01:51:50,738 - root - INFO - validate roc_auc, 0.7633
+2025-10-02 01:51:50,738 - root - INFO - new node validate loss: 0.6775
+2025-10-02 01:51:50,738 - root - INFO - new node validate average_precision, 0.6503
+2025-10-02 01:51:50,738 - root - INFO - new node validate roc_auc, 0.6582
+2025-10-02 01:51:58,818 - root - INFO - test loss: 0.5691
+2025-10-02 01:51:58,819 - root - INFO - test average_precision, 0.7292
+2025-10-02 01:51:58,819 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:51:58,819 - root - INFO - test roc_auc, 0.7603
+2025-10-02 01:51:58,819 - root - INFO - new node test loss: 0.6411
+2025-10-02 01:51:58,819 - root - INFO - new node test average_precision, 0.6669
+2025-10-02 01:51:58,819 - root - INFO - new node test roc_auc, 0.6905
+2025-10-02 01:52:31,549 - root - INFO - Epoch: 77, learning rate: 0.0001, train loss: 0.4983
+2025-10-02 01:52:31,549 - root - INFO - train average_precision, 0.7885
+2025-10-02 01:52:31,549 - root - INFO - train roc_auc, 0.8235
+2025-10-02 01:52:31,549 - root - INFO - validate loss: 0.5681
+2025-10-02 01:52:31,549 - root - INFO - validate average_precision, 0.7251
+2025-10-02 01:52:31,549 - root - INFO - validate roc_auc, 0.7612
+2025-10-02 01:52:31,549 - root - INFO - new node validate loss: 0.6859
+2025-10-02 01:52:31,549 - root - INFO - new node validate average_precision, 0.6387
+2025-10-02 01:52:31,549 - root - INFO - new node validate roc_auc, 0.6432
+2025-10-02 01:52:39,613 - root - INFO - test loss: 0.5709
+2025-10-02 01:52:39,613 - root - INFO - test average_precision, 0.7205
+2025-10-02 01:52:39,613 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:52:39,613 - root - INFO - test roc_auc, 0.7557
+2025-10-02 01:52:39,613 - root - INFO - new node test loss: 0.6384
+2025-10-02 01:52:39,613 - root - INFO - new node test average_precision, 0.6739
+2025-10-02 01:52:39,613 - root - INFO - new node test roc_auc, 0.6977
+2025-10-02 01:53:12,605 - root - INFO - Epoch: 78, learning rate: 0.0001, train loss: 0.4963
+2025-10-02 01:53:12,605 - root - INFO - train average_precision, 0.7924
+2025-10-02 01:53:12,605 - root - INFO - train roc_auc, 0.8269
+2025-10-02 01:53:12,605 - root - INFO - validate loss: 0.5738
+2025-10-02 01:53:12,605 - root - INFO - validate average_precision, 0.7164
+2025-10-02 01:53:12,606 - root - INFO - validate roc_auc, 0.7564
+2025-10-02 01:53:12,606 - root - INFO - new node validate loss: 0.6919
+2025-10-02 01:53:12,606 - root - INFO - new node validate average_precision, 0.6319
+2025-10-02 01:53:12,606 - root - INFO - new node validate roc_auc, 0.6398
+2025-10-02 01:53:20,645 - root - INFO - test loss: 0.5674
+2025-10-02 01:53:20,645 - root - INFO - test average_precision, 0.7337
+2025-10-02 01:53:20,645 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:53:20,645 - root - INFO - test roc_auc, 0.7629
+2025-10-02 01:53:20,645 - root - INFO - new node test loss: 0.6429
+2025-10-02 01:53:20,645 - root - INFO - new node test average_precision, 0.6830
+2025-10-02 01:53:20,645 - root - INFO - new node test roc_auc, 0.6984
+2025-10-02 01:53:53,761 - root - INFO - Epoch: 79, learning rate: 0.0001, train loss: 0.4959
+2025-10-02 01:53:53,762 - root - INFO - train average_precision, 0.7909
+2025-10-02 01:53:53,762 - root - INFO - train roc_auc, 0.8255
+2025-10-02 01:53:53,762 - root - INFO - validate loss: 0.5698
+2025-10-02 01:53:53,762 - root - INFO - validate average_precision, 0.7238
+2025-10-02 01:53:53,762 - root - INFO - validate roc_auc, 0.7602
+2025-10-02 01:53:53,762 - root - INFO - new node validate loss: 0.6775
+2025-10-02 01:53:53,762 - root - INFO - new node validate average_precision, 0.6556
+2025-10-02 01:53:53,762 - root - INFO - new node validate roc_auc, 0.6670
+2025-10-02 01:54:01,793 - root - INFO - test loss: 0.5672
+2025-10-02 01:54:01,793 - root - INFO - test average_precision, 0.7376
+2025-10-02 01:54:01,793 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:54:01,793 - root - INFO - test roc_auc, 0.7611
+2025-10-02 01:54:01,793 - root - INFO - new node test loss: 0.6383
+2025-10-02 01:54:01,793 - root - INFO - new node test average_precision, 0.6755
+2025-10-02 01:54:01,793 - root - INFO - new node test roc_auc, 0.6938
+2025-10-02 01:54:34,389 - root - INFO - Epoch: 80, learning rate: 0.0001, train loss: 0.4938
+2025-10-02 01:54:34,389 - root - INFO - train average_precision, 0.7948
+2025-10-02 01:54:34,389 - root - INFO - train roc_auc, 0.8276
+2025-10-02 01:54:34,389 - root - INFO - validate loss: 0.5625
+2025-10-02 01:54:34,389 - root - INFO - validate average_precision, 0.7358
+2025-10-02 01:54:34,389 - root - INFO - validate roc_auc, 0.7654
+2025-10-02 01:54:34,389 - root - INFO - new node validate loss: 0.6662
+2025-10-02 01:54:34,389 - root - INFO - new node validate average_precision, 0.6612
+2025-10-02 01:54:34,389 - root - INFO - new node validate roc_auc, 0.6689
+2025-10-02 01:54:42,427 - root - INFO - test loss: 0.5711
+2025-10-02 01:54:42,427 - root - INFO - test average_precision, 0.7235
+2025-10-02 01:54:42,427 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:54:42,427 - root - INFO - test roc_auc, 0.7557
+2025-10-02 01:54:42,427 - root - INFO - new node test loss: 0.6328
+2025-10-02 01:54:42,427 - root - INFO - new node test average_precision, 0.6788
+2025-10-02 01:54:42,427 - root - INFO - new node test roc_auc, 0.6961
+2025-10-02 01:54:42,427 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 01:55:15,168 - root - INFO - Epoch: 81, learning rate: 0.0001, train loss: 0.4952
+2025-10-02 01:55:15,168 - root - INFO - train average_precision, 0.7890
+2025-10-02 01:55:15,168 - root - INFO - train roc_auc, 0.8249
+2025-10-02 01:55:15,168 - root - INFO - validate loss: 0.5742
+2025-10-02 01:55:15,168 - root - INFO - validate average_precision, 0.7201
+2025-10-02 01:55:15,168 - root - INFO - validate roc_auc, 0.7547
+2025-10-02 01:55:15,168 - root - INFO - new node validate loss: 0.6786
+2025-10-02 01:55:15,168 - root - INFO - new node validate average_precision, 0.6461
+2025-10-02 01:55:15,168 - root - INFO - new node validate roc_auc, 0.6552
+2025-10-02 01:55:23,194 - root - INFO - test loss: 0.5730
+2025-10-02 01:55:23,194 - root - INFO - test average_precision, 0.7294
+2025-10-02 01:55:23,194 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:55:23,194 - root - INFO - test roc_auc, 0.7548
+2025-10-02 01:55:23,194 - root - INFO - new node test loss: 0.6319
+2025-10-02 01:55:23,194 - root - INFO - new node test average_precision, 0.6938
+2025-10-02 01:55:23,194 - root - INFO - new node test roc_auc, 0.7045
+2025-10-02 01:55:56,109 - root - INFO - Epoch: 82, learning rate: 0.0001, train loss: 0.4953
+2025-10-02 01:55:56,109 - root - INFO - train average_precision, 0.7923
+2025-10-02 01:55:56,109 - root - INFO - train roc_auc, 0.8258
+2025-10-02 01:55:56,109 - root - INFO - validate loss: 0.5661
+2025-10-02 01:55:56,110 - root - INFO - validate average_precision, 0.7250
+2025-10-02 01:55:56,110 - root - INFO - validate roc_auc, 0.7633
+2025-10-02 01:55:56,110 - root - INFO - new node validate loss: 0.6819
+2025-10-02 01:55:56,110 - root - INFO - new node validate average_precision, 0.6487
+2025-10-02 01:55:56,110 - root - INFO - new node validate roc_auc, 0.6518
+2025-10-02 01:56:04,145 - root - INFO - test loss: 0.5592
+2025-10-02 01:56:04,145 - root - INFO - test average_precision, 0.7398
+2025-10-02 01:56:04,145 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:56:04,145 - root - INFO - test roc_auc, 0.7708
+2025-10-02 01:56:04,146 - root - INFO - new node test loss: 0.6242
+2025-10-02 01:56:04,146 - root - INFO - new node test average_precision, 0.6930
+2025-10-02 01:56:04,146 - root - INFO - new node test roc_auc, 0.7140
+2025-10-02 01:56:36,760 - root - INFO - Epoch: 83, learning rate: 0.0001, train loss: 0.4953
+2025-10-02 01:56:36,760 - root - INFO - train average_precision, 0.7932
+2025-10-02 01:56:36,760 - root - INFO - train roc_auc, 0.8253
+2025-10-02 01:56:36,760 - root - INFO - validate loss: 0.5693
+2025-10-02 01:56:36,760 - root - INFO - validate average_precision, 0.7268
+2025-10-02 01:56:36,760 - root - INFO - validate roc_auc, 0.7584
+2025-10-02 01:56:36,760 - root - INFO - new node validate loss: 0.6872
+2025-10-02 01:56:36,760 - root - INFO - new node validate average_precision, 0.6297
+2025-10-02 01:56:36,760 - root - INFO - new node validate roc_auc, 0.6293
+2025-10-02 01:56:44,813 - root - INFO - test loss: 0.5622
+2025-10-02 01:56:44,813 - root - INFO - test average_precision, 0.7413
+2025-10-02 01:56:44,813 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:56:44,813 - root - INFO - test roc_auc, 0.7668
+2025-10-02 01:56:44,813 - root - INFO - new node test loss: 0.6266
+2025-10-02 01:56:44,813 - root - INFO - new node test average_precision, 0.6943
+2025-10-02 01:56:44,813 - root - INFO - new node test roc_auc, 0.7106
+2025-10-02 01:57:17,407 - root - INFO - Epoch: 84, learning rate: 0.0001, train loss: 0.4960
+2025-10-02 01:57:17,407 - root - INFO - train average_precision, 0.7942
+2025-10-02 01:57:17,407 - root - INFO - train roc_auc, 0.8264
+2025-10-02 01:57:17,407 - root - INFO - validate loss: 0.5661
+2025-10-02 01:57:17,407 - root - INFO - validate average_precision, 0.7338
+2025-10-02 01:57:17,407 - root - INFO - validate roc_auc, 0.7625
+2025-10-02 01:57:17,407 - root - INFO - new node validate loss: 0.6686
+2025-10-02 01:57:17,407 - root - INFO - new node validate average_precision, 0.6550
+2025-10-02 01:57:17,407 - root - INFO - new node validate roc_auc, 0.6649
+2025-10-02 01:57:25,464 - root - INFO - test loss: 0.5601
+2025-10-02 01:57:25,464 - root - INFO - test average_precision, 0.7413
+2025-10-02 01:57:25,464 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:57:25,464 - root - INFO - test roc_auc, 0.7700
+2025-10-02 01:57:25,464 - root - INFO - new node test loss: 0.6222
+2025-10-02 01:57:25,464 - root - INFO - new node test average_precision, 0.7065
+2025-10-02 01:57:25,464 - root - INFO - new node test roc_auc, 0.7175
+2025-10-02 01:57:58,124 - root - INFO - Epoch: 85, learning rate: 0.0001, train loss: 0.4963
+2025-10-02 01:57:58,124 - root - INFO - train average_precision, 0.7935
+2025-10-02 01:57:58,124 - root - INFO - train roc_auc, 0.8255
+2025-10-02 01:57:58,124 - root - INFO - validate loss: 0.5671
+2025-10-02 01:57:58,124 - root - INFO - validate average_precision, 0.7298
+2025-10-02 01:57:58,124 - root - INFO - validate roc_auc, 0.7630
+2025-10-02 01:57:58,124 - root - INFO - new node validate loss: 0.6803
+2025-10-02 01:57:58,124 - root - INFO - new node validate average_precision, 0.6440
+2025-10-02 01:57:58,124 - root - INFO - new node validate roc_auc, 0.6483
+2025-10-02 01:58:06,173 - root - INFO - test loss: 0.5688
+2025-10-02 01:58:06,173 - root - INFO - test average_precision, 0.7304
+2025-10-02 01:58:06,173 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:58:06,173 - root - INFO - test roc_auc, 0.7597
+2025-10-02 01:58:06,173 - root - INFO - new node test loss: 0.6337
+2025-10-02 01:58:06,173 - root - INFO - new node test average_precision, 0.6792
+2025-10-02 01:58:06,173 - root - INFO - new node test roc_auc, 0.6961
+2025-10-02 01:58:38,888 - root - INFO - Epoch: 86, learning rate: 0.0001, train loss: 0.4952
+2025-10-02 01:58:38,888 - root - INFO - train average_precision, 0.7939
+2025-10-02 01:58:38,888 - root - INFO - train roc_auc, 0.8259
+2025-10-02 01:58:38,888 - root - INFO - validate loss: 0.5705
+2025-10-02 01:58:38,888 - root - INFO - validate average_precision, 0.7242
+2025-10-02 01:58:38,888 - root - INFO - validate roc_auc, 0.7577
+2025-10-02 01:58:38,888 - root - INFO - new node validate loss: 0.6799
+2025-10-02 01:58:38,888 - root - INFO - new node validate average_precision, 0.6496
+2025-10-02 01:58:38,888 - root - INFO - new node validate roc_auc, 0.6560
+2025-10-02 01:58:46,913 - root - INFO - test loss: 0.5637
+2025-10-02 01:58:46,913 - root - INFO - test average_precision, 0.7378
+2025-10-02 01:58:46,913 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:58:46,913 - root - INFO - test roc_auc, 0.7652
+2025-10-02 01:58:46,913 - root - INFO - new node test loss: 0.6212
+2025-10-02 01:58:46,913 - root - INFO - new node test average_precision, 0.6976
+2025-10-02 01:58:46,913 - root - INFO - new node test roc_auc, 0.7129
+2025-10-02 01:59:20,078 - root - INFO - Epoch: 87, learning rate: 0.0001, train loss: 0.4947
+2025-10-02 01:59:20,078 - root - INFO - train average_precision, 0.7948
+2025-10-02 01:59:20,078 - root - INFO - train roc_auc, 0.8276
+2025-10-02 01:59:20,078 - root - INFO - validate loss: 0.5688
+2025-10-02 01:59:20,079 - root - INFO - validate average_precision, 0.7288
+2025-10-02 01:59:20,079 - root - INFO - validate roc_auc, 0.7609
+2025-10-02 01:59:20,079 - root - INFO - new node validate loss: 0.6816
+2025-10-02 01:59:20,079 - root - INFO - new node validate average_precision, 0.6534
+2025-10-02 01:59:20,079 - root - INFO - new node validate roc_auc, 0.6642
+2025-10-02 01:59:28,117 - root - INFO - test loss: 0.5682
+2025-10-02 01:59:28,117 - root - INFO - test average_precision, 0.7310
+2025-10-02 01:59:28,117 - root - INFO - best test average_precision: 0.7417
+2025-10-02 01:59:28,117 - root - INFO - test roc_auc, 0.7637
+2025-10-02 01:59:28,117 - root - INFO - new node test loss: 0.6339
+2025-10-02 01:59:28,117 - root - INFO - new node test average_precision, 0.6869
+2025-10-02 01:59:28,117 - root - INFO - new node test roc_auc, 0.7041
+2025-10-02 02:00:01,335 - root - INFO - Epoch: 88, learning rate: 0.0001, train loss: 0.4952
+2025-10-02 02:00:01,335 - root - INFO - train average_precision, 0.7935
+2025-10-02 02:00:01,335 - root - INFO - train roc_auc, 0.8263
+2025-10-02 02:00:01,335 - root - INFO - validate loss: 0.5690
+2025-10-02 02:00:01,335 - root - INFO - validate average_precision, 0.7272
+2025-10-02 02:00:01,335 - root - INFO - validate roc_auc, 0.7599
+2025-10-02 02:00:01,335 - root - INFO - new node validate loss: 0.6717
+2025-10-02 02:00:01,335 - root - INFO - new node validate average_precision, 0.6575
+2025-10-02 02:00:01,335 - root - INFO - new node validate roc_auc, 0.6602
+2025-10-02 02:00:09,371 - root - INFO - test loss: 0.5676
+2025-10-02 02:00:09,372 - root - INFO - test average_precision, 0.7337
+2025-10-02 02:00:09,372 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:00:09,372 - root - INFO - test roc_auc, 0.7601
+2025-10-02 02:00:09,372 - root - INFO - new node test loss: 0.6284
+2025-10-02 02:00:09,372 - root - INFO - new node test average_precision, 0.6922
+2025-10-02 02:00:09,372 - root - INFO - new node test roc_auc, 0.7033
+2025-10-02 02:00:42,570 - root - INFO - Epoch: 89, learning rate: 0.0001, train loss: 0.4956
+2025-10-02 02:00:42,571 - root - INFO - train average_precision, 0.7910
+2025-10-02 02:00:42,571 - root - INFO - train roc_auc, 0.8258
+2025-10-02 02:00:42,571 - root - INFO - validate loss: 0.5658
+2025-10-02 02:00:42,571 - root - INFO - validate average_precision, 0.7338
+2025-10-02 02:00:42,571 - root - INFO - validate roc_auc, 0.7666
+2025-10-02 02:00:42,571 - root - INFO - new node validate loss: 0.6784
+2025-10-02 02:00:42,571 - root - INFO - new node validate average_precision, 0.6466
+2025-10-02 02:00:42,571 - root - INFO - new node validate roc_auc, 0.6564
+2025-10-02 02:00:50,617 - root - INFO - test loss: 0.5642
+2025-10-02 02:00:50,618 - root - INFO - test average_precision, 0.7319
+2025-10-02 02:00:50,618 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:00:50,618 - root - INFO - test roc_auc, 0.7642
+2025-10-02 02:00:50,618 - root - INFO - new node test loss: 0.6287
+2025-10-02 02:00:50,618 - root - INFO - new node test average_precision, 0.6905
+2025-10-02 02:00:50,618 - root - INFO - new node test roc_auc, 0.7054
+2025-10-02 02:01:23,829 - root - INFO - Epoch: 90, learning rate: 0.0001, train loss: 0.4947
+2025-10-02 02:01:23,829 - root - INFO - train average_precision, 0.7924
+2025-10-02 02:01:23,829 - root - INFO - train roc_auc, 0.8256
+2025-10-02 02:01:23,829 - root - INFO - validate loss: 0.5662
+2025-10-02 02:01:23,829 - root - INFO - validate average_precision, 0.7256
+2025-10-02 02:01:23,829 - root - INFO - validate roc_auc, 0.7606
+2025-10-02 02:01:23,829 - root - INFO - new node validate loss: 0.6710
+2025-10-02 02:01:23,829 - root - INFO - new node validate average_precision, 0.6609
+2025-10-02 02:01:23,829 - root - INFO - new node validate roc_auc, 0.6673
+2025-10-02 02:01:31,880 - root - INFO - test loss: 0.5703
+2025-10-02 02:01:31,880 - root - INFO - test average_precision, 0.7349
+2025-10-02 02:01:31,881 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:01:31,881 - root - INFO - test roc_auc, 0.7598
+2025-10-02 02:01:31,881 - root - INFO - new node test loss: 0.6316
+2025-10-02 02:01:31,881 - root - INFO - new node test average_precision, 0.6953
+2025-10-02 02:01:31,881 - root - INFO - new node test roc_auc, 0.7035
+2025-10-02 02:02:04,564 - root - INFO - Epoch: 91, learning rate: 0.0001, train loss: 0.4958
+2025-10-02 02:02:04,565 - root - INFO - train average_precision, 0.7930
+2025-10-02 02:02:04,565 - root - INFO - train roc_auc, 0.8255
+2025-10-02 02:02:04,565 - root - INFO - validate loss: 0.5688
+2025-10-02 02:02:04,565 - root - INFO - validate average_precision, 0.7300
+2025-10-02 02:02:04,565 - root - INFO - validate roc_auc, 0.7604
+2025-10-02 02:02:04,565 - root - INFO - new node validate loss: 0.6843
+2025-10-02 02:02:04,565 - root - INFO - new node validate average_precision, 0.6570
+2025-10-02 02:02:04,565 - root - INFO - new node validate roc_auc, 0.6523
+2025-10-02 02:02:12,633 - root - INFO - test loss: 0.5714
+2025-10-02 02:02:12,633 - root - INFO - test average_precision, 0.7289
+2025-10-02 02:02:12,633 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:02:12,633 - root - INFO - test roc_auc, 0.7595
+2025-10-02 02:02:12,633 - root - INFO - new node test loss: 0.6352
+2025-10-02 02:02:12,633 - root - INFO - new node test average_precision, 0.6905
+2025-10-02 02:02:12,633 - root - INFO - new node test roc_auc, 0.7020
+2025-10-02 02:02:45,270 - root - INFO - Epoch: 92, learning rate: 0.0001, train loss: 0.4949
+2025-10-02 02:02:45,270 - root - INFO - train average_precision, 0.7955
+2025-10-02 02:02:45,270 - root - INFO - train roc_auc, 0.8271
+2025-10-02 02:02:45,270 - root - INFO - validate loss: 0.5734
+2025-10-02 02:02:45,270 - root - INFO - validate average_precision, 0.7168
+2025-10-02 02:02:45,270 - root - INFO - validate roc_auc, 0.7526
+2025-10-02 02:02:45,270 - root - INFO - new node validate loss: 0.6903
+2025-10-02 02:02:45,270 - root - INFO - new node validate average_precision, 0.6260
+2025-10-02 02:02:45,270 - root - INFO - new node validate roc_auc, 0.6301
+2025-10-02 02:02:53,292 - root - INFO - test loss: 0.5692
+2025-10-02 02:02:53,292 - root - INFO - test average_precision, 0.7330
+2025-10-02 02:02:53,292 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:02:53,292 - root - INFO - test roc_auc, 0.7616
+2025-10-02 02:02:53,292 - root - INFO - new node test loss: 0.6368
+2025-10-02 02:02:53,292 - root - INFO - new node test average_precision, 0.6848
+2025-10-02 02:02:53,292 - root - INFO - new node test roc_auc, 0.7012
+2025-10-02 02:03:26,158 - root - INFO - Epoch: 93, learning rate: 0.0001, train loss: 0.4932
+2025-10-02 02:03:26,158 - root - INFO - train average_precision, 0.7989
+2025-10-02 02:03:26,158 - root - INFO - train roc_auc, 0.8288
+2025-10-02 02:03:26,158 - root - INFO - validate loss: 0.5644
+2025-10-02 02:03:26,158 - root - INFO - validate average_precision, 0.7368
+2025-10-02 02:03:26,158 - root - INFO - validate roc_auc, 0.7676
+2025-10-02 02:03:26,158 - root - INFO - new node validate loss: 0.6793
+2025-10-02 02:03:26,159 - root - INFO - new node validate average_precision, 0.6681
+2025-10-02 02:03:26,159 - root - INFO - new node validate roc_auc, 0.6742
+2025-10-02 02:03:34,192 - root - INFO - test loss: 0.5623
+2025-10-02 02:03:34,193 - root - INFO - test average_precision, 0.7367
+2025-10-02 02:03:34,193 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:03:34,193 - root - INFO - test roc_auc, 0.7690
+2025-10-02 02:03:34,193 - root - INFO - new node test loss: 0.6401
+2025-10-02 02:03:34,193 - root - INFO - new node test average_precision, 0.6796
+2025-10-02 02:03:34,193 - root - INFO - new node test roc_auc, 0.6985
+2025-10-02 02:03:34,193 - root - INFO - save model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 02:04:06,985 - root - INFO - Epoch: 94, learning rate: 0.0001, train loss: 0.4948
+2025-10-02 02:04:06,985 - root - INFO - train average_precision, 0.7929
+2025-10-02 02:04:06,985 - root - INFO - train roc_auc, 0.8266
+2025-10-02 02:04:06,985 - root - INFO - validate loss: 0.5639
+2025-10-02 02:04:06,985 - root - INFO - validate average_precision, 0.7363
+2025-10-02 02:04:06,985 - root - INFO - validate roc_auc, 0.7669
+2025-10-02 02:04:06,985 - root - INFO - new node validate loss: 0.6715
+2025-10-02 02:04:06,985 - root - INFO - new node validate average_precision, 0.6516
+2025-10-02 02:04:06,985 - root - INFO - new node validate roc_auc, 0.6520
+2025-10-02 02:04:15,047 - root - INFO - test loss: 0.5679
+2025-10-02 02:04:15,047 - root - INFO - test average_precision, 0.7311
+2025-10-02 02:04:15,047 - root - INFO - best test average_precision: 0.7417
+2025-10-02 02:04:15,047 - root - INFO - test roc_auc, 0.7601
+2025-10-02 02:04:15,047 - root - INFO - new node test loss: 0.6323
+2025-10-02 02:04:15,047 - root - INFO - new node test average_precision, 0.6900
+2025-10-02 02:04:15,047 - root - INFO - new node test roc_auc, 0.7028
+2025-10-02 02:04:47,754 - root - INFO - Epoch: 95, learning rate: 0.0001, train loss: 0.4945
+2025-10-02 02:04:47,754 - root - INFO - train average_precision, 0.7972
+2025-10-02 02:04:47,754 - root - INFO - train roc_auc, 0.8286
+2025-10-02 02:04:47,754 - root - INFO - validate loss: 0.5656
+2025-10-02 02:04:47,754 - root - INFO - validate average_precision, 0.7295
+2025-10-02 02:04:47,754 - root - INFO - validate roc_auc, 0.7646
+2025-10-02 02:04:47,754 - root - INFO - new node validate loss: 0.6738
+2025-10-02 02:04:47,755 - root - INFO - new node validate average_precision, 0.6666
+2025-10-02 02:04:47,755 - root - INFO - new node validate roc_auc, 0.6737
+2025-10-02 02:04:55,801 - root - INFO - test loss: 0.5591
+2025-10-02 02:04:55,801 - root - INFO - test average_precision, 0.7445
+2025-10-02 02:04:55,801 - root - INFO - best test average_precision: 0.7445
+2025-10-02 02:04:55,801 - root - INFO - test roc_auc, 0.7709
+2025-10-02 02:04:55,801 - root - INFO - new node test loss: 0.6195
+2025-10-02 02:04:55,801 - root - INFO - new node test average_precision, 0.7057
+2025-10-02 02:04:55,801 - root - INFO - new node test roc_auc, 0.7190
+2025-10-02 02:05:28,681 - root - INFO - Epoch: 96, learning rate: 0.0001, train loss: 0.4938
+2025-10-02 02:05:28,681 - root - INFO - train average_precision, 0.7975
+2025-10-02 02:05:28,681 - root - INFO - train roc_auc, 0.8285
+2025-10-02 02:05:28,681 - root - INFO - validate loss: 0.5720
+2025-10-02 02:05:28,681 - root - INFO - validate average_precision, 0.7174
+2025-10-02 02:05:28,681 - root - INFO - validate roc_auc, 0.7555
+2025-10-02 02:05:28,681 - root - INFO - new node validate loss: 0.6781
+2025-10-02 02:05:28,682 - root - INFO - new node validate average_precision, 0.6392
+2025-10-02 02:05:28,682 - root - INFO - new node validate roc_auc, 0.6509
+2025-10-02 02:05:36,705 - root - INFO - test loss: 0.5722
+2025-10-02 02:05:36,705 - root - INFO - test average_precision, 0.7272
+2025-10-02 02:05:36,705 - root - INFO - best test average_precision: 0.7445
+2025-10-02 02:05:36,705 - root - INFO - test roc_auc, 0.7562
+2025-10-02 02:05:36,705 - root - INFO - new node test loss: 0.6300
+2025-10-02 02:05:36,705 - root - INFO - new node test average_precision, 0.6906
+2025-10-02 02:05:36,705 - root - INFO - new node test roc_auc, 0.7020
+2025-10-02 02:06:09,450 - root - INFO - Epoch: 97, learning rate: 0.0001, train loss: 0.4959
+2025-10-02 02:06:09,450 - root - INFO - train average_precision, 0.7948
+2025-10-02 02:06:09,450 - root - INFO - train roc_auc, 0.8263
+2025-10-02 02:06:09,450 - root - INFO - validate loss: 0.5725
+2025-10-02 02:06:09,451 - root - INFO - validate average_precision, 0.7312
+2025-10-02 02:06:09,451 - root - INFO - validate roc_auc, 0.7585
+2025-10-02 02:06:09,451 - root - INFO - new node validate loss: 0.6809
+2025-10-02 02:06:09,451 - root - INFO - new node validate average_precision, 0.6654
+2025-10-02 02:06:09,451 - root - INFO - new node validate roc_auc, 0.6631
+2025-10-02 02:06:17,478 - root - INFO - test loss: 0.5633
+2025-10-02 02:06:17,478 - root - INFO - test average_precision, 0.7441
+2025-10-02 02:06:17,478 - root - INFO - best test average_precision: 0.7445
+2025-10-02 02:06:17,478 - root - INFO - test roc_auc, 0.7670
+2025-10-02 02:06:17,478 - root - INFO - new node test loss: 0.6306
+2025-10-02 02:06:17,478 - root - INFO - new node test average_precision, 0.6956
+2025-10-02 02:06:17,478 - root - INFO - new node test roc_auc, 0.7078
+2025-10-02 02:06:50,118 - root - INFO - Epoch: 98, learning rate: 0.0001, train loss: 0.4954
+2025-10-02 02:06:50,118 - root - INFO - train average_precision, 0.7960
+2025-10-02 02:06:50,118 - root - INFO - train roc_auc, 0.8267
+2025-10-02 02:06:50,118 - root - INFO - validate loss: 0.5664
+2025-10-02 02:06:50,119 - root - INFO - validate average_precision, 0.7300
+2025-10-02 02:06:50,119 - root - INFO - validate roc_auc, 0.7627
+2025-10-02 02:06:50,119 - root - INFO - new node validate loss: 0.6743
+2025-10-02 02:06:50,119 - root - INFO - new node validate average_precision, 0.6717
+2025-10-02 02:06:50,119 - root - INFO - new node validate roc_auc, 0.6702
+2025-10-02 02:06:58,170 - root - INFO - test loss: 0.5590
+2025-10-02 02:06:58,170 - root - INFO - test average_precision, 0.7479
+2025-10-02 02:06:58,170 - root - INFO - best test average_precision: 0.7479
+2025-10-02 02:06:58,170 - root - INFO - test roc_auc, 0.7742
+2025-10-02 02:06:58,170 - root - INFO - new node test loss: 0.6281
+2025-10-02 02:06:58,170 - root - INFO - new node test average_precision, 0.7048
+2025-10-02 02:06:58,170 - root - INFO - new node test roc_auc, 0.7148
+2025-10-02 02:07:30,813 - root - INFO - Epoch: 99, learning rate: 0.0001, train loss: 0.4921
+2025-10-02 02:07:30,813 - root - INFO - train average_precision, 0.8021
+2025-10-02 02:07:30,813 - root - INFO - train roc_auc, 0.8307
+2025-10-02 02:07:30,813 - root - INFO - validate loss: 0.5661
+2025-10-02 02:07:30,813 - root - INFO - validate average_precision, 0.7338
+2025-10-02 02:07:30,813 - root - INFO - validate roc_auc, 0.7641
+2025-10-02 02:07:30,813 - root - INFO - new node validate loss: 0.6688
+2025-10-02 02:07:30,813 - root - INFO - new node validate average_precision, 0.6742
+2025-10-02 02:07:30,813 - root - INFO - new node validate roc_auc, 0.6791
+2025-10-02 02:07:38,871 - root - INFO - test loss: 0.5642
+2025-10-02 02:07:38,871 - root - INFO - test average_precision, 0.7323
+2025-10-02 02:07:38,871 - root - INFO - best test average_precision: 0.7479
+2025-10-02 02:07:38,871 - root - INFO - test roc_auc, 0.7643
+2025-10-02 02:07:38,871 - root - INFO - new node test loss: 0.6302
+2025-10-02 02:07:38,871 - root - INFO - new node test average_precision, 0.6860
+2025-10-02 02:07:38,871 - root - INFO - new node test roc_auc, 0.7041
+2025-10-02 02:08:11,772 - root - INFO - Epoch: 100, learning rate: 0.0001, train loss: 0.4963
+2025-10-02 02:08:11,772 - root - INFO - train average_precision, 0.7929
+2025-10-02 02:08:11,772 - root - INFO - train roc_auc, 0.8252
+2025-10-02 02:08:11,772 - root - INFO - validate loss: 0.5656
+2025-10-02 02:08:11,772 - root - INFO - validate average_precision, 0.7335
+2025-10-02 02:08:11,773 - root - INFO - validate roc_auc, 0.7652
+2025-10-02 02:08:11,773 - root - INFO - new node validate loss: 0.6758
+2025-10-02 02:08:11,773 - root - INFO - new node validate average_precision, 0.6545
+2025-10-02 02:08:11,773 - root - INFO - new node validate roc_auc, 0.6598
+2025-10-02 02:08:19,825 - root - INFO - test loss: 0.5599
+2025-10-02 02:08:19,825 - root - INFO - test average_precision, 0.7437
+2025-10-02 02:08:19,825 - root - INFO - best test average_precision: 0.7479
+2025-10-02 02:08:19,825 - root - INFO - test roc_auc, 0.7700
+2025-10-02 02:08:19,825 - root - INFO - new node test loss: 0.6164
+2025-10-02 02:08:19,825 - root - INFO - new node test average_precision, 0.7062
+2025-10-02 02:08:19,825 - root - INFO - new node test roc_auc, 0.7174
+2025-10-02 02:08:19,826 - root - INFO - load model ./saved_models/TGAT/uci/TGAT_original_seed4/TGAT_original_seed4.pkl
+2025-10-02 02:08:19,843 - root - INFO - get final performance on dataset uci...
+2025-10-02 02:08:35,354 - root - INFO - validate loss: 0.5644
+2025-10-02 02:08:35,354 - root - INFO - validate average_precision, 0.7368
+2025-10-02 02:08:35,354 - root - INFO - validate roc_auc, 0.7676
+2025-10-02 02:08:35,354 - root - INFO - new node validate loss: 0.6793
+2025-10-02 02:08:35,354 - root - INFO - new node validate average_precision, 0.6681
+2025-10-02 02:08:35,354 - root - INFO - new node validate roc_auc, 0.6742
+2025-10-02 02:08:35,354 - root - INFO - test loss: 0.5623
+2025-10-02 02:08:35,354 - root - INFO - test average_precision, 0.7367
+2025-10-02 02:08:35,354 - root - INFO - test roc_auc, 0.7690
+2025-10-02 02:08:35,355 - root - INFO - new node test loss: 0.6401
+2025-10-02 02:08:35,355 - root - INFO - new node test average_precision, 0.6796
+2025-10-02 02:08:35,355 - root - INFO - new node test roc_auc, 0.6985
+2025-10-02 02:08:35,355 - root - INFO - Run 5 cost 4099.36 seconds.
+2025-10-02 02:08:35,361 - root - INFO - metrics over 5 runs:
+2025-10-02 02:08:35,361 - root - INFO - validate average_precision, [np.float64(0.7433510468262067), np.float64(0.7513478786607323), np.float64(0.7455235297448195), np.float64(0.6923002584692777), np.float64(0.7368433439311777)]
+2025-10-02 02:08:35,361 - root - INFO - average validate average_precision, 0.7339 ± 0.0238
+2025-10-02 02:08:35,361 - root - INFO - validate roc_auc, [np.float64(0.7737655782312924), np.float64(0.7774990476190476), np.float64(0.775237335600907), np.float64(0.7323713945578231), np.float64(0.7676014285714287)]
+2025-10-02 02:08:35,361 - root - INFO - average validate roc_auc, 0.7653 ± 0.0188
+2025-10-02 02:08:35,361 - root - INFO - new node validate average_precision, [np.float64(0.6680001587166635), np.float64(0.6836542671375361), np.float64(0.6684454868726223), np.float64(0.6008944546771265), np.float64(0.6680704095958288)]
+2025-10-02 02:08:35,361 - root - INFO - average new node validate average_precision, 0.6578 ± 0.0325
+2025-10-02 02:08:35,361 - root - INFO - new node validate roc_auc, [np.float64(0.6601139423076923), np.float64(0.6873975961538463), np.float64(0.6688302884615385), np.float64(0.6006927884615385), np.float64(0.6742475961538461)]
+2025-10-02 02:08:35,361 - root - INFO - average new node validate roc_auc, 0.6583 ± 0.0337
+2025-10-02 02:08:35,361 - root - INFO - test average_precision, [np.float64(0.7638593241865262), np.float64(0.7577590845026277), np.float64(0.7584969766896844), np.float64(0.6935572650353325), np.float64(0.7367230243519719)]
+2025-10-02 02:08:35,361 - root - INFO - average test average_precision, 0.7421 ± 0.0290
+2025-10-02 02:08:35,361 - root - INFO - test roc_auc, [np.float64(0.7816685571625347), np.float64(0.777350968778696), np.float64(0.7815897199265383), np.float64(0.7322487327823691), np.float64(0.7689550516528924)]
+2025-10-02 02:08:35,362 - root - INFO - average test roc_auc, 0.7684 ± 0.0208
+2025-10-02 02:08:35,362 - root - INFO - new node test average_precision, [np.float64(0.7163162350746021), np.float64(0.7113899748116289), np.float64(0.718426004803751), np.float64(0.6380910999512512), np.float64(0.6795503328488347)]
+2025-10-02 02:08:35,362 - root - INFO - average new node test average_precision, 0.6928 ± 0.0344
+2025-10-02 02:08:35,362 - root - INFO - new node test roc_auc, [np.float64(0.724073122130395), np.float64(0.7226807790021427), np.float64(0.7273271885521885), np.float64(0.6636998530762168), np.float64(0.6984674747474746)]
+2025-10-02 02:08:35,362 - root - INFO - average new node test roc_auc, 0.7072 ± 0.0269

@@ -1,0 +1,108 @@
+2025-10-02 22:10:02,377 - root - INFO - ********** Run 1 starts. **********
+2025-10-02 22:10:02,377 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=30, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.5, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='GraphMixer_kan_mammote_seed0')
+2025-10-02 22:10:02,385 - root - INFO - time encoder type: kan_mammote
+2025-10-02 22:10:02,621 - root - INFO - model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=128, bias=True)
+    )
+    (projection_layer): Linear(in_features=300, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((30,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=30, out_features=15, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=15, out_features=30, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-02 22:10:02,621 - root - INFO - model name: GraphMixer, #parameters: 2593548 B, 2532.76171875 KB, 2.473400115966797 MB.
+2025-10-02 22:10:25,314 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.3682
+2025-10-02 22:10:25,315 - root - INFO - train average_precision, 0.9130
+2025-10-02 22:10:25,315 - root - INFO - train roc_auc, 0.9179
+2025-10-02 22:10:25,315 - root - INFO - validate loss: 0.2984
+2025-10-02 22:10:25,315 - root - INFO - validate average_precision, 0.9518
+2025-10-02 22:10:25,315 - root - INFO - validate roc_auc, 0.9507
+2025-10-02 22:10:25,315 - root - INFO - new node validate loss: 0.3288
+2025-10-02 22:10:25,315 - root - INFO - new node validate average_precision, 0.9446
+2025-10-02 22:10:25,316 - root - INFO - new node validate roc_auc, 0.9455
+2025-10-02 22:10:29,864 - root - INFO - test loss: 0.3152
+2025-10-02 22:10:29,864 - root - INFO - test average_precision, 0.9442
+2025-10-02 22:10:29,864 - root - INFO - best test average_precision: 0.9442
+2025-10-02 22:10:29,864 - root - INFO - test roc_auc, 0.9432
+2025-10-02 22:10:29,864 - root - INFO - new node test loss: 0.3443
+2025-10-02 22:10:29,864 - root - INFO - new node test average_precision, 0.9366
+2025-10-02 22:10:29,864 - root - INFO - new node test roc_auc, 0.9356
+2025-10-02 22:10:29,864 - root - INFO - save model ./saved_models/GraphMixer/wikipedia/GraphMixer_kan_mammote_seed0/GraphMixer_kan_mammote_seed0.pkl
+2025-10-02 22:10:51,549 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.2812
+2025-10-02 22:10:51,550 - root - INFO - train average_precision, 0.9526
+2025-10-02 22:10:51,550 - root - INFO - train roc_auc, 0.9522
+2025-10-02 22:10:51,550 - root - INFO - validate loss: 0.2824
+2025-10-02 22:10:51,550 - root - INFO - validate average_precision, 0.9570
+2025-10-02 22:10:51,550 - root - INFO - validate roc_auc, 0.9553
+2025-10-02 22:10:51,550 - root - INFO - new node validate loss: 0.3056
+2025-10-02 22:10:51,551 - root - INFO - new node validate average_precision, 0.9511
+2025-10-02 22:10:51,551 - root - INFO - new node validate roc_auc, 0.9514
+2025-10-02 22:10:56,281 - root - INFO - test loss: 0.3000
+2025-10-02 22:10:56,281 - root - INFO - test average_precision, 0.9502
+2025-10-02 22:10:56,281 - root - INFO - best test average_precision: 0.9502
+2025-10-02 22:10:56,281 - root - INFO - test roc_auc, 0.9480
+2025-10-02 22:10:56,281 - root - INFO - new node test loss: 0.3245
+2025-10-02 22:10:56,281 - root - INFO - new node test average_precision, 0.9425
+2025-10-02 22:10:56,281 - root - INFO - new node test roc_auc, 0.9417
+2025-10-02 22:10:56,282 - root - INFO - save model ./saved_models/GraphMixer/wikipedia/GraphMixer_kan_mammote_seed0/GraphMixer_kan_mammote_seed0.pkl
+2025-10-02 22:10:56,316 - root - INFO - load model ./saved_models/GraphMixer/wikipedia/GraphMixer_kan_mammote_seed0/GraphMixer_kan_mammote_seed0.pkl
+2025-10-02 22:10:56,329 - root - INFO - get final performance on dataset wikipedia...
+2025-10-02 22:11:05,698 - root - INFO - validate loss: 0.2824
+2025-10-02 22:11:05,698 - root - INFO - validate average_precision, 0.9570
+2025-10-02 22:11:05,698 - root - INFO - validate roc_auc, 0.9553
+2025-10-02 22:11:05,698 - root - INFO - new node validate loss: 0.3056
+2025-10-02 22:11:05,698 - root - INFO - new node validate average_precision, 0.9511
+2025-10-02 22:11:05,698 - root - INFO - new node validate roc_auc, 0.9514
+2025-10-02 22:11:05,698 - root - INFO - test loss: 0.3000
+2025-10-02 22:11:05,698 - root - INFO - test average_precision, 0.9502
+2025-10-02 22:11:05,698 - root - INFO - test roc_auc, 0.9480
+2025-10-02 22:11:05,699 - root - INFO - new node test loss: 0.3245
+2025-10-02 22:11:05,699 - root - INFO - new node test average_precision, 0.9425
+2025-10-02 22:11:05,699 - root - INFO - new node test roc_auc, 0.9417
+2025-10-02 22:11:05,699 - root - INFO - Run 1 cost 63.32 seconds.
+2025-10-02 22:11:05,707 - root - INFO - metrics over 1 runs:
+2025-10-02 22:11:05,708 - root - INFO - validate average_precision, [np.float64(0.9569574176239204)]
+2025-10-02 22:11:05,708 - root - INFO - average validate average_precision, 0.9570 ± nan
+2025-10-02 22:11:05,708 - root - INFO - validate roc_auc, [np.float64(0.9552848263114769)]
+2025-10-02 22:11:05,708 - root - INFO - average validate roc_auc, 0.9553 ± nan
+2025-10-02 22:11:05,708 - root - INFO - new node validate average_precision, [np.float64(0.9511155596941003)]
+2025-10-02 22:11:05,708 - root - INFO - average new node validate average_precision, 0.9511 ± nan
+2025-10-02 22:11:05,708 - root - INFO - new node validate roc_auc, [np.float64(0.9513992827868852)]
+2025-10-02 22:11:05,708 - root - INFO - average new node validate roc_auc, 0.9514 ± nan
+2025-10-02 22:11:05,708 - root - INFO - test average_precision, [np.float64(0.9501886605303517)]
+2025-10-02 22:11:05,708 - root - INFO - average test average_precision, 0.9502 ± nan
+2025-10-02 22:11:05,708 - root - INFO - test roc_auc, [np.float64(0.9480273380780884)]
+2025-10-02 22:11:05,708 - root - INFO - average test roc_auc, 0.9480 ± nan
+2025-10-02 22:11:05,708 - root - INFO - new node test average_precision, [np.float64(0.9424961080462323)]
+2025-10-02 22:11:05,709 - root - INFO - average new node test average_precision, 0.9425 ± nan
+2025-10-02 22:11:05,709 - root - INFO - new node test roc_auc, [np.float64(0.9416608575502227)]
+2025-10-02 22:11:05,709 - root - INFO - average new node test roc_auc, 0.9417 ± nan

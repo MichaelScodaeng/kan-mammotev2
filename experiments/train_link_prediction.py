@@ -29,7 +29,7 @@ from utils.metrics import get_link_prediction_metrics
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import get_link_prediction_args
-from models.time_encoders import KAN_MAMMOTE, TimeEncoderWrapper
+from models.time_encoders import KAN_MAMMOTE, KAN_MAMMOTE_Lite, TimeEncoderWrapper
 if __name__ == "__main__":
 
     warnings.filterwarnings('ignore')
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
             # store train losses and metrics
             train_losses, train_metrics = [], []
-            train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, ncols=120)
+            train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, dynamic_ncols=True, leave=False)
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
 
                 train_data_indices = train_data_indices.numpy()

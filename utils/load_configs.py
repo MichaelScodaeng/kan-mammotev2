@@ -34,11 +34,11 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec'], 
+                        choices=['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec',"kan_mammote_lite"], 
                         help='type of time encoder to use')
     parser.add_argument('--expert_dim', type=int, default=64, 
                         help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
-    parser.add_argument('--num_mixtures', type=int, default=4, 
+    parser.add_argument('--num_mixtures', type=int, default=16, 
                         help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')

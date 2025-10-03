@@ -1,0 +1,230 @@
+2025-10-03 07:15:38,262 - root - INFO - ********** Run 1 starts. **********
+2025-10-03 07:15:38,262 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote', expert_dim=64, num_mixtures=4, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=10, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='TGN_kan_mammote_seed0')
+2025-10-03 07:15:38,270 - root - INFO - time encoder type: kan_mammote
+2025-10-03 07:15:38,572 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=128, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=9228, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=9228, memory_dim=172)
+      (memory_updater): GRUCell(644, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=128, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=300, out_features=300, bias=False)
+          (key_projection): Linear(in_features=472, out_features=300, bias=False)
+          (value_projection): Linear(in_features=472, out_features=300, bias=False)
+          (layer_norm): LayerNorm((300,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=300, out_features=300, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=472, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-03 07:15:38,572 - root - INFO - model name: TGN, #parameters: 4228276 B, 4129.17578125 KB, 4.032398223876953 MB.
+2025-10-03 07:16:03,892 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.3608
+2025-10-03 07:16:03,892 - root - INFO - train average_precision, 0.9243
+2025-10-03 07:16:03,892 - root - INFO - train roc_auc, 0.9240
+2025-10-03 07:16:03,892 - root - INFO - validate loss: 0.3303
+2025-10-03 07:16:03,893 - root - INFO - validate average_precision, 0.9353
+2025-10-03 07:16:03,893 - root - INFO - validate roc_auc, 0.9317
+2025-10-03 07:16:03,893 - root - INFO - new node validate loss: 0.3354
+2025-10-03 07:16:03,893 - root - INFO - new node validate average_precision, 0.9293
+2025-10-03 07:16:03,893 - root - INFO - new node validate roc_auc, 0.9294
+2025-10-03 07:16:09,670 - root - INFO - test loss: 0.3582
+2025-10-03 07:16:09,670 - root - INFO - test average_precision, 0.9220
+2025-10-03 07:16:09,670 - root - INFO - best test average_precision: 0.9220
+2025-10-03 07:16:09,670 - root - INFO - test roc_auc, 0.9175
+2025-10-03 07:16:09,670 - root - INFO - new node test loss: 0.3617
+2025-10-03 07:16:09,670 - root - INFO - new node test average_precision, 0.9203
+2025-10-03 07:16:09,670 - root - INFO - new node test roc_auc, 0.9164
+2025-10-03 07:16:09,671 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:16:35,577 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.3031
+2025-10-03 07:16:35,577 - root - INFO - train average_precision, 0.9431
+2025-10-03 07:16:35,577 - root - INFO - train roc_auc, 0.9440
+2025-10-03 07:16:35,577 - root - INFO - validate loss: 0.2948
+2025-10-03 07:16:35,577 - root - INFO - validate average_precision, 0.9578
+2025-10-03 07:16:35,577 - root - INFO - validate roc_auc, 0.9554
+2025-10-03 07:16:35,577 - root - INFO - new node validate loss: 0.3225
+2025-10-03 07:16:35,578 - root - INFO - new node validate average_precision, 0.9482
+2025-10-03 07:16:35,578 - root - INFO - new node validate roc_auc, 0.9463
+2025-10-03 07:16:41,387 - root - INFO - test loss: 0.3834
+2025-10-03 07:16:41,387 - root - INFO - test average_precision, 0.9454
+2025-10-03 07:16:41,387 - root - INFO - best test average_precision: 0.9454
+2025-10-03 07:16:41,387 - root - INFO - test roc_auc, 0.9426
+2025-10-03 07:16:41,387 - root - INFO - new node test loss: 0.4134
+2025-10-03 07:16:41,388 - root - INFO - new node test average_precision, 0.9390
+2025-10-03 07:16:41,388 - root - INFO - new node test roc_auc, 0.9349
+2025-10-03 07:16:41,388 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:17:07,105 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.2524
+2025-10-03 07:17:07,105 - root - INFO - train average_precision, 0.9630
+2025-10-03 07:17:07,105 - root - INFO - train roc_auc, 0.9616
+2025-10-03 07:17:07,105 - root - INFO - validate loss: 0.2466
+2025-10-03 07:17:07,106 - root - INFO - validate average_precision, 0.9664
+2025-10-03 07:17:07,106 - root - INFO - validate roc_auc, 0.9631
+2025-10-03 07:17:07,106 - root - INFO - new node validate loss: 0.2753
+2025-10-03 07:17:07,106 - root - INFO - new node validate average_precision, 0.9574
+2025-10-03 07:17:07,106 - root - INFO - new node validate roc_auc, 0.9542
+2025-10-03 07:17:12,918 - root - INFO - test loss: 0.2645
+2025-10-03 07:17:12,918 - root - INFO - test average_precision, 0.9612
+2025-10-03 07:17:12,918 - root - INFO - best test average_precision: 0.9612
+2025-10-03 07:17:12,918 - root - INFO - test roc_auc, 0.9581
+2025-10-03 07:17:12,918 - root - INFO - new node test loss: 0.2771
+2025-10-03 07:17:12,918 - root - INFO - new node test average_precision, 0.9567
+2025-10-03 07:17:12,918 - root - INFO - new node test roc_auc, 0.9537
+2025-10-03 07:17:12,918 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:17:38,725 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.2338
+2025-10-03 07:17:38,726 - root - INFO - train average_precision, 0.9685
+2025-10-03 07:17:38,726 - root - INFO - train roc_auc, 0.9669
+2025-10-03 07:17:38,726 - root - INFO - validate loss: 0.2172
+2025-10-03 07:17:38,726 - root - INFO - validate average_precision, 0.9735
+2025-10-03 07:17:38,726 - root - INFO - validate roc_auc, 0.9712
+2025-10-03 07:17:38,726 - root - INFO - new node validate loss: 0.2477
+2025-10-03 07:17:38,726 - root - INFO - new node validate average_precision, 0.9649
+2025-10-03 07:17:38,726 - root - INFO - new node validate roc_auc, 0.9627
+2025-10-03 07:17:44,545 - root - INFO - test loss: 0.2401
+2025-10-03 07:17:44,546 - root - INFO - test average_precision, 0.9680
+2025-10-03 07:17:44,546 - root - INFO - best test average_precision: 0.9680
+2025-10-03 07:17:44,546 - root - INFO - test roc_auc, 0.9655
+2025-10-03 07:17:44,546 - root - INFO - new node test loss: 0.2556
+2025-10-03 07:17:44,546 - root - INFO - new node test average_precision, 0.9630
+2025-10-03 07:17:44,546 - root - INFO - new node test roc_auc, 0.9608
+2025-10-03 07:17:44,546 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:18:10,553 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.2238
+2025-10-03 07:18:10,553 - root - INFO - train average_precision, 0.9713
+2025-10-03 07:18:10,554 - root - INFO - train roc_auc, 0.9696
+2025-10-03 07:18:10,554 - root - INFO - validate loss: 0.2266
+2025-10-03 07:18:10,554 - root - INFO - validate average_precision, 0.9710
+2025-10-03 07:18:10,554 - root - INFO - validate roc_auc, 0.9684
+2025-10-03 07:18:10,554 - root - INFO - new node validate loss: 0.2564
+2025-10-03 07:18:10,554 - root - INFO - new node validate average_precision, 0.9629
+2025-10-03 07:18:10,554 - root - INFO - new node validate roc_auc, 0.9602
+2025-10-03 07:18:16,382 - root - INFO - test loss: 0.2436
+2025-10-03 07:18:16,382 - root - INFO - test average_precision, 0.9667
+2025-10-03 07:18:16,382 - root - INFO - best test average_precision: 0.9680
+2025-10-03 07:18:16,382 - root - INFO - test roc_auc, 0.9639
+2025-10-03 07:18:16,382 - root - INFO - new node test loss: 0.2614
+2025-10-03 07:18:16,382 - root - INFO - new node test average_precision, 0.9613
+2025-10-03 07:18:16,382 - root - INFO - new node test roc_auc, 0.9588
+2025-10-03 07:18:40,998 - root - INFO - Epoch: 6, learning rate: 0.0001, train loss: 0.2128
+2025-10-03 07:18:40,998 - root - INFO - train average_precision, 0.9740
+2025-10-03 07:18:40,998 - root - INFO - train roc_auc, 0.9724
+2025-10-03 07:18:40,998 - root - INFO - validate loss: 0.2105
+2025-10-03 07:18:40,998 - root - INFO - validate average_precision, 0.9751
+2025-10-03 07:18:40,999 - root - INFO - validate roc_auc, 0.9727
+2025-10-03 07:18:40,999 - root - INFO - new node validate loss: 0.2352
+2025-10-03 07:18:40,999 - root - INFO - new node validate average_precision, 0.9681
+2025-10-03 07:18:40,999 - root - INFO - new node validate roc_auc, 0.9661
+2025-10-03 07:18:46,832 - root - INFO - test loss: 0.2266
+2025-10-03 07:18:46,832 - root - INFO - test average_precision, 0.9710
+2025-10-03 07:18:46,832 - root - INFO - best test average_precision: 0.9710
+2025-10-03 07:18:46,832 - root - INFO - test roc_auc, 0.9685
+2025-10-03 07:18:46,832 - root - INFO - new node test loss: 0.2411
+2025-10-03 07:18:46,833 - root - INFO - new node test average_precision, 0.9667
+2025-10-03 07:18:46,833 - root - INFO - new node test roc_auc, 0.9644
+2025-10-03 07:18:46,833 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:19:12,776 - root - INFO - Epoch: 7, learning rate: 0.0001, train loss: 0.2108
+2025-10-03 07:19:12,776 - root - INFO - train average_precision, 0.9742
+2025-10-03 07:19:12,776 - root - INFO - train roc_auc, 0.9727
+2025-10-03 07:19:12,777 - root - INFO - validate loss: 0.2114
+2025-10-03 07:19:12,777 - root - INFO - validate average_precision, 0.9747
+2025-10-03 07:19:12,777 - root - INFO - validate roc_auc, 0.9723
+2025-10-03 07:19:12,777 - root - INFO - new node validate loss: 0.2421
+2025-10-03 07:19:12,777 - root - INFO - new node validate average_precision, 0.9679
+2025-10-03 07:19:12,777 - root - INFO - new node validate roc_auc, 0.9649
+2025-10-03 07:19:18,636 - root - INFO - test loss: 0.2302
+2025-10-03 07:19:18,636 - root - INFO - test average_precision, 0.9704
+2025-10-03 07:19:18,636 - root - INFO - best test average_precision: 0.9710
+2025-10-03 07:19:18,636 - root - INFO - test roc_auc, 0.9676
+2025-10-03 07:19:18,636 - root - INFO - new node test loss: 0.2468
+2025-10-03 07:19:18,636 - root - INFO - new node test average_precision, 0.9654
+2025-10-03 07:19:18,636 - root - INFO - new node test roc_auc, 0.9629
+2025-10-03 07:19:43,385 - root - INFO - Epoch: 8, learning rate: 0.0001, train loss: 0.2059
+2025-10-03 07:19:43,385 - root - INFO - train average_precision, 0.9754
+2025-10-03 07:19:43,385 - root - INFO - train roc_auc, 0.9740
+2025-10-03 07:19:43,385 - root - INFO - validate loss: 0.2070
+2025-10-03 07:19:43,385 - root - INFO - validate average_precision, 0.9751
+2025-10-03 07:19:43,385 - root - INFO - validate roc_auc, 0.9732
+2025-10-03 07:19:43,385 - root - INFO - new node validate loss: 0.2472
+2025-10-03 07:19:43,385 - root - INFO - new node validate average_precision, 0.9655
+2025-10-03 07:19:43,385 - root - INFO - new node validate roc_auc, 0.9630
+2025-10-03 07:19:49,248 - root - INFO - test loss: 0.2161
+2025-10-03 07:19:49,249 - root - INFO - test average_precision, 0.9732
+2025-10-03 07:19:49,249 - root - INFO - best test average_precision: 0.9732
+2025-10-03 07:19:49,249 - root - INFO - test roc_auc, 0.9713
+2025-10-03 07:19:49,249 - root - INFO - new node test loss: 0.2444
+2025-10-03 07:19:49,249 - root - INFO - new node test average_precision, 0.9654
+2025-10-03 07:19:49,249 - root - INFO - new node test roc_auc, 0.9634
+2025-10-03 07:19:49,249 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:20:15,172 - root - INFO - Epoch: 9, learning rate: 0.0001, train loss: 0.1978
+2025-10-03 07:20:15,172 - root - INFO - train average_precision, 0.9771
+2025-10-03 07:20:15,172 - root - INFO - train roc_auc, 0.9758
+2025-10-03 07:20:15,172 - root - INFO - validate loss: 0.1977
+2025-10-03 07:20:15,172 - root - INFO - validate average_precision, 0.9768
+2025-10-03 07:20:15,173 - root - INFO - validate roc_auc, 0.9757
+2025-10-03 07:20:15,173 - root - INFO - new node validate loss: 0.2396
+2025-10-03 07:20:15,173 - root - INFO - new node validate average_precision, 0.9675
+2025-10-03 07:20:15,173 - root - INFO - new node validate roc_auc, 0.9657
+2025-10-03 07:20:21,010 - root - INFO - test loss: 0.2075
+2025-10-03 07:20:21,010 - root - INFO - test average_precision, 0.9749
+2025-10-03 07:20:21,011 - root - INFO - best test average_precision: 0.9749
+2025-10-03 07:20:21,011 - root - INFO - test roc_auc, 0.9734
+2025-10-03 07:20:21,011 - root - INFO - new node test loss: 0.2385
+2025-10-03 07:20:21,011 - root - INFO - new node test average_precision, 0.9675
+2025-10-03 07:20:21,011 - root - INFO - new node test roc_auc, 0.9658
+2025-10-03 07:20:21,011 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:20:46,969 - root - INFO - Epoch: 10, learning rate: 0.0001, train loss: 0.1889
+2025-10-03 07:20:46,970 - root - INFO - train average_precision, 0.9792
+2025-10-03 07:20:46,970 - root - INFO - train roc_auc, 0.9777
+2025-10-03 07:20:46,970 - root - INFO - validate loss: 0.1885
+2025-10-03 07:20:46,970 - root - INFO - validate average_precision, 0.9792
+2025-10-03 07:20:46,970 - root - INFO - validate roc_auc, 0.9778
+2025-10-03 07:20:46,970 - root - INFO - new node validate loss: 0.2361
+2025-10-03 07:20:46,970 - root - INFO - new node validate average_precision, 0.9692
+2025-10-03 07:20:46,970 - root - INFO - new node validate roc_auc, 0.9672
+2025-10-03 07:20:52,782 - root - INFO - test loss: 0.2009
+2025-10-03 07:20:52,782 - root - INFO - test average_precision, 0.9770
+2025-10-03 07:20:52,782 - root - INFO - best test average_precision: 0.9770
+2025-10-03 07:20:52,782 - root - INFO - test roc_auc, 0.9752
+2025-10-03 07:20:52,782 - root - INFO - new node test loss: 0.2315
+2025-10-03 07:20:52,782 - root - INFO - new node test average_precision, 0.9701
+2025-10-03 07:20:52,782 - root - INFO - new node test roc_auc, 0.9680
+2025-10-03 07:20:52,782 - root - INFO - save model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:20:53,823 - root - INFO - load model ./saved_models/TGN/wikipedia/TGN_kan_mammote_seed0/TGN_kan_mammote_seed0.pkl
+2025-10-03 07:20:55,225 - root - INFO - get final performance on dataset wikipedia...
+2025-10-03 07:21:01,386 - root - INFO - test loss: 0.2009
+2025-10-03 07:21:01,386 - root - INFO - test average_precision, 0.9770
+2025-10-03 07:21:01,387 - root - INFO - test roc_auc, 0.9752
+2025-10-03 07:21:01,387 - root - INFO - new node test loss: 0.2315
+2025-10-03 07:21:01,387 - root - INFO - new node test average_precision, 0.9701
+2025-10-03 07:21:01,387 - root - INFO - new node test roc_auc, 0.9680
+2025-10-03 07:21:01,387 - root - INFO - Run 1 cost 323.12 seconds.
+2025-10-03 07:21:01,395 - root - INFO - metrics over 1 runs:
+2025-10-03 07:21:01,396 - root - INFO - test average_precision, [np.float64(0.9769929217892805)]
+2025-10-03 07:21:01,396 - root - INFO - average test average_precision, 0.9770 ± nan
+2025-10-03 07:21:01,396 - root - INFO - test roc_auc, [np.float64(0.9751770551077577)]
+2025-10-03 07:21:01,396 - root - INFO - average test roc_auc, 0.9752 ± nan
+2025-10-03 07:21:01,396 - root - INFO - new node test average_precision, [np.float64(0.9700577938451361)]
+2025-10-03 07:21:01,396 - root - INFO - average new node test average_precision, 0.9701 ± nan
+2025-10-03 07:21:01,396 - root - INFO - new node test roc_auc, [np.float64(0.9680429375861075)]
+2025-10-03 07:21:01,396 - root - INFO - average new node test roc_auc, 0.9680 ± nan

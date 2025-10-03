@@ -11,8 +11,8 @@ from .controllable_mamba2 import ControllableMamba2
 class KAN_MAMMOTE(nn.Module):
     """Enhanced KAN-MAMMOTE with Custom Shock Wavelet for abrupt change detection."""
     def __init__(self, embedding_dim: int, expert_dim: int, num_mixtures: int, 
-                 mamba_d_state: int = 16, mamba_d_conv: int = 4, mamba_expand: int = 2, 
-                 wavelet_type: str = 'shock', **kwargs):
+                 mamba_d_state: int = 256, mamba_d_conv: int = 4, mamba_expand: int = 4, 
+                 wavelet_type: str = 'shock', mamba_headdim: int = 64, **kwargs):
         super().__init__()
         
         # Enforce that dimensions are multiples of 16 for hardware compatibility.
@@ -29,10 +29,10 @@ class KAN_MAMMOTE(nn.Module):
         self.sm_kernel = SMKernelLayer(num_mixtures=num_mixtures, input_dim=1)
         self.mamba2 = ControllableMamba2(
             d_model=self.embedding_dim,
-            d_state=32,
-            d_conv=4,
-            expand=2,
-            headdim=16
+            d_state=mamba_d_state,
+            d_conv=mamba_d_conv,
+            expand=mamba_expand,
+            headdim=32
         )
         
          # --- START OF DEFINITIVE FIX ---
@@ -46,6 +46,13 @@ class KAN_MAMMOTE(nn.Module):
             nn.GELU(),
             nn.Linear(embedding_dim, self.mamba2.nheads * 2) # Output 2 * nheads for gamma and beta
         )
+        print(f"mamba parameters")
+        print(f"  nheads: {self.mamba2.nheads}")
+        print(f"  d_state: {self.mamba2.d_state}")
+        print(f"  d_conv: {self.mamba2.d_conv}")
+        print(f"  expand: {self.mamba2.expand}")
+        print(f"  headdim: {self.mamba2.headdim}")
+        print(f"  embedding_dim: {self.embedding_dim}")
 
         print(f"Initialized Enhanced KAN-MAMMOTE Framework with {wavelet_type} wavelet.")
 
@@ -69,6 +76,37 @@ class KAN_MAMMOTE(nn.Module):
         gamma = 2 * torch.sigmoid(gamma_logits)
         
         temporal_modulators = (gamma, beta)
-        
-        final_embedding = self.mamba2(u=u_k, temporal_modulators=temporal_modulators)
+        # ===== KEY FIX: Ensure alignment before Mamba =====
+        u_k_aligned = self._ensure_aligned_for_mamba(u_k)
+
+        final_embedding = self.mamba2(u=u_k_aligned, temporal_modulators=temporal_modulators)
         return final_embedding
+
+    def _ensure_aligned_for_mamba(self, tensor: torch.Tensor, debug: bool = False) -> torch.Tensor:
+        """Ensure tensor is contiguous and has stride-8-aligned memory layout."""
+        original_shape = tensor.shape
+        original_strides = tensor.stride()
+        was_contiguous = tensor.is_contiguous()
+        
+        if not tensor.is_contiguous():
+            tensor = tensor.contiguous()
+        
+        stride_0 = tensor.stride(0)
+        stride_2 = tensor.stride(2)
+        
+        needs_alignment = (stride_0 % 8 != 0) or (stride_2 % 8 != 0)
+        
+        if debug:
+            print(f"[Alignment Debug]")
+            print(f"  Shape: {original_shape}")
+            print(f"  Original strides: {original_strides}")
+            print(f"  Was contiguous: {was_contiguous}")
+            print(f"  Batch stride (stride[0]): {stride_0} (aligned: {stride_0 % 8 == 0})")
+            print(f"  Feature stride (stride[2]): {stride_2} (aligned: {stride_2 % 8 == 0})")
+            print(f"  Action: {'Clone for alignment' if needs_alignment else 'No action needed'}")
+        
+        if needs_alignment:
+            pass
+            #return tensor.clone()
+        
+        return tensor

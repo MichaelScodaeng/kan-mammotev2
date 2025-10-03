@@ -1,10 +1,24 @@
 """
 Time Encoders Module
 
-This module provides various time encoding methods for temporal graph neural networks.
+This module provides various time encoding methods for temporal graph learning.
+
+Available Encoders:
+- KAN_MAMMOTE: Full version with Mamba2 for sequence modeling
+- KAN_MAMMOTE_Lite: Lightweight stateless version for attention models
+- LeTE: Learnable Time Encoder
+- MercerTimeEncoder: Mercer kernel-based encoding
+- BochnerTimeEncoder: Bochner random Fourier features
+- Time2VecEncoder: Time2Vec encoding
+- OriginalTimeEncoder: Standard cosine-based encoding
+
+Factory Functions:
+- create_time_encoder: Main factory function
+- get_available_encoders: List all available encoders
 """
 
 from .kan_mammote import KAN_MAMMOTE
+from .kan_mammote_lite import KAN_MAMMOTE_Lite
 from .factory import (
     create_time_encoder, 
     get_available_encoders, 
@@ -18,10 +32,10 @@ from .factory import (
 # Optional encoders (import only if available)
 try:
     from .time2vec_encoder import Time2VecEncoder
-    __all__ = ['KAN_MAMMOTE', 'Time2VecEncoder', 'create_time_encoder', 'get_available_encoders', 
-               'get_encoder_config', 'TimeEncoderWrapper', 'list_encoders']
+    __all__ = ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite', 'Time2VecEncoder', 'create_time_encoder', 
+               'get_available_encoders', 'get_encoder_config', 'TimeEncoderWrapper', 'list_encoders']
 except ImportError:
-    __all__ = ['KAN_MAMMOTE', 'create_time_encoder', 'get_available_encoders', 
+    __all__ = ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite', 'create_time_encoder', 'get_available_encoders', 
                'get_encoder_config', 'TimeEncoderWrapper', 'list_encoders']
 
 try:
@@ -39,6 +53,12 @@ except ImportError:
 try:
     from .mercer_encoder import MercerTimeEncoder
     __all__.append('MercerTimeEncoder')
+except ImportError:
+    pass
+
+try:
+    from .original_encoder import OriginalTimeEncoder
+    __all__.append('OriginalTimeEncoder')
 except ImportError:
     pass
 

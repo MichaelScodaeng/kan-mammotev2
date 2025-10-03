@@ -60,8 +60,8 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['JODIE', 'DyRep','TCL',  'GraphMixer', 'DyGMamba'] #'CAWN','TGAT', 'TGN', 'DyGFormer',
-datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']
+models = ['TCL'] #'CAWN','TGAT', 'TGN', 'DyGFormer','JODIE', 'DyRep',,  'GraphMixer', 'DyGMamba'
+datasets = ['wikipedia']#, 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'
 time_encoders = ['lete'] #'original', 
 
 def parse_arguments():
@@ -79,7 +79,7 @@ def parse_arguments():
                         help='Only resume incomplete experiments')
     parser.add_argument('--generate_report', action='store_true',
                         help='Generate experiment report and exit')
-    parser.add_argument('--num_runs', type=int, default=5,
+    parser.add_argument('--num_runs', type=int, default=1,
                         help='Number of runs per experiment (default: 5)')
     parser.add_argument('--timeout_hours', type=float, default=12.0,
                         help='Timeout in hours per experiment (default: 12)')
@@ -358,7 +358,7 @@ def generate_experiment_report(time_encoder):
             
             # Generate missing experiments
             all_possible = set()
-            for model, dataset in itertools.product(models, datasets):
+            for dataset, model in itertools.product(datasets, models):
                 all_possible.add(create_experiment_key(model, dataset, time_encoder))
             
             missing = all_possible - completed - incomplete

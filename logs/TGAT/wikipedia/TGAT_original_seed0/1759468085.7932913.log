@@ -1,0 +1,103 @@
+2025-10-03 14:08:05,795 - root - INFO - ********** Run 1 starts. **********
+2025-10-03 14:08:05,795 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='original', expert_dim=64, num_mixtures=16, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=10, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, device='cuda:0', seed=0, save_model_name='TGAT_original_seed0')
+2025-10-03 14:08:05,796 - root - INFO - time encoder type: original
+2025-10-03 14:08:05,985 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=128, bias=True)
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=300, out_features=300, bias=False)
+        (key_projection): Linear(in_features=472, out_features=300, bias=False)
+        (value_projection): Linear(in_features=472, out_features=300, bias=False)
+        (layer_norm): LayerNorm((300,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=300, out_features=300, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=472, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-03 14:08:05,985 - root - INFO - model name: TGAT, #parameters: 4840772 B, 4727.31640625 KB, 4.616519927978516 MB.
+2025-10-03 14:09:27,800 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.5448
+2025-10-03 14:09:27,801 - root - INFO - train average_precision, 0.7632
+2025-10-03 14:09:27,801 - root - INFO - train roc_auc, 0.7948
+2025-10-03 14:09:27,801 - root - INFO - validate loss: 0.5048
+2025-10-03 14:09:27,801 - root - INFO - validate average_precision, 0.8245
+2025-10-03 14:09:27,801 - root - INFO - validate roc_auc, 0.8362
+2025-10-03 14:09:27,801 - root - INFO - new node validate loss: 0.5042
+2025-10-03 14:09:27,801 - root - INFO - new node validate average_precision, 0.8249
+2025-10-03 14:09:27,801 - root - INFO - new node validate roc_auc, 0.8339
+2025-10-03 14:09:47,335 - root - INFO - test loss: 0.5318
+2025-10-03 14:09:47,336 - root - INFO - test average_precision, 0.8001
+2025-10-03 14:09:47,336 - root - INFO - best test average_precision: 0.8001
+2025-10-03 14:09:47,336 - root - INFO - test roc_auc, 0.8131
+2025-10-03 14:09:47,336 - root - INFO - new node test loss: 0.5230
+2025-10-03 14:09:47,336 - root - INFO - new node test average_precision, 0.8120
+2025-10-03 14:09:47,336 - root - INFO - new node test roc_auc, 0.8196
+2025-10-03 14:09:47,336 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_original_seed0/TGAT_original_seed0.pkl
+2025-10-03 14:11:09,009 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.4392
+2025-10-03 14:11:09,010 - root - INFO - train average_precision, 0.8654
+2025-10-03 14:11:09,010 - root - INFO - train roc_auc, 0.8777
+2025-10-03 14:11:09,010 - root - INFO - validate loss: 0.4740
+2025-10-03 14:11:09,010 - root - INFO - validate average_precision, 0.8472
+2025-10-03 14:11:09,010 - root - INFO - validate roc_auc, 0.8543
+2025-10-03 14:11:09,010 - root - INFO - new node validate loss: 0.4683
+2025-10-03 14:11:09,010 - root - INFO - new node validate average_precision, 0.8500
+2025-10-03 14:11:09,011 - root - INFO - new node validate roc_auc, 0.8569
+2025-10-03 14:11:28,775 - root - INFO - test loss: 0.5058
+2025-10-03 14:11:28,775 - root - INFO - test average_precision, 0.8261
+2025-10-03 14:11:28,775 - root - INFO - best test average_precision: 0.8261
+2025-10-03 14:11:28,775 - root - INFO - test roc_auc, 0.8321
+2025-10-03 14:11:28,775 - root - INFO - new node test loss: 0.4975
+2025-10-03 14:11:28,776 - root - INFO - new node test average_precision, 0.8336
+2025-10-03 14:11:28,776 - root - INFO - new node test roc_auc, 0.8369
+2025-10-03 14:11:28,776 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_original_seed0/TGAT_original_seed0.pkl
+2025-10-03 14:12:49,946 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.3954
+2025-10-03 14:12:49,947 - root - INFO - train average_precision, 0.8962
+2025-10-03 14:12:49,947 - root - INFO - train roc_auc, 0.9031
+2025-10-03 14:12:49,947 - root - INFO - validate loss: 0.3953
+2025-10-03 14:12:49,947 - root - INFO - validate average_precision, 0.9064
+2025-10-03 14:12:49,947 - root - INFO - validate roc_auc, 0.9038
+2025-10-03 14:12:49,947 - root - INFO - new node validate loss: 0.3922
+2025-10-03 14:12:49,947 - root - INFO - new node validate average_precision, 0.9064
+2025-10-03 14:12:49,947 - root - INFO - new node validate roc_auc, 0.9037
+2025-10-03 14:13:09,653 - root - INFO - test loss: 0.4245
+2025-10-03 14:13:09,654 - root - INFO - test average_precision, 0.8922
+2025-10-03 14:13:09,654 - root - INFO - best test average_precision: 0.8922
+2025-10-03 14:13:09,654 - root - INFO - test roc_auc, 0.8882
+2025-10-03 14:13:09,654 - root - INFO - new node test loss: 0.4241
+2025-10-03 14:13:09,654 - root - INFO - new node test average_precision, 0.8916
+2025-10-03 14:13:09,654 - root - INFO - new node test roc_auc, 0.8871
+2025-10-03 14:13:09,654 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_original_seed0/TGAT_original_seed0.pkl
+2025-10-03 14:14:30,497 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.3446
+2025-10-03 14:14:30,498 - root - INFO - train average_precision, 0.9275
+2025-10-03 14:14:30,498 - root - INFO - train roc_auc, 0.9281
+2025-10-03 14:14:30,498 - root - INFO - validate loss: 0.3717
+2025-10-03 14:14:30,498 - root - INFO - validate average_precision, 0.9171
+2025-10-03 14:14:30,498 - root - INFO - validate roc_auc, 0.9149
+2025-10-03 14:14:30,498 - root - INFO - new node validate loss: 0.3690
+2025-10-03 14:14:30,498 - root - INFO - new node validate average_precision, 0.9166
+2025-10-03 14:14:30,498 - root - INFO - new node validate roc_auc, 0.9147
+2025-10-03 14:14:50,043 - root - INFO - test loss: 0.4078
+2025-10-03 14:14:50,043 - root - INFO - test average_precision, 0.8984
+2025-10-03 14:14:50,043 - root - INFO - best test average_precision: 0.8984
+2025-10-03 14:14:50,044 - root - INFO - test roc_auc, 0.8971
+2025-10-03 14:14:50,044 - root - INFO - new node test loss: 0.4085
+2025-10-03 14:14:50,044 - root - INFO - new node test average_precision, 0.8996
+2025-10-03 14:14:50,044 - root - INFO - new node test roc_auc, 0.8955
+2025-10-03 14:14:50,044 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_original_seed0/TGAT_original_seed0.pkl

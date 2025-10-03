@@ -1,8 +1,9 @@
 import torch
 import numpy as np
-
+import sys
 # Import all encoder classes that will be used
 from .kan_mammote import KAN_MAMMOTE
+from .kan_mammote_lite import KAN_MAMMOTE_Lite
 from ..gnn_backbones.modules import TimeEncoder as OriginalTimeEncoder
 
 # Import additional encoders
@@ -30,117 +31,94 @@ class TimeEncoderWrapper(torch.nn.Module):
     """
     Adapter to make various time encoders compatible with different interfaces.
     Ensures consistent output dimensions while preserving KAN-MAMMOTE functionality.
+    
+    Key Insight:
+    - KAN-MAMMOTE uses: (t_abs, t_rel) - dual stream
+    - OriginalTimeEncoder uses: timestamps (which is actually t_rel/delta_t)
+    - TGAT passes: neighbor_time_features = time_encoder(t_abs=..., t_rel=...)
     """
     def __init__(self, encoder):
         super(TimeEncoderWrapper, self).__init__()
         self.encoder = encoder
+        self.encoder_name = encoder.__class__.__name__
         
     def forward(self, t_abs=None, t_rel=None, timestamps=None):
-        # Check what interface the encoder supports
+        import inspect
+        
         result = None
+        sig = inspect.signature(self.encoder.forward)
+        params = list(sig.parameters.keys())
         
-        # Debug input shapes
-        input_tensor = timestamps if timestamps is not None else t_abs
-        if input_tensor is not None:
-            #print(f"DEBUG TimeEncoderWrapper: Input shape: {input_tensor.shape}")
-            pass
+        # Strategy 1: Dual-stream interface (KAN-MAMMOTE)
+        if 't_abs' in params and 't_rel' in params:
+            if t_abs is not None and t_rel is not None:
+                result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
+            elif timestamps is not None:
+                # timestamps is usually delta_t, so treat as t_rel
+                t_rel_default = timestamps
+                t_abs_default = torch.zeros_like(timestamps)
+                result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default)
         
-        if hasattr(self.encoder, 'forward'):
-            # Try the dual-stream interface first (t_abs, t_rel)
-            try:
-                if t_abs is not None and t_rel is not None:
-                    #print(f"DEBUG: Using dual-stream interface (t_abs: {t_abs}, t_rel: {t_rel})")
-                    result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
-                elif timestamps is not None:
-                    # Check if encoder supports timestamps parameter
-                    import inspect
-                    sig = inspect.signature(self.encoder.forward)
-                    if 'timestamps' in sig.parameters:
-                        #print(f"DEBUG: Using timestamps parameter")
-                        result = self.encoder.forward(timestamps=timestamps)
-                    elif 't_abs' in sig.parameters:
-                        # Convert timestamps to t_abs/t_rel format
-                        #print(f"DEBUG: Converting timestamps to t_abs/t_rel")
-                        t_rel_default = torch.zeros_like(timestamps)
-                        result = self.encoder.forward(t_abs=timestamps, t_rel=t_rel_default)
-                    else:
-                        # Fallback: call with positional argument
-                        #print(f"DEBUG: Using positional argument")
-                        result = self.encoder.forward(timestamps)
-                elif t_abs is not None:
-                    # Try with just t_abs
-                    print(f"DEBUG: Using t_abs only")
-                    try:
-                        result = self.encoder.forward(t_abs=t_abs)
-                    except:
-                        result = self.encoder.forward(timestamps=t_abs)
-            except Exception as e:
-                print(f"DEBUG: Interface attempt failed: {e}")
-                # If interface doesn't match, try alternative
-                if input_tensor is not None:
-                    try:
-                        print(f"DEBUG: Trying direct call")
-                        result = self.encoder(input_tensor)
-                    except Exception as e2:
-                        print(f"DEBUG: Direct call failed: {e2}")
-                        try:
-                            print(f"DEBUG: Trying forward call")
-                            result = self.encoder.forward(input_tensor)
-                        except Exception as e3:
-                            print(f"DEBUG: All attempts failed: {e3}")
-                            raise e3
+        # Strategy 2: OriginalTimeEncoder uses relative time (delta_t)
+        # It expects: forward(timestamps) where timestamps = delta_t (relative time)
+        elif self.encoder_name == 'TimeEncoder' or 'timestamps' in params:
+            # OriginalTimeEncoder uses RELATIVE time (t_rel), not absolute!
+            # In TGAT context: delta_t = current_time - neighbor_time
+            if t_rel is not None:
+                # Use t_rel (this is the correct input for OriginalTimeEncoder)
+                result = self.encoder.forward(t_rel)
+            elif timestamps is not None:
+                # timestamps in TGAT is actually delta_t (relative time)
+                result = self.encoder.forward(timestamps)
+            elif t_abs is not None:
+                # Fallback: if only t_abs provided, assume it's delta_t
+                # (this shouldn't happen in proper usage)
+                print(f"WARNING: OriginalTimeEncoder expects t_rel but got t_abs. Using t_abs as fallback.")
+                result = self.encoder.forward(t_abs)
         
-        # Last resort
-        if result is None:
-            print(f"DEBUG: Last resort call")
-            result = self.encoder(input_tensor)
-        
-        # DIMENSION FIXING: Ensure consistent output dimensions
-        if result is not None:
-            #print(f"DEBUG: Raw output shape: {result.shape}")
-            
-            # Determine expected output shape based on input
-            if t_abs is not None:
-                batch_size = t_abs.shape[0]
-                if t_abs.dim() == 3:  # (batch_size, num_neighbors, 1)
-                    num_neighbors = t_abs.shape[1]
-                    expected_neighbors = True
-                else:  # (batch_size, 1) 
-                    expected_neighbors = False
+        # Strategy 3: Generic positional argument
+        elif result is None:
+            # Determine which input to use
+            # Priority: t_rel (for time encoders) > timestamps > t_abs
+            if t_rel is not None:
+                input_tensor = t_rel
+            elif timestamps is not None:
+                input_tensor = timestamps
+            elif t_abs is not None:
+                input_tensor = t_abs
             else:
-                expected_neighbors = False
+                raise ValueError("Must provide at least one time input")
+            
+            result = self.encoder.forward(input_tensor)
+        
+        # Dimension fixing (keep existing logic)
+        if result is not None:
+            # Determine expected shape from input
+            input_for_shape = t_rel if t_rel is not None else (t_abs if t_abs is not None else timestamps)
+            
+            if input_for_shape.dim() == 3:  # (batch, neighbors, 1)
+                expected_shape = (input_for_shape.shape[0], input_for_shape.shape[1], result.shape[-1])
+            elif input_for_shape.dim() == 2:  # (batch, 1)
+                expected_shape = (input_for_shape.shape[0], result.shape[-1])
+            else:
+                expected_shape = result.shape
             
             # Handle different dimension cases
-            if result.dim() == 4:  # [batch, seq, 1, feat_dim] -> [batch, seq, feat_dim]
+            if result.dim() == 4:  # [batch, seq, 1, feat] -> [batch, seq, feat]
                 result = result.squeeze(2)
-                #print(f"DEBUG: After squeeze(2): {result.shape}")
-            elif result.dim() == 3 and result.shape[1] == 1:  # [batch, 1, feat_dim] -> [batch, feat_dim]
-                result = result.squeeze(1)
-                #print(f"DEBUG: After squeeze(1): {result.shape}")
-            elif result.dim() == 2:  # [batch, feat_dim]
-                #print(f"DEBUG: 2D tensor: {result.shape}")
-                # Check if we need to expand for neighbors
-                if expected_neighbors and t_abs is not None:
-                    num_neighbors = t_abs.shape[1]
-                    result = result.unsqueeze(1).expand(-1, num_neighbors, -1)  # [batch, neighbors, feat_dim]
-                    #print(f"DEBUG: Expanded for neighbors: {result.shape}")
-            elif result.dim() == 1:  # [feat_dim] -> [1, feat_dim] or [1, neighbors, feat_dim]
-                if expected_neighbors and t_abs is not None:
-                    num_neighbors = t_abs.shape[1]
-                    result = result.unsqueeze(0).unsqueeze(0).expand(1, num_neighbors, -1)
-                    #print(f"DEBUG: Expanded 1D for neighbors: {result.shape}")
+            elif result.dim() == 3 and result.shape[-2] == 1:  # [batch, 1, feat] -> [batch, feat]
+                result = result.squeeze(-2)
+            elif result.dim() == 2 and input_for_shape.dim() == 3:
+                # Need to expand for neighbors: [batch, feat] -> [batch, neighbors, feat]
+                num_neighbors = input_for_shape.shape[1]
+                result = result.unsqueeze(1).expand(-1, num_neighbors, -1)
+            elif result.dim() == 1:  # [feat] -> proper shape
+                if input_for_shape.dim() == 3:
+                    result = result.unsqueeze(0).unsqueeze(0).expand(
+                        input_for_shape.shape[0], input_for_shape.shape[1], -1
+                    )
                 else:
                     result = result.unsqueeze(0)
-                    #print(f"DEBUG: After unsqueeze(0): {result.shape}")
-            
-            # Final check: ensure we have proper dimensions for TGAT
-            if result.dim() == 3 and result.shape[1] > 1 and not expected_neighbors:
-                # If we have sequences but input was 2D, take the mean or last timestep
-                #print(f"DEBUG: Converting sequence output to single timestep")
-                result = result.mean(dim=1)  # or result[:, -1, :] for last timestep
-                #print(f"DEBUG: After mean(dim=1): {result.shape}")
-            
-            #print(f"DEBUG: Final output shape: {result.shape}")
         
         return result
 
@@ -150,6 +128,7 @@ def get_available_encoders():
     """
     encoders = [
         'kan_mammote',
+        'kan_mammote_lite',
         'original',
         'time_encoder',
         'default'
@@ -183,6 +162,14 @@ def get_encoder_config(encoder_type: str):
                 'mamba_headdim': 64
             },
             'description': 'KAN-MAMMOTE: Advanced time encoder with Mamba2 and spectral kernels'
+        },
+        'kan_mammote_lite': {
+            'required_params': ['embedding_dim', 'num_mixtures'],
+            'optional_params': {
+                'wavelet_type': 'shock',
+                'use_dual_stream': True
+            },
+            'description': 'KAN-MAMMOTE Lite: Lightweight stateless version without Mamba (for TGAT/attention models)'
         },
         'mercer': {
             'required_params': ['time_dim'],
@@ -239,9 +226,10 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         
         # Handle args gracefully - try args first, then kwargs, then defaults
         if args is not None:
-            expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 64))
-            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 4))
-            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 16))
+            print("INFO: Extracting KAN-MAMMOTE parameters from args.")
+            expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 128))
+            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
+            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
             mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))
             mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
             mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
@@ -249,6 +237,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
         else:
             # Get from kwargs or use defaults
+            print("INFO: Extracting KAN-MAMMOTE parameters from kwargs or using defaults.")
             expert_dim = kwargs.get('expert_dim', 64)
             num_mixtures = kwargs.get('num_mixtures', 4)
             mamba_d_state = kwargs.get('mamba_d_state', 16)
@@ -301,6 +290,58 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
                 print(f"WARNING: SM-Kernel initialization failed: {e}. Using default initialization.")
         else:
             print("INFO: No training data provided. SM-Kernel will use default initialization.")
+    
+    elif encoder_type == 'kan_mammote_lite':
+        print("INFO: Creating KAN-MAMMOTE Lite time encoder (stateless version).")
+        
+        # Handle args gracefully
+        if args is not None:
+            embedding_dim = getattr(args, 'time_feat_dim', time_dim)
+            num_mixtures = getattr(args, 'num_mixtures', 12)
+            wavelet_type = getattr(args, 'wavelet_type', 'shock')
+            use_dual_stream = getattr(args, 'use_dual_stream', True)
+        else:
+            embedding_dim = kwargs.get('embedding_dim', time_dim)
+            num_mixtures = kwargs.get('num_mixtures', 12)
+            wavelet_type = kwargs.get('wavelet_type', 'shock')
+            use_dual_stream = kwargs.get('use_dual_stream', True)
+        
+        time_encoder = KAN_MAMMOTE_Lite(
+            embedding_dim=embedding_dim,
+            num_mixtures=num_mixtures,
+            wavelet_type=wavelet_type,
+            use_dual_stream=use_dual_stream
+        )
+        
+        # Initialize SM-Kernel if training data is available
+        if train_data is not None and train_neighbor_sampler is not None:
+            print("Initializing SM-Kernel for KAN-MAMMOTE Lite from training data...")
+            batch_size = 200
+            node_interact_times = train_data.node_interact_times
+            node_idx_array = np.arange(train_data.num_nodes)
+            
+            sampled_indices = np.random.choice(len(node_idx_array), size=min(batch_size, len(node_idx_array)), replace=False)
+            sampled_node_ids = node_idx_array[sampled_indices]
+            sampled_edge_times = node_interact_times[sampled_indices]
+            
+            neighbor_node_ids, neighbor_edge_ids, neighbor_times = train_neighbor_sampler.get_all_first_hop_neighbors(
+                node_ids=sampled_node_ids, node_interact_times=sampled_edge_times
+            )
+            
+            delta_t_samples = []
+            for idx in range(len(sampled_node_ids)):
+                current_time = sampled_edge_times[idx]
+                neighbor_t = neighbor_times[idx]
+                if len(neighbor_t) > 0:
+                    delta = current_time - neighbor_t
+                    delta_t_samples.append(delta)
+            
+            if delta_t_samples:
+                delta_t_tensor = torch.from_numpy(np.concatenate(delta_t_samples)).float().unsqueeze(-1)
+                time_encoder.initialize_sm_kernel(delta_t_tensor)
+                print(f"SM-Kernel initialized with {len(delta_t_tensor)} delta_t samples.")
+            else:
+                print("Warning: No delta_t samples found; SM-Kernel not initialized.")
         
     elif encoder_type == 'mercer' and MercerTimeEncoder is not None:
         print("INFO: Creating Mercer Time Encoder.")
