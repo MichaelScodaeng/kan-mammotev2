@@ -1,0 +1,167 @@
+2025-10-06 03:21:18,854 - root - INFO - ********** Run 1 starts. **********
+2025-10-06 03:21:18,855 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=True, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=10, optimizer='Adam', weight_decay=0.0, patience=5, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=False, data_ratio=0.1, save_model_name_suffix='mercer', ablation_dir='ablation_20251006_025334', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, device='cuda:0', seed=0, save_model_name='TGAT_mercer_seed0_mercer')
+2025-10-06 03:21:18,856 - root - INFO - Metrics will be saved to: ablation_20251006_025334/saved_metrics/TGAT/wikipedia/TGAT_mercer_seed0
+2025-10-06 03:21:18,857 - root - INFO - time encoder type: mercer
+2025-10-06 03:21:19,107 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): MercerTimeEncoder()
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-06 03:21:19,107 - root - INFO - model name: TGAT, #parameters: 4218180 B, 4119.31640625 KB, 4.022769927978516 MB.
+2025-10-06 03:22:46,850 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6645
+2025-10-06 03:22:46,850 - root - INFO - train average_precision, 0.7238
+2025-10-06 03:22:46,850 - root - INFO - train roc_auc, 0.7408
+2025-10-06 03:22:46,850 - root - INFO - validate loss: 0.6637
+2025-10-06 03:22:46,851 - root - INFO - validate average_precision, 0.6589
+2025-10-06 03:22:46,851 - root - INFO - validate roc_auc, 0.6405
+2025-10-06 03:22:46,851 - root - INFO - new node validate loss: 0.6258
+2025-10-06 03:22:46,851 - root - INFO - new node validate average_precision, 0.7380
+2025-10-06 03:22:46,851 - root - INFO - new node validate roc_auc, 0.7227
+2025-10-06 03:22:46,862 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:24:13,602 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5042
+2025-10-06 03:24:13,603 - root - INFO - train average_precision, 0.8319
+2025-10-06 03:24:13,603 - root - INFO - train roc_auc, 0.8492
+2025-10-06 03:24:13,603 - root - INFO - validate loss: 0.6659
+2025-10-06 03:24:13,603 - root - INFO - validate average_precision, 0.6592
+2025-10-06 03:24:13,603 - root - INFO - validate roc_auc, 0.6449
+2025-10-06 03:24:13,603 - root - INFO - new node validate loss: 0.6166
+2025-10-06 03:24:13,603 - root - INFO - new node validate average_precision, 0.7355
+2025-10-06 03:24:13,603 - root - INFO - new node validate roc_auc, 0.7193
+2025-10-06 03:24:13,609 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:25:40,244 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.4454
+2025-10-06 03:25:40,244 - root - INFO - train average_precision, 0.8700
+2025-10-06 03:25:40,244 - root - INFO - train roc_auc, 0.8777
+2025-10-06 03:25:40,245 - root - INFO - validate loss: 0.6261
+2025-10-06 03:25:40,245 - root - INFO - validate average_precision, 0.6992
+2025-10-06 03:25:40,245 - root - INFO - validate roc_auc, 0.6812
+2025-10-06 03:25:40,245 - root - INFO - new node validate loss: 0.5734
+2025-10-06 03:25:40,245 - root - INFO - new node validate average_precision, 0.7731
+2025-10-06 03:25:40,245 - root - INFO - new node validate roc_auc, 0.7557
+2025-10-06 03:25:40,250 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:27:06,963 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.3936
+2025-10-06 03:27:06,963 - root - INFO - train average_precision, 0.8982
+2025-10-06 03:27:06,963 - root - INFO - train roc_auc, 0.9022
+2025-10-06 03:27:06,963 - root - INFO - validate loss: 0.6206
+2025-10-06 03:27:06,963 - root - INFO - validate average_precision, 0.7167
+2025-10-06 03:27:06,963 - root - INFO - validate roc_auc, 0.6991
+2025-10-06 03:27:06,963 - root - INFO - new node validate loss: 0.5700
+2025-10-06 03:27:06,964 - root - INFO - new node validate average_precision, 0.7829
+2025-10-06 03:27:06,964 - root - INFO - new node validate roc_auc, 0.7654
+2025-10-06 03:27:06,970 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:28:33,957 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.3773
+2025-10-06 03:28:33,957 - root - INFO - train average_precision, 0.9062
+2025-10-06 03:28:33,957 - root - INFO - train roc_auc, 0.9109
+2025-10-06 03:28:33,957 - root - INFO - validate loss: 0.6045
+2025-10-06 03:28:33,957 - root - INFO - validate average_precision, 0.7413
+2025-10-06 03:28:33,957 - root - INFO - validate roc_auc, 0.7255
+2025-10-06 03:28:33,957 - root - INFO - new node validate loss: 0.5474
+2025-10-06 03:28:33,958 - root - INFO - new node validate average_precision, 0.8027
+2025-10-06 03:28:33,958 - root - INFO - new node validate roc_auc, 0.7871
+2025-10-06 03:28:33,963 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:30:00,827 - root - INFO - Epoch: 6, learning rate: 0.0001, train loss: 0.3517
+2025-10-06 03:30:00,827 - root - INFO - train average_precision, 0.9198
+2025-10-06 03:30:00,827 - root - INFO - train roc_auc, 0.9231
+2025-10-06 03:30:00,827 - root - INFO - validate loss: 0.5827
+2025-10-06 03:30:00,827 - root - INFO - validate average_precision, 0.7678
+2025-10-06 03:30:00,827 - root - INFO - validate roc_auc, 0.7532
+2025-10-06 03:30:00,827 - root - INFO - new node validate loss: 0.5246
+2025-10-06 03:30:00,827 - root - INFO - new node validate average_precision, 0.8214
+2025-10-06 03:30:00,827 - root - INFO - new node validate roc_auc, 0.8072
+2025-10-06 03:30:00,833 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:31:27,647 - root - INFO - Epoch: 7, learning rate: 0.0001, train loss: 0.3312
+2025-10-06 03:31:27,647 - root - INFO - train average_precision, 0.9295
+2025-10-06 03:31:27,647 - root - INFO - train roc_auc, 0.9323
+2025-10-06 03:31:27,647 - root - INFO - validate loss: 0.5667
+2025-10-06 03:31:27,647 - root - INFO - validate average_precision, 0.7947
+2025-10-06 03:31:27,647 - root - INFO - validate roc_auc, 0.7821
+2025-10-06 03:31:27,647 - root - INFO - new node validate loss: 0.5060
+2025-10-06 03:31:27,647 - root - INFO - new node validate average_precision, 0.8393
+2025-10-06 03:31:27,647 - root - INFO - new node validate roc_auc, 0.8270
+2025-10-06 03:31:27,654 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:32:54,492 - root - INFO - Epoch: 8, learning rate: 0.0001, train loss: 0.3206
+2025-10-06 03:32:54,492 - root - INFO - train average_precision, 0.9337
+2025-10-06 03:32:54,492 - root - INFO - train roc_auc, 0.9361
+2025-10-06 03:32:54,492 - root - INFO - validate loss: 0.5338
+2025-10-06 03:32:54,492 - root - INFO - validate average_precision, 0.8161
+2025-10-06 03:32:54,493 - root - INFO - validate roc_auc, 0.8052
+2025-10-06 03:32:54,493 - root - INFO - new node validate loss: 0.4739
+2025-10-06 03:32:54,493 - root - INFO - new node validate average_precision, 0.8579
+2025-10-06 03:32:54,493 - root - INFO - new node validate roc_auc, 0.8474
+2025-10-06 03:32:54,499 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:34:21,191 - root - INFO - Epoch: 9, learning rate: 0.0001, train loss: 0.2985
+2025-10-06 03:34:21,191 - root - INFO - train average_precision, 0.9433
+2025-10-06 03:34:21,191 - root - INFO - train roc_auc, 0.9449
+2025-10-06 03:34:21,191 - root - INFO - validate loss: 0.5154
+2025-10-06 03:34:21,191 - root - INFO - validate average_precision, 0.8340
+2025-10-06 03:34:21,191 - root - INFO - validate roc_auc, 0.8252
+2025-10-06 03:34:21,191 - root - INFO - new node validate loss: 0.4579
+2025-10-06 03:34:21,191 - root - INFO - new node validate average_precision, 0.8697
+2025-10-06 03:34:21,191 - root - INFO - new node validate roc_auc, 0.8617
+2025-10-06 03:34:21,197 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:35:47,945 - root - INFO - Epoch: 10, learning rate: 0.0001, train loss: 0.2887
+2025-10-06 03:35:47,945 - root - INFO - train average_precision, 0.9478
+2025-10-06 03:35:47,946 - root - INFO - train roc_auc, 0.9485
+2025-10-06 03:35:47,946 - root - INFO - validate loss: 0.5035
+2025-10-06 03:35:47,946 - root - INFO - validate average_precision, 0.8374
+2025-10-06 03:35:47,946 - root - INFO - validate roc_auc, 0.8332
+2025-10-06 03:35:47,946 - root - INFO - new node validate loss: 0.4572
+2025-10-06 03:35:47,946 - root - INFO - new node validate average_precision, 0.8678
+2025-10-06 03:35:47,946 - root - INFO - new node validate roc_auc, 0.8621
+2025-10-06 03:35:47,952 - root - INFO - save model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:35:47,997 - root - INFO - load model ablation_20251006_025334/saved_models/TGAT/wikipedia/TGAT_mercer_seed0_mercer/TGAT_mercer_seed0_mercer.pkl
+2025-10-06 03:35:48,018 - root - INFO - get final performance on dataset wikipedia...
+2025-10-06 03:38:10,241 - root - INFO - validate loss: 0.5035
+2025-10-06 03:38:10,242 - root - INFO - validate average_precision, 0.8374
+2025-10-06 03:38:10,242 - root - INFO - validate roc_auc, 0.8332
+2025-10-06 03:38:10,242 - root - INFO - new node validate loss: 0.4572
+2025-10-06 03:38:10,242 - root - INFO - new node validate average_precision, 0.8678
+2025-10-06 03:38:10,242 - root - INFO - new node validate roc_auc, 0.8621
+2025-10-06 03:38:10,243 - root - INFO - test loss: 0.5538
+2025-10-06 03:38:10,243 - root - INFO - test average_precision, 0.7982
+2025-10-06 03:38:10,243 - root - INFO - test roc_auc, 0.7948
+2025-10-06 03:38:10,243 - root - INFO - new node test loss: 0.5328
+2025-10-06 03:38:10,243 - root - INFO - new node test average_precision, 0.8206
+2025-10-06 03:38:10,243 - root - INFO - new node test roc_auc, 0.8116
+2025-10-06 03:38:10,253 - root - INFO - ✅ Metrics saved to: ablation_20251006_025334/saved_metrics/TGAT/wikipedia/TGAT_mercer_seed0
+2025-10-06 03:38:10,253 - root - INFO - Run 1 cost 1011.40 seconds.
+2025-10-06 03:38:10,257 - root - INFO - metrics over 1 runs:
+2025-10-06 03:38:10,257 - root - INFO - validate average_precision, [np.float64(0.8374048904231932)]
+2025-10-06 03:38:10,257 - root - INFO - average validate average_precision, 0.8374 ± nan
+2025-10-06 03:38:10,257 - root - INFO - validate roc_auc, [np.float64(0.8331589321442864)]
+2025-10-06 03:38:10,257 - root - INFO - average validate roc_auc, 0.8332 ± nan
+2025-10-06 03:38:10,257 - root - INFO - new node validate average_precision, [np.float64(0.8677984981286415)]
+2025-10-06 03:38:10,257 - root - INFO - average new node validate average_precision, 0.8678 ± nan
+2025-10-06 03:38:10,257 - root - INFO - new node validate roc_auc, [np.float64(0.8620979508196722)]
+2025-10-06 03:38:10,257 - root - INFO - average new node validate roc_auc, 0.8621 ± nan
+2025-10-06 03:38:10,258 - root - INFO - test average_precision, [np.float64(0.7981534703719381)]
+2025-10-06 03:38:10,258 - root - INFO - average test average_precision, 0.7982 ± nan
+2025-10-06 03:38:10,258 - root - INFO - test roc_auc, [np.float64(0.7948301839783531)]
+2025-10-06 03:38:10,258 - root - INFO - average test roc_auc, 0.7948 ± nan
+2025-10-06 03:38:10,258 - root - INFO - new node test average_precision, [np.float64(0.820645923924312)]
+2025-10-06 03:38:10,258 - root - INFO - average new node test average_precision, 0.8206 ± nan
+2025-10-06 03:38:10,258 - root - INFO - new node test roc_auc, [np.float64(0.8115597802056966)]
+2025-10-06 03:38:10,258 - root - INFO - average new node test roc_auc, 0.8116 ± nan

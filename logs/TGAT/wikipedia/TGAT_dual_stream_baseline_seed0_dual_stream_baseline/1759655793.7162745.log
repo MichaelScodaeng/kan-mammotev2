@@ -1,0 +1,195 @@
+2025-10-05 18:16:33,719 - root - INFO - ********** Run 1 starts. **********
+2025-10-05 18:16:33,720 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=128, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='dual_stream_baseline', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=True, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=5, optimizer='Adam', weight_decay=0.0, patience=5, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=1, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=False, data_ratio=1.0, save_model_name_suffix='dual_stream_baseline', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, device='cuda:0', seed=0, save_model_name='TGAT_dual_stream_baseline_seed0_dual_stream_baseline')
+2025-10-05 18:16:33,722 - root - INFO - Metrics will be saved to: ./saved_metrics/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0
+2025-10-05 18:16:33,731 - root - INFO - time encoder type: dual_stream_baseline
+2025-10-05 18:16:34,118 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): DualStreamBaseline(
+      (k_mote): KMOTE(
+        (experts): ModuleList(
+          (0): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=64, bias=True)
+            )
+          )
+          (1): FourierKANLayer()
+          (2): WaveletKANLayer(
+            (linear): Linear(in_features=16, out_features=64, bias=True)
+          )
+          (3): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=64, bias=True)
+            )
+            (local_linear): Linear(in_features=8, out_features=64, bias=True)
+          )
+        )
+        (gating_network): Sequential(
+          (0): Linear(in_features=1, out_features=64, bias=True)
+          (1): GELU(approximate='none')
+          (2): Linear(in_features=64, out_features=4, bias=True)
+        )
+        (layer_norm): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+      )
+      (sm_kernel): SMKernelLayer(
+        (kernel): SpectralMixtureKernel(
+          (raw_mixture_scales_constraint): Positive()
+          (raw_mixture_means_constraint): Positive()
+          (raw_mixture_weights_constraint): Positive()
+        )
+        (layer_norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (fusion_mlp): Sequential(
+        (0): Linear(in_features=80, out_features=128, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=128, out_features=128, bias=True)
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=300, out_features=300, bias=False)
+        (key_projection): Linear(in_features=472, out_features=300, bias=False)
+        (value_projection): Linear(in_features=472, out_features=300, bias=False)
+        (layer_norm): LayerNorm((300,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=300, out_features=300, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=472, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-05 18:16:34,119 - root - INFO - model name: TGAT, #parameters: 4989412 B, 4872.47265625 KB, 4.758274078369141 MB.
+2025-10-05 18:21:24,845 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.5087
+2025-10-05 18:21:24,846 - root - INFO - train average_precision, 0.7776
+2025-10-05 18:21:24,846 - root - INFO - train roc_auc, 0.8216
+2025-10-05 18:21:24,846 - root - INFO - validate loss: 0.4687
+2025-10-05 18:21:24,846 - root - INFO - validate average_precision, 0.8220
+2025-10-05 18:21:24,846 - root - INFO - validate roc_auc, 0.8508
+2025-10-05 18:21:24,846 - root - INFO - new node validate loss: 0.4828
+2025-10-05 18:21:24,846 - root - INFO - new node validate average_precision, 0.8223
+2025-10-05 18:21:24,846 - root - INFO - new node validate roc_auc, 0.8431
+2025-10-05 18:22:43,843 - root - INFO - test loss: 0.4973
+2025-10-05 18:22:43,844 - root - INFO - test average_precision, 0.7986
+2025-10-05 18:22:43,844 - root - INFO - best test average_precision: 0.7986
+2025-10-05 18:22:43,844 - root - INFO - test roc_auc, 0.8296
+2025-10-05 18:22:43,844 - root - INFO - new node test loss: 0.5143
+2025-10-05 18:22:43,844 - root - INFO - new node test average_precision, 0.7910
+2025-10-05 18:22:43,844 - root - INFO - new node test roc_auc, 0.8166
+2025-10-05 18:22:43,852 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:27:32,887 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.4013
+2025-10-05 18:27:32,888 - root - INFO - train average_precision, 0.8728
+2025-10-05 18:27:32,888 - root - INFO - train roc_auc, 0.8946
+2025-10-05 18:27:32,888 - root - INFO - validate loss: 0.4527
+2025-10-05 18:27:32,888 - root - INFO - validate average_precision, 0.8381
+2025-10-05 18:27:32,888 - root - INFO - validate roc_auc, 0.8637
+2025-10-05 18:27:32,888 - root - INFO - new node validate loss: 0.4725
+2025-10-05 18:27:32,889 - root - INFO - new node validate average_precision, 0.8345
+2025-10-05 18:27:32,889 - root - INFO - new node validate roc_auc, 0.8530
+2025-10-05 18:28:51,882 - root - INFO - test loss: 0.4802
+2025-10-05 18:28:51,882 - root - INFO - test average_precision, 0.8182
+2025-10-05 18:28:51,883 - root - INFO - best test average_precision: 0.8182
+2025-10-05 18:28:51,883 - root - INFO - test roc_auc, 0.8455
+2025-10-05 18:28:51,883 - root - INFO - new node test loss: 0.5055
+2025-10-05 18:28:51,883 - root - INFO - new node test average_precision, 0.8091
+2025-10-05 18:28:51,883 - root - INFO - new node test roc_auc, 0.8294
+2025-10-05 18:28:51,888 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:33:41,851 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.3428
+2025-10-05 18:33:41,852 - root - INFO - train average_precision, 0.9189
+2025-10-05 18:33:41,852 - root - INFO - train roc_auc, 0.9287
+2025-10-05 18:33:41,852 - root - INFO - validate loss: 0.3790
+2025-10-05 18:33:41,852 - root - INFO - validate average_precision, 0.9000
+2025-10-05 18:33:41,852 - root - INFO - validate roc_auc, 0.9118
+2025-10-05 18:33:41,852 - root - INFO - new node validate loss: 0.3944
+2025-10-05 18:33:41,852 - root - INFO - new node validate average_precision, 0.8964
+2025-10-05 18:33:41,852 - root - INFO - new node validate roc_auc, 0.9041
+2025-10-05 18:35:00,897 - root - INFO - test loss: 0.4052
+2025-10-05 18:35:00,898 - root - INFO - test average_precision, 0.8899
+2025-10-05 18:35:00,898 - root - INFO - best test average_precision: 0.8899
+2025-10-05 18:35:00,898 - root - INFO - test roc_auc, 0.8997
+2025-10-05 18:35:00,898 - root - INFO - new node test loss: 0.4268
+2025-10-05 18:35:00,898 - root - INFO - new node test average_precision, 0.8778
+2025-10-05 18:35:00,898 - root - INFO - new node test roc_auc, 0.8883
+2025-10-05 18:35:00,905 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:39:50,497 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.3122
+2025-10-05 18:39:50,498 - root - INFO - train average_precision, 0.9339
+2025-10-05 18:39:50,498 - root - INFO - train roc_auc, 0.9409
+2025-10-05 18:39:50,498 - root - INFO - validate loss: 0.3646
+2025-10-05 18:39:50,499 - root - INFO - validate average_precision, 0.9054
+2025-10-05 18:39:50,499 - root - INFO - validate roc_auc, 0.9175
+2025-10-05 18:39:50,499 - root - INFO - new node validate loss: 0.3824
+2025-10-05 18:39:50,499 - root - INFO - new node validate average_precision, 0.9020
+2025-10-05 18:39:50,499 - root - INFO - new node validate roc_auc, 0.9091
+2025-10-05 18:41:09,694 - root - INFO - test loss: 0.3884
+2025-10-05 18:41:09,695 - root - INFO - test average_precision, 0.8943
+2025-10-05 18:41:09,695 - root - INFO - best test average_precision: 0.8943
+2025-10-05 18:41:09,695 - root - INFO - test roc_auc, 0.9066
+2025-10-05 18:41:09,696 - root - INFO - new node test loss: 0.4091
+2025-10-05 18:41:09,696 - root - INFO - new node test average_precision, 0.8845
+2025-10-05 18:41:09,696 - root - INFO - new node test roc_auc, 0.8958
+2025-10-05 18:41:09,700 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:45:59,218 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.3034
+2025-10-05 18:45:59,218 - root - INFO - train average_precision, 0.9375
+2025-10-05 18:45:59,218 - root - INFO - train roc_auc, 0.9438
+2025-10-05 18:45:59,219 - root - INFO - validate loss: 0.3588
+2025-10-05 18:45:59,219 - root - INFO - validate average_precision, 0.9065
+2025-10-05 18:45:59,219 - root - INFO - validate roc_auc, 0.9193
+2025-10-05 18:45:59,219 - root - INFO - new node validate loss: 0.3805
+2025-10-05 18:45:59,219 - root - INFO - new node validate average_precision, 0.9013
+2025-10-05 18:45:59,219 - root - INFO - new node validate roc_auc, 0.9094
+2025-10-05 18:47:18,314 - root - INFO - test loss: 0.3836
+2025-10-05 18:47:18,315 - root - INFO - test average_precision, 0.8955
+2025-10-05 18:47:18,315 - root - INFO - best test average_precision: 0.8955
+2025-10-05 18:47:18,315 - root - INFO - test roc_auc, 0.9086
+2025-10-05 18:47:18,315 - root - INFO - new node test loss: 0.4092
+2025-10-05 18:47:18,316 - root - INFO - new node test average_precision, 0.8823
+2025-10-05 18:47:18,316 - root - INFO - new node test roc_auc, 0.8954
+2025-10-05 18:47:18,320 - root - INFO - save model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:47:18,372 - root - INFO - load model ./saved_models/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0_dual_stream_baseline/TGAT_dual_stream_baseline_seed0_dual_stream_baseline.pkl
+2025-10-05 18:47:18,387 - root - INFO - get final performance on dataset wikipedia...
+2025-10-05 18:49:57,384 - root - INFO - validate loss: 0.3588
+2025-10-05 18:49:57,384 - root - INFO - validate average_precision, 0.9065
+2025-10-05 18:49:57,384 - root - INFO - validate roc_auc, 0.9193
+2025-10-05 18:49:57,384 - root - INFO - new node validate loss: 0.3805
+2025-10-05 18:49:57,385 - root - INFO - new node validate average_precision, 0.9013
+2025-10-05 18:49:57,385 - root - INFO - new node validate roc_auc, 0.9094
+2025-10-05 18:49:57,385 - root - INFO - test loss: 0.3836
+2025-10-05 18:49:57,385 - root - INFO - test average_precision, 0.8955
+2025-10-05 18:49:57,385 - root - INFO - test roc_auc, 0.9086
+2025-10-05 18:49:57,385 - root - INFO - new node test loss: 0.4092
+2025-10-05 18:49:57,385 - root - INFO - new node test average_precision, 0.8823
+2025-10-05 18:49:57,385 - root - INFO - new node test roc_auc, 0.8954
+2025-10-05 18:49:57,401 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGAT/wikipedia/TGAT_dual_stream_baseline_seed0
+2025-10-05 18:49:57,401 - root - INFO - Run 1 cost 2003.68 seconds.
+2025-10-05 18:49:57,407 - root - INFO - metrics over 1 runs:
+2025-10-05 18:49:57,407 - root - INFO - validate average_precision, [np.float64(0.9065143951195584)]
+2025-10-05 18:49:57,407 - root - INFO - average validate average_precision, 0.9065 ± nan
+2025-10-05 18:49:57,407 - root - INFO - validate roc_auc, [np.float64(0.9193187091503269)]
+2025-10-05 18:49:57,408 - root - INFO - average validate roc_auc, 0.9193 ± nan
+2025-10-05 18:49:57,408 - root - INFO - new node validate average_precision, [np.float64(0.9012736298169088)]
+2025-10-05 18:49:57,408 - root - INFO - average new node validate average_precision, 0.9013 ± nan
+2025-10-05 18:49:57,408 - root - INFO - new node validate roc_auc, [np.float64(0.9094044057377049)]
+2025-10-05 18:49:57,408 - root - INFO - average new node validate roc_auc, 0.9094 ± nan
+2025-10-05 18:49:57,408 - root - INFO - test average_precision, [np.float64(0.8954952636598943)]
+2025-10-05 18:49:57,408 - root - INFO - average test average_precision, 0.8955 ± nan
+2025-10-05 18:49:57,408 - root - INFO - test roc_auc, [np.float64(0.9085591503267971)]
+2025-10-05 18:49:57,409 - root - INFO - average test roc_auc, 0.9086 ± nan
+2025-10-05 18:49:57,409 - root - INFO - new node test average_precision, [np.float64(0.8823195231699669)]
+2025-10-05 18:49:57,409 - root - INFO - average new node test average_precision, 0.8823 ± nan
+2025-10-05 18:49:57,409 - root - INFO - new node test roc_auc, [np.float64(0.8953606492903142)]
+2025-10-05 18:49:57,409 - root - INFO - average new node test roc_auc, 0.8954 ± nan

@@ -12,7 +12,8 @@ def get_link_prediction_args(is_evaluation: bool = False):
     # arguments
     parser = argparse.ArgumentParser('Interface for the link prediction task')
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
-                        choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'])
+                        choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
+                                'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGMamba', help='name of the model',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba'])
@@ -26,20 +27,23 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
     parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
     parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
-    parser.add_argument('--time_gap', type=int, default=2000, help='time ga`p for neighbors to compute node features')
-    parser.add_argument('--time_feat_dim', type=int, default=128, help='dimension of the time embedding')
+    parser.add_argument('--time_gap', type=int, default=2000, help='time gap for neighbors to compute node features')
+    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
     parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--time_window_mode', type=str, default='fixed_proportion', help='how to select the time window size for time window memory',
                         choices=['fixed_proportion', 'repeat_interval'])
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec',"kan_mammote_lite"], 
+                        choices=['original', 'lete', 'kan_mammote', 'mercer', 'bochner', 'time2vec', 'kan_mammote_lite',
+                                'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline'], 
                         help='type of time encoder to use')
-    parser.add_argument('--expert_dim', type=int, default=64, 
+    parser.add_argument('--expert_dim', type=int, default=128, 
                         help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
     parser.add_argument('--num_mixtures', type=int, default=16, 
                         help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
+    parser.add_argument('--sort_neighbors_by_time', action='store_true', default=False,
+                        help='Sort sampled neighbors chronologically for Mamba-based time encoders (recommended for kan_mammote)')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
     parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
@@ -53,12 +57,33 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
     parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
-    parser.add_argument('--test_interval_epochs', type=int, default=1, help='how many epochs to perform testing once')
+    parser.add_argument('--test_interval_epochs', type=int, default=100, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
     parser.add_argument('--max_interaction_times', type=int, default=10,
                         help='max interactions for src and dst to consider')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
+    
+    # Data and experiment control arguments
+    parser.add_argument('--data_ratio', type=float, default=1.0, 
+                        help='ratio of data to use for experiments (e.g., 0.1 for 10%% of data)')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='random seed for reproducible data splits and sampling (default: 42)')
+    parser.add_argument('--save_model_name_suffix', type=str, default='', 
+                        help='suffix to add to saved model names for ablation studies')
+    parser.add_argument('--ablation_dir', type=str, default='', 
+                        help='directory to save all ablation study outputs (models, metrics, results)')
+    
+    # Mamba-specific arguments for KAN-MAMMOTE
+    parser.add_argument('--mamba_d_state', type=int, default=256, 
+                        help='Mamba state dimension (for kan_mammote encoder)')
+    parser.add_argument('--mamba_d_conv', type=int, default=4, 
+                        help='Mamba convolution dimension (for kan_mammote encoder)')
+    parser.add_argument('--mamba_expand', type=int, default=2, 
+                        help='Mamba expansion factor (for kan_mammote encoder)')
+    parser.add_argument('--mamba_headdim', type=int, default=64, 
+                        help='Mamba head dimension (for kan_mammote encoder)')
+    
     # Arguments specific to KAN-MAMMOTE
 
     try:

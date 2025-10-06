@@ -310,9 +310,9 @@ def create_experiment_key(model, dataset, time_encoder):
 def get_time_encoder_args(time_encoder):
     """Get encoder-specific command-line arguments"""
     if time_encoder == 'kan_mammote':
-        return '--num_mixtures 12 --mamba_d_state 16 --mamba_d_conv 4 --mamba_expand 2 --mamba_headdim 64'
+        return '--num_mixtures 12 --mamba_d_state 16 --mamba_d_conv 4 --mamba_expand 2 --mamba_headdim 64 --sort_neighbors_by_time'
     elif time_encoder == 'kan_mammote_lite':
-        return '--num_mixtures 12'
+        return '--num_mixtures 12 --sort_neighbors_by_time'
     elif time_encoder == 'lete':
         return ''
     elif time_encoder == 'mercer':

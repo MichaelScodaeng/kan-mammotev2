@@ -60,8 +60,8 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TCL'] #'CAWN','TGAT', 'TGN', 'DyGFormer','JODIE', 'DyRep',,  'GraphMixer', 'DyGMamba'
-datasets = ['wikipedia']#, 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'
+models = ['TGAT'] #'CAWN','TGAT', 'TGN', 'DyGFormer','JODIE', 'DyRep',,  'GraphMixer', 'DyGMamba'
+datasets = ['wikipedia','reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']#, 
 time_encoders = ['lete'] #'original', 
 
 def parse_arguments():

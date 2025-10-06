@@ -26,4 +26,4 @@ python --version
 nvidia-smi -a > nvidia-smi.log
 
 # Run your experiment
-python experiment_lete.py --single_encoder "lete" > experiment_lete_a100_01.log 2>&1
+python experiment_lete.py --single_encoder "lete" --num_epochs 1000 > experiment_lete_a100_01.log 2>&1

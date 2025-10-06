@@ -13,7 +13,7 @@ class TGAT(nn.Module):
     """
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_encoder: nn.Module, time_feat_dim: int, num_layers: int = 2, num_heads: int = 2, 
-                 dropout: float = 0.1, device: str = 'cpu'):
+                 dropout: float = 0.1, device: str = 'cpu', sort_neighbors_by_time: bool = False):
         super(TGAT, self).__init__()
 
         self.node_raw_features = torch.from_numpy(node_raw_features.astype(np.float32)).to(device)
@@ -27,6 +27,7 @@ class TGAT(nn.Module):
         self.dropout = dropout
         self.device = device
         self.time_encoder = time_encoder
+        self.sort_neighbors_by_time = sort_neighbors_by_time
 
         self.temporal_conv_layers = nn.ModuleList([MultiHeadAttention(
             node_feat_dim=self.node_feat_dim,
@@ -57,6 +58,17 @@ class TGAT(nn.Module):
             
             neighbor_node_ids, neighbor_edge_ids, neighbor_times = \
                 self.neighbor_sampler.get_historical_neighbors(node_ids, node_interact_times, num_neighbors)
+            
+            # ===== FIX: Sort neighbors chronologically for Mamba-based encoders =====
+            if self.sort_neighbors_by_time:
+                # Sort neighbors by time (oldest to newest) to create proper sequences for Mamba
+                sorted_indices = np.argsort(neighbor_times, axis=1)
+                
+                # Reorder all neighbor arrays
+                neighbor_times = np.take_along_axis(neighbor_times, sorted_indices, axis=1)
+                neighbor_node_ids = np.take_along_axis(neighbor_node_ids, sorted_indices, axis=1)
+                neighbor_edge_ids = np.take_along_axis(neighbor_edge_ids, sorted_indices, axis=1)
+            # ===== END FIX =====
             
             neighbor_conv_features = self.compute_node_temporal_embeddings(neighbor_node_ids.flatten(), neighbor_times.flatten(), current_layer_num - 1, num_neighbors)
             neighbor_conv_features = neighbor_conv_features.reshape(len(node_ids), num_neighbors, self.node_feat_dim)

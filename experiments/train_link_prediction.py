@@ -24,7 +24,8 @@ from models.gnn_backbones.modules import MergeLayer, MergeLayerTD
 from models.time_encoders.factory import create_time_encoder
 from utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer
 from utils import get_neighbor_sampler, NegativeEdgeSampler
-from evaluate_models_utils import evaluate_model_link_prediction
+from utils.metrics_logger import create_metrics_logger
+from experiments.evaluate_models_utils import evaluate_model_link_prediction
 from utils.metrics import get_link_prediction_metrics
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
@@ -37,9 +38,38 @@ if __name__ == "__main__":
     # get arguments
     args = get_link_prediction_args(is_evaluation=False)
 
+    # ===== DEBUG: Print configuration before data loading =====
+    print(f"\n🔍 DEBUGGING DATA LOADING:")
+    print(f"   Time encoder: {args.time_encoder_type}")
+    print(f"   Dataset: {args.dataset_name}")
+    print(f"   Val ratio: {args.val_ratio}")
+    print(f"   Test ratio: {args.test_ratio}")
+    print(f"   Batch size: {args.batch_size}")
+    print(f"   Load best configs: {args.load_best_configs}")
+    print(f"   Data ratio: {args.data_ratio}")
+    print(f"   Seed: {args.seed}")
+    # ===== END DEBUG =====
+
     # get data for training, validation and testing
+    # ✅ NEW: Pass data_ratio and seed to data loader (applies BEFORE splitting)
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = \
-        get_link_prediction_data(dataset_name=args.dataset_name, val_ratio=args.val_ratio, test_ratio=args.test_ratio)
+        get_link_prediction_data(
+            dataset_name=args.dataset_name, 
+            val_ratio=args.val_ratio, 
+            test_ratio=args.test_ratio,
+            seed=args.seed,  # ✅ Fixed seed for reproducibility
+            data_ratio=args.data_ratio  # ✅ Applied BEFORE splitting
+        )
+
+    # ===== DEBUG: Print actual data sizes =====
+    print(f"\n📊 DATA SPLIT SIZES (after data_ratio={args.data_ratio}):")
+    print(f"   Full data: {len(full_data.src_node_ids):,} edges")
+    print(f"   Train data: {len(train_data.src_node_ids):,} edges ({len(train_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
+    print(f"   Val data: {len(val_data.src_node_ids):,} edges ({len(val_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
+    print(f"   Test data: {len(test_data.src_node_ids):,} edges ({len(test_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
+    print(f"   Expected batches: {(len(train_data.src_node_ids) + args.batch_size - 1) // args.batch_size}")
+    print(f"   ✅ All splits proportionally scaled with ratio {len(train_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(val_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(test_data.src_node_ids)/len(full_data.src_node_ids):.2f}")
+    # ===== END DEBUG =====
 
     # initialize training neighbor sampler to retrieve temporal graph
     train_neighbor_sampler = get_neighbor_sampler(data=train_data,
@@ -76,31 +106,48 @@ if __name__ == "__main__":
 
         args.seed = run
         # Include time encoder in save name so logs/models/results are encoder-specific
-        args.save_model_name = f'{args.model_name}_{args.time_encoder_type}_seed{args.seed}'
+        base_save_name = f'{args.model_name}_{args.time_encoder_type}_seed{args.seed}'
+        
+        # Add suffix if specified (for ablation studies)
+        if hasattr(args, 'save_model_name_suffix') and args.save_model_name_suffix:
+            args.save_model_name = f'{base_save_name}_{args.save_model_name_suffix}'
+        else:
+            args.save_model_name = base_save_name
 
         # set up logger
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
-        os.makedirs(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/", exist_ok=True)
-        # create file handler that logs debug and higher level messages
-        fh = logging.FileHandler(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/{str(time.time())}.log")
-        fh.setLevel(logging.DEBUG)
+        
+        # Try to set up file logging, but fall back to console-only if file system has issues
+        try:
+            os.makedirs(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/", exist_ok=True)
+            # create file handler that logs debug and higher level messages
+            fh = logging.FileHandler(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/{str(time.time())}.log")
+            fh.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
+        except (OSError, IOError) as e:
+            print(f"Warning: Could not set up file logging due to: {e}. Continuing with console logging only.")
+        
         # create console handler with a higher log level
         ch = logging.StreamHandler()
         ch.setLevel(logging.WARNING)
         # create formatter and add it to the handlers
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
         ch.setFormatter(formatter)
         # add the handlers to logger
-        logger.addHandler(fh)
         logger.addHandler(ch)
 
         run_start_time = time.time()
         logger.info(f"********** Run {run + 1} starts. **********")
 
         logger.info(f'configuration is {args}')
+
+        # Initialize metrics logger for this run
+        metrics_logger = create_metrics_logger(args, run_id=run)
+        logger.info(f'Metrics will be saved to: {metrics_logger.metrics_dir}')
 
         # --- MODIFICATION START ---
         # create time encoder using the factory
@@ -137,7 +184,8 @@ if __name__ == "__main__":
                 num_layers=args.num_layers,
                 num_heads=args.num_heads,
                 dropout=args.dropout,
-                device=args.device
+                device=args.device,
+                sort_neighbors_by_time=args.sort_neighbors_by_time  # Enable for Mamba-based encoders
             )
         elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # four floats that represent the mean and standard deviation of source and destination node time shifts in the training data, which is used for JODIE
@@ -188,7 +236,12 @@ if __name__ == "__main__":
 
         model = convert_to_gpu(model, device=args.device)
 
-        save_model_folder = f"./saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}"
+        # Use ablation_dir if provided, otherwise default to ./saved_models
+        if hasattr(args, 'ablation_dir') and args.ablation_dir:
+            save_model_folder = f"{args.ablation_dir}/saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}"
+        else:
+            save_model_folder = f"./saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}"
+        
         shutil.rmtree(save_model_folder, ignore_errors=True)
         os.makedirs(save_model_folder, exist_ok=True)
 
@@ -209,6 +262,9 @@ if __name__ == "__main__":
 
             # store train losses and metrics
             train_losses, train_metrics = [], []
+            print("batch size: ", args.batch_size)
+            print("num batches: ", len(train_idx_data_loader))
+            print("num training interactions: ", len(train_data.src_node_ids))
             train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, dynamic_ncols=True, leave=False)
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
 
@@ -329,7 +385,11 @@ if __name__ == "__main__":
                 loss.backward()
                 optimizer.step()
                 
-                train_idx_data_loader_tqdm.set_description(f'Epoch: {epoch + 1}, train for the {batch_idx + 1}-th batch, train loss: {loss.item()}')
+                 # Update progress bar less frequently to avoid conflicts
+                if batch_idx % 5 == 0 or batch_idx == len(train_idx_data_loader_tqdm) - 1:
+                    train_idx_data_loader_tqdm.set_description(
+                        f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader_tqdm)}, Loss: {loss.item():.4f}'
+                    )
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
@@ -386,6 +446,35 @@ if __name__ == "__main__":
             for metric_name in new_node_val_metrics[0].keys():
                 logger.info(f'new node validate {metric_name}, {np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics]):.4f}')
 
+            # ===== LOG METRICS TO CSV =====
+            # Log training metrics
+            train_metrics_avg = {k: np.mean([m[k] for m in train_metrics]) for k in train_metrics[0].keys()}
+            metrics_logger.log_epoch_metrics(
+                epoch=epoch + 1,
+                phase='train',
+                metrics=train_metrics_avg,
+                loss=np.mean(train_losses)
+            )
+            
+            # Log validation metrics
+            val_metrics_avg = {k: np.mean([m[k] for m in val_metrics]) for k in val_metrics[0].keys()}
+            metrics_logger.log_epoch_metrics(
+                epoch=epoch + 1,
+                phase='val',
+                metrics=val_metrics_avg,
+                loss=np.mean(val_losses)
+            )
+            
+            # Log new node validation metrics
+            new_node_val_metrics_avg = {k: np.mean([m[k] for m in new_node_val_metrics]) for k in new_node_val_metrics[0].keys()}
+            metrics_logger.log_epoch_metrics(
+                epoch=epoch + 1,
+                phase='new_node_val',
+                metrics=new_node_val_metrics_avg,
+                loss=np.mean(new_node_val_losses)
+            )
+            # ===== END METRICS LOGGING =====
+
             # perform testing once after test_interval_epochs
             if (epoch + 1) % args.test_interval_epochs == 0:
                 test_losses, test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
@@ -430,6 +519,26 @@ if __name__ == "__main__":
                 logger.info(f'new node test loss: {np.mean(new_node_test_losses):.4f}')
                 for metric_name in new_node_test_metrics[0].keys():
                     logger.info(f'new node test {metric_name}, {np.mean([new_node_test_metric[metric_name] for new_node_test_metric in new_node_test_metrics]):.4f}')
+
+                # ===== LOG TEST METRICS TO CSV EVERY test_interval_epochs =====
+                # Log test metrics (periodic during training)
+                test_metrics_avg = {k: np.mean([m[k] for m in test_metrics]) for k in test_metrics[0].keys()}
+                metrics_logger.log_epoch_metrics(
+                    epoch=epoch + 1,
+                    phase='test_periodic',
+                    metrics=test_metrics_avg,
+                    loss=np.mean(test_losses)
+                )
+                
+                # Log new node test metrics (periodic during training)
+                new_node_test_metrics_avg = {k: np.mean([m[k] for m in new_node_test_metrics]) for k in new_node_test_metrics[0].keys()}
+                metrics_logger.log_epoch_metrics(
+                    epoch=epoch + 1,
+                    phase='new_node_test_periodic',
+                    metrics=new_node_test_metrics_avg,
+                    loss=np.mean(new_node_test_losses)
+                )
+                # ===== END TEST METRICS LOGGING =====
 
             # select the best model based on all the validate metrics
             val_metric_indicator = []
@@ -523,6 +632,29 @@ if __name__ == "__main__":
             logger.info(f'new node test {metric_name}, {average_new_node_test_metric:.4f}')
             new_node_test_metric_dict[metric_name] = average_new_node_test_metric
 
+        # ===== LOG FINAL TEST METRICS =====
+        test_metrics_avg = {k: np.mean([m[k] for m in test_metrics]) for k in test_metrics[0].keys()}
+        metrics_logger.log_epoch_metrics(
+            epoch=args.num_epochs,
+            phase='test',
+            metrics=test_metrics_avg,
+            loss=np.mean(test_losses)
+        )
+        
+        # Log final new node test metrics
+        new_node_test_metrics_avg = {k: np.mean([m[k] for m in new_node_test_metrics]) for k in new_node_test_metrics[0].keys()}
+        metrics_logger.log_epoch_metrics(
+            epoch=args.num_epochs,
+            phase='new_node_test',
+            metrics=new_node_test_metrics_avg,
+            loss=np.mean(new_node_test_losses)
+        )
+        
+        # Save summary of all metrics
+        metrics_logger.save_summary()
+        logger.info(f'✅ Metrics saved to: {metrics_logger.metrics_dir}')
+        # ===== END TEST METRICS LOGGING =====
+
         single_run_time = time.time() - run_start_time
         logger.info(f'Run {run + 1} cost {single_run_time:.2f} seconds.')
 
@@ -556,7 +688,12 @@ if __name__ == "__main__":
         result_json = json.dumps(result_json, indent=4)
 
 
-        save_result_folder = f"./saved_results/{args.model_name}/{args.dataset_name}"
+        # Use ablation_dir if provided, otherwise default to ./saved_results
+        if hasattr(args, 'ablation_dir') and args.ablation_dir:
+            save_result_folder = f"{args.ablation_dir}/saved_results/{args.model_name}/{args.dataset_name}"
+        else:
+            save_result_folder = f"./saved_results/{args.model_name}/{args.dataset_name}"
+        
         os.makedirs(save_result_folder, exist_ok=True)
 
         timestamp = str(time.time())

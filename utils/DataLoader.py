@@ -68,15 +68,21 @@ class Data:
         for i, time_id in enumerate(sorted(self.uni_time_ids)):
             self.time_to_int_map[time_id] = i+1
 
-def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float):
+def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, seed: int = 42, data_ratio: float = 1.0):
     """
     generate data for link prediction task (inductive & transductive settings)
     :param dataset_name: str, dataset name
-    :param val_ratio: float, validation data ratio
-    :param test_ratio: float, test data ratio
+    :param val_ratio: float, validation data ratio (applied to subsampled data)
+    :param test_ratio: float, test data ratio (applied to subsampled data)
+    :param seed: int, random seed for reproducible splits (default: 42)
+    :param data_ratio: float, ratio of full data to use BEFORE splitting (default: 1.0 = 100%)
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data, (Data object)
     """
+    # Set random seed for reproducible splits
+    np.random.seed(seed)
+    random.seed(seed)
+    
     # Load data and train val test split
     graph_df = pd.read_csv('./processed_data/{}/ml_{}.csv'.format(dataset_name, dataset_name))
     edge_raw_features = np.load('./processed_data/{}/ml_{}.npy'.format(dataset_name, dataset_name))
@@ -95,19 +101,29 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
 
     assert NODE_FEAT_DIM == node_raw_features.shape[1] and EDGE_FEAT_DIM == edge_raw_features.shape[1], 'Unaligned feature dimensions after feature padding!'
 
-    # get the timestamp of validate and test set
-    val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
-
+    # ✅ NEW: Apply data_ratio BEFORE splitting (if specified)
+    if data_ratio < 1.0:
+        print(f"\n🔄 Applying data_ratio={data_ratio} BEFORE splitting")
+        print(f"   Original data size: {len(graph_df):,} interactions")
+        
+        # Subsample while maintaining temporal order (take first N%)
+        subset_size = int(len(graph_df) * data_ratio)
+        graph_df = graph_df.iloc[:subset_size]
+        
+        print(f"   Subsampled data size: {subset_size:,} interactions ({data_ratio*100:.1f}%)")
+        print(f"   📌 Using seed={seed} for reproducible subsampling")
+    
+    # Extract data from (potentially subsampled) dataframe
     src_node_ids = graph_df.u.values.astype(np.longlong)
     dst_node_ids = graph_df.i.values.astype(np.longlong)
     node_interact_times = graph_df.ts.values.astype(np.float64)
     edge_ids = graph_df.idx.values.astype(np.longlong)
     labels = graph_df.label.values
 
-    full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
+    # get the timestamp of validate and test set (now based on subsampled data)
+    val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
 
-    # the setting of seed follows previous works
-    random.seed(2020)
+    full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
 
     # union to get node set
     node_set = set(src_node_ids) | set(dst_node_ids)

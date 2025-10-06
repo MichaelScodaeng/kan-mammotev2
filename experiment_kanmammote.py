@@ -60,8 +60,8 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TGAT', 'JODIE', 'TGN',  'GraphMixer', 'DyGFormer', 'DyGMamba','TCL'] #'CAWN','DyRep',
-datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']
+models = ['TGAT'] #'CAWN','DyRep', , 'JODIE', 'TGN',  'GraphMixer', 'DyGFormer', 'DyGMamba','TCL'
+datasets = ['wikipedia'] #, 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'
 time_encoders = ['kan_mammote'] #'original', 
 
 def parse_arguments():
@@ -311,7 +311,7 @@ def get_time_encoder_args(time_encoder):
     """Get specific arguments for different time encoders"""
     if time_encoder == 'kan_mammote':
         return [
-            '--expert_dim', '64',
+            '--expert_dim', '128',
             '--num_mixtures', '16'
         ]
     elif time_encoder == 'lete':

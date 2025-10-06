@@ -20,4 +20,4 @@ source ~/.bashrc
 conda activate kan_mammote
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_time2vec.py --single_encoder "time2vec" > experiment_time2vec_s_01.log 2>&1
+python experiment_time2vec.py --single_encoder "time2vec" --num_epochs 1000 > experiment_time2vec_s_01.log 2>&1

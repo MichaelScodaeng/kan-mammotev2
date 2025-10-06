@@ -34,8 +34,15 @@ if __name__ == "__main__":
     args = get_link_prediction_args(is_evaluation=True)
 
     # get data for training, validation and testing
+    # ✅ Use same seed as training for consistent data splits
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = \
-        get_link_prediction_data(dataset_name=args.dataset_name, val_ratio=args.val_ratio, test_ratio=args.test_ratio)
+        get_link_prediction_data(
+            dataset_name=args.dataset_name, 
+            val_ratio=args.val_ratio, 
+            test_ratio=args.test_ratio,
+            seed=args.seed,  # ✅ Same seed as training
+            data_ratio=args.data_ratio  # ✅ Same data_ratio as training
+        )
 
     # initialize validation and test neighbor sampler to retrieve temporal graph
     full_neighbor_sampler = get_neighbor_sampler(data=full_data, sample_neighbor_strategy=args.sample_neighbor_strategy,

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import sys
+import inspect
 # Import all encoder classes that will be used
 from .kan_mammote import KAN_MAMMOTE
 from .kan_mammote_lite import KAN_MAMMOTE_Lite
@@ -26,6 +27,15 @@ try:
     from .time2vec_encoder import Time2VecEncoder
 except ImportError:
     Time2VecEncoder = None
+
+# Import ablation study encoders
+try:
+    from .ablation_encoders import SMKernelOnly, KMOTEAbsOnly, KMOTERelOnly, DualStreamBaseline
+except ImportError:
+    SMKernelOnly = None
+    KMOTEAbsOnly = None
+    KMOTERelOnly = None
+    DualStreamBaseline = None
 
 class TimeEncoderWrapper(torch.nn.Module):
     """
@@ -143,6 +153,14 @@ def get_available_encoders():
         encoders.append('bochner')
     if Time2VecEncoder is not None:
         encoders.append('time2vec')
+    
+    # Add ablation study encoders (always available since they're local)
+    encoders.extend([
+        'sm_kernel_only',
+        'kmote_abs_only',
+        'kmote_rel_only',
+        'dual_stream_baseline'
+    ])
     
     return encoders
 
@@ -345,31 +363,154 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         
     elif encoder_type == 'mercer' and MercerTimeEncoder is not None:
         print("INFO: Creating Mercer Time Encoder.")
+        print("Time Embedding dim:", time_dim)
         encoder = MercerTimeEncoder(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
     elif encoder_type == 'lete' and LeTE is not None:
         print("INFO: Creating LeTE Time Encoder.")
+        print("Time Embedding dim:", time_dim)
         encoder = LeTE(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
     elif encoder_type == 'bochner' and BochnerTimeEncoder is not None:
         print("INFO: Creating Bochner Time Encoder.")
+        print("Time Embedding dim:", time_dim)
         encoder = BochnerTimeEncoder(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
     elif encoder_type == 'time2vec' and Time2VecEncoder is not None:
         print("INFO: Creating Time2Vec Time Encoder.")
+        print("Time Embedding dim:", time_dim)
         encoder = Time2VecEncoder(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
+    elif encoder_type == 'sm_kernel_only':
+        print("INFO: Creating SM-Kernel Only encoder (ablation study).")
+        print("Time Embedding dim:", time_dim)
+        
+        # Get parameters
+        if args is not None:
+            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
+        else:
+            num_mixtures = kwargs.get('num_mixtures', 12)
+            
+        time_encoder = SMKernelOnly(
+            embedding_dim=time_dim,
+            num_mixtures=num_mixtures
+        )
+        
+        # Initialize SM-Kernel if training data is available
+        if train_data is not None and train_neighbor_sampler is not None:
+            try:
+                print("INFO: Initializing SM-Kernel for ablation study...")
+                batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
+                num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
+                
+                sample_batch_indices = np.arange(min(batch_size, len(train_data.src_node_ids)))
+                sample_src = train_data.src_node_ids[sample_batch_indices]
+                sample_ts = train_data.node_interact_times[sample_batch_indices]
+                
+                _, _, sample_neighbor_ts = train_neighbor_sampler.get_historical_neighbors(
+                    sample_src, sample_ts, num_neighbors
+                )
+                
+                sample_delta_t = sample_ts[:, np.newaxis] - sample_neighbor_ts
+                
+                if sample_delta_t.size > 0:
+                    sample_delta_t_tensor = torch.from_numpy(sample_delta_t).float().unsqueeze(-1)
+                    time_encoder.initialize_sm_kernel(sample_delta_t_tensor.to(device))
+                    print("INFO: SM-Kernel initialization complete for ablation!")
+                else:
+                    print("WARNING: Could not generate SM-Kernel sample for ablation. Using defaults.")
+            except Exception as e:
+                print(f"WARNING: SM-Kernel initialization failed for ablation: {e}")
+        else:
+            print("INFO: No training data provided. SM-Kernel will use default initialization.")
+    
+    elif encoder_type == 'kmote_abs_only':
+        print("INFO: Creating K-MOTE Absolute Only encoder (ablation study).")
+        print("Time Embedding dim:", time_dim)
+        
+        # Get K-MOTE parameters
+        if args is not None:
+            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
+        else:
+            wavelet_type = kwargs.get('wavelet_type', 'shock')
+            
+        time_encoder = KMOTEAbsOnly(
+            embedding_dim=time_dim,
+            wavelet_type=wavelet_type
+        )
+    
+    elif encoder_type == 'kmote_rel_only':
+        print("INFO: Creating K-MOTE Relative Only encoder (ablation study).")
+        print("Time Embedding dim:", time_dim)
+        
+        # Get K-MOTE parameters
+        if args is not None:
+            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
+        else:
+            wavelet_type = kwargs.get('wavelet_type', 'shock')
+            
+        time_encoder = KMOTERelOnly(
+            embedding_dim=time_dim,
+            wavelet_type=wavelet_type
+        )
+    
+    elif encoder_type == 'dual_stream_baseline':
+        print("INFO: Creating Dual Stream Baseline encoder (ablation study).")
+        print("Time Embedding dim:", time_dim)
+        
+        # Get parameters
+        if args is not None:
+            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
+            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
+        else:
+            num_mixtures = kwargs.get('num_mixtures', 4)
+            wavelet_type = kwargs.get('wavelet_type', 'shock')
+            
+        time_encoder = DualStreamBaseline(
+            embedding_dim=time_dim,
+            num_mixtures=num_mixtures,
+            wavelet_type=wavelet_type
+        )
+        
+        # Initialize SM-Kernel if training data is available
+        if train_data is not None and train_neighbor_sampler is not None:
+            try:
+                print("INFO: Initializing SM-Kernel for dual stream baseline...")
+                batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
+                num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
+                
+                sample_batch_indices = np.arange(min(batch_size, len(train_data.src_node_ids)))
+                sample_src = train_data.src_node_ids[sample_batch_indices]
+                sample_ts = train_data.node_interact_times[sample_batch_indices]
+                
+                _, _, sample_neighbor_ts = train_neighbor_sampler.get_historical_neighbors(
+                    sample_src, sample_ts, num_neighbors
+                )
+                
+                sample_delta_t = sample_ts[:, np.newaxis] - sample_neighbor_ts
+                
+                if sample_delta_t.size > 0:
+                    sample_delta_t_tensor = torch.from_numpy(sample_delta_t).float().unsqueeze(-1)
+                    time_encoder.initialize_sm_kernel(sample_delta_t_tensor.to(device))
+                    print("INFO: SM-Kernel initialization complete for dual stream baseline!")
+                else:
+                    print("WARNING: Could not generate SM-Kernel sample for dual stream baseline.")
+            except Exception as e:
+                print(f"WARNING: SM-Kernel initialization failed for dual stream baseline: {e}")
+    
     elif encoder_type in ['original', 'time_encoder', 'default']:
         print("INFO: Creating original TimeEncoder (wrapped for compatibility).")
+        print("Time Embedding dim:", time_dim)
         encoder = OriginalTimeEncoder(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
     else:
         print(f"WARNING: Unknown encoder type '{encoder_type}' or encoder not available. Using default TimeEncoder.")
+        print("Time Embedding dim:", time_dim)
         encoder = OriginalTimeEncoder(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
