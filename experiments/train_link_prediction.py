@@ -233,7 +233,7 @@ if __name__ == "__main__":
             if isinstance(actual_encoder, (KAN_MAMMOTE, KAN_MAMMOTE_Lite)):
                 logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
                 actual_encoder.warmup(device=args.device, num_iterations=3)
-        elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_lite']:
+        elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite']:
             # Direct usage without wrapper (for other models)
             if hasattr(time_encoder, 'warmup'):
                 logger.info(f"Warming up time encoder...")

@@ -63,11 +63,7 @@ def create_experiment_config():
             'time_encoder': 'lete',
             'save_suffix': 'lete'
         },
-        'bochner': {
-            'description': 'Bochner encoder (Gaussian Fourier features)',
-            'time_encoder': 'bochner',
-            'save_suffix': 'bochner'
-        },
+        
         'mercer': {
             'description': 'Mercer encoder (harmonic eigenfunction expansion)',
             'time_encoder': 'mercer',
@@ -79,11 +75,15 @@ def create_experiment_config():
             'save_suffix': 'original'
         },
         
-        
         'kan_mammote_full': {
             'description': 'Full KAN-MAMMOTE for reference',
             'time_encoder': 'kan_mammote',
             'save_suffix': 'kan_mammote_full'
+        },
+        'kan_mammote_dual_kmote': {
+            'description': 'KAN-MAMMOTE with dual K-MOTE streams (abs + rel) + Mamba',
+            'time_encoder': 'kan_mammote_dual_kmote',
+            'save_suffix': 'kan_mammote_dual_kmote'
         },
         
     }
@@ -113,6 +113,11 @@ def create_experiment_config():
             'description': 'KAN-MAMMOTE Lite (production-ready without Mamba)',
             'time_encoder': 'kan_mammote_lite',
             'save_suffix': 'kan_mammote_lite'
+        },
+        'bochner': {
+            'description': 'Bochner encoder (Gaussian Fourier features)',
+            'time_encoder': 'bochner',
+            'save_suffix': 'bochner'
         },
     """
     return ablation_configs
@@ -334,7 +339,7 @@ def main():
     parser.add_argument('--encoders', nargs='+', 
                         choices=['sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
                                 'dual_stream_baseline', 'kan_mammote_lite', 'lete', 'kan_mammote_full',
-                                'bochner', 'mercer', 'original'],
+                                'bochner', 'mercer', 'original',"kan_mammote_dual_kmote"],
                         help='Specific encoders to test (default: all)')
     parser.add_argument('--timeout', type=int, default=3600,
                         help='Timeout per experiment in seconds (default: 1 hour)')
