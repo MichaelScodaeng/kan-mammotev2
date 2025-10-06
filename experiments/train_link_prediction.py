@@ -236,6 +236,21 @@ if __name__ == "__main__":
 
         model = convert_to_gpu(model, device=args.device)
 
+        # ===== WARM UP KAN-MAMMOTE (if applicable) =====
+        # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
+        if args.model_name == 'TGAT' and hasattr(time_encoder, 'encoder'):
+            # Unwrap the TimeEncoderWrapper to access the actual encoder
+            actual_encoder = time_encoder.encoder
+            if isinstance(actual_encoder, (KAN_MAMMOTE, KAN_MAMMOTE_Lite)):
+                logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
+                actual_encoder.warmup(device=args.device, num_iterations=3)
+        elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_lite']:
+            # Direct usage without wrapper (for other models)
+            if hasattr(time_encoder, 'warmup'):
+                logger.info(f"Warming up time encoder...")
+                time_encoder.warmup(device=args.device, num_iterations=3)
+        # ===== END WARM UP =====
+
         # Use ablation_dir if provided, otherwise default to ./saved_models
         if hasattr(args, 'ablation_dir') and args.ablation_dir:
             save_model_folder = f"{args.ablation_dir}/saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}"

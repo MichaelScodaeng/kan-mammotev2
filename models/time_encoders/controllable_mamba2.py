@@ -53,7 +53,8 @@ class ControllableMamba2(Mamba2):
         # --- END OF FiLM MODIFICATION ---
         
         
-        zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1).contiguous()
+        #zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1).contiguous()
+        zxbcdt_modified = torch.cat([z0, x0, z, xBC, dt_fused], dim=-1)
 
         A = -torch.exp(self.A_log.float())
         dt_limit_kwargs = {} if self.dt_limit == (0.0, float("inf")) else dict(dt_limit=self.dt_limit)
@@ -93,7 +94,8 @@ class ControllableMamba2(Mamba2):
         """ Overrides the step function for autoregressive inference. """
         dtype = hidden_states.dtype
         assert hidden_states.shape[1] == 1
-        zxbcdt = self.in_proj(hidden_states.squeeze(1)).contiguous()
+        #zxbcdt = self.in_proj(hidden_states.squeeze(1)).contiguous()
+        zxbcdt = self.in_proj(hidden_states.squeeze(1))
         d_mlp = (zxbcdt.shape[-1] - 2 * self.d_ssm - 2 * self.ngroups * self.d_state - self.nheads) // 2
         z0, x0, z, xBC, dt_content = torch.split(
             zxbcdt,
@@ -108,10 +110,14 @@ class ControllableMamba2(Mamba2):
         dt_fused = gamma.squeeze(1) * dt_content + beta.squeeze(1)
         # --- END OF FiLM MODIFICATION (for step) ---
 
+        '''xBC = causal_conv1d_update(
+            xBC, conv_state, rearrange(self.conv1d.weight, "d 1 w -> d w"),
+            self.conv1d.bias, self.activation,
+        ).contiguous()'''
         xBC = causal_conv1d_update(
             xBC, conv_state, rearrange(self.conv1d.weight, "d 1 w -> d w"),
             self.conv1d.bias, self.activation,
-        ).contiguous()
+        )
         x, B, C = torch.split(xBC, [self.d_ssm, self.ngroups * self.d_state, self.ngroups * self.d_state], dim=-1)
         A = -torch.exp(self.A_log.float())
         A_reshaped = repeat(A, "h -> h p n", p=self.headdim, n=self.d_state).to(dtype=torch.float32)
