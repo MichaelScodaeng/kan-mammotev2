@@ -150,31 +150,20 @@ if __name__ == "__main__":
         logger.info(f'Metrics will be saved to: {metrics_logger.metrics_dir}')
 
         # --- MODIFICATION START ---
-        # create time encoder using the factory
-        # This now correctly passes the specific args for KAN-MAMMOTE
+        # create time encoder using the factory - this will be used by ALL models now
         time_encoder = create_time_encoder(
             encoder_type=args.time_encoder_type,
             time_dim=args.time_feat_dim,
-            device=args.device,
-            # These are passed into **kwargs for the factory
-            expert_dim=args.expert_dim, 
-            num_mixtures=args.num_mixtures
+            train_data=train_data,
+            train_neighbor_sampler=train_neighbor_sampler,
+            args=args,  # Pass args here - factory will extract needed parameters
+            device=args.device
         )
         logger.info(f'time encoder type: {args.time_encoder_type}')
+        logger.info(f'Time encoder will be injected into {args.model_name} model')
 
         if args.model_name == 'TGAT':
-        
-            # Use the factory to create the correct time encoder
-            time_encoder = create_time_encoder(
-                encoder_type=args.time_encoder_type,
-                time_dim=args.time_feat_dim,
-                train_data=train_data,
-                train_neighbor_sampler=train_neighbor_sampler,
-                args=args,  # Pass args here - factory will extract needed parameters
-                device=args.device
-            )
-
-            # Inject the created encoder into the single, flexible TGAT backbone
+            # Inject the created encoder into TGAT backbone
             dynamic_backbone = TGAT(
                 node_raw_features=node_raw_features, 
                 edge_raw_features=edge_raw_features, 
@@ -198,26 +187,26 @@ if __name__ == "__main__":
         elif args.model_name == 'CAWN':
             dynamic_backbone = CAWN(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                     time_feat_dim=args.time_feat_dim, position_feat_dim=args.position_feat_dim, walk_length=args.walk_length,
-                                    num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device)
+                                    num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
         elif args.model_name == 'TCL':
             dynamic_backbone = TCL(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                    time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
-                                   num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device)
+                                   num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
         elif args.model_name == 'GraphMixer':
             dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                          time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+                                          time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
 
         elif args.model_name == 'DyGMamba':
             dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,gamma=args.gamma,
-                                         max_input_sequence_length=args.max_input_sequence_length, max_interaction_times=args.max_interaction_times,device=args.device)
+                                         max_input_sequence_length=args.max_input_sequence_length, max_interaction_times=args.max_interaction_times,device=args.device, time_encoder=time_encoder)
 
         elif args.model_name == 'DyGFormer':
             dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device, time_encoder=time_encoder)
         else:
             raise ValueError(f"Wrong value for model_name {args.model_name}!")
 

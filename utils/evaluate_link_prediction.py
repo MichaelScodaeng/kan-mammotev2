@@ -19,6 +19,7 @@ from models.gnn_backbones.DyGFormer import DyGFormer
 from models.gnn_backbones.DyGMamba import DyGMamba
 
 from models.gnn_backbones.modules import MergeLayer, MergeLayerTD
+from models.time_encoders.factory import create_time_encoder
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes
 from utils.utils import get_neighbor_sampler, NegativeEdgeSampler
 from experiments.evaluate_models_utils import evaluate_model_link_prediction
@@ -113,10 +114,21 @@ if __name__ == "__main__":
 
             logger.info(f'configuration is {args}')
 
+            # create time encoder using the factory (needed for consistent model loading)
+            time_encoder = create_time_encoder(
+                encoder_type=args.time_encoder_type,
+                time_dim=args.time_feat_dim,
+                train_data=train_data,
+                train_neighbor_sampler=None,  # Not needed for evaluation
+                args=args,
+                device=args.device
+            )
+            logger.info(f'time encoder type: {args.time_encoder_type}')
+
             # create model
             if args.model_name == 'TGAT':
                 dynamic_backbone = TGAT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
-                                        time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device)
+                                        time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
             elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # four floats that represent the mean and standard deviation of source and destination node time shifts in the training data, which is used for JODIE
                 src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \
@@ -128,14 +140,14 @@ if __name__ == "__main__":
             elif args.model_name == 'CAWN':
                 dynamic_backbone = CAWN(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                         time_feat_dim=args.time_feat_dim, position_feat_dim=args.position_feat_dim, walk_length=args.walk_length,
-                                        num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device)
+                                        num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
             elif args.model_name == 'TCL':
                 dynamic_backbone = TCL(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                        time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
-                                       num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device)
+                                       num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
             elif args.model_name == 'GraphMixer':
                 dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
-                                              time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+                                              time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
 
             elif args.model_name == 'DyGMamba':
                 dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features,
@@ -148,12 +160,12 @@ if __name__ == "__main__":
                                               gamma=args.gamma,
                                               max_input_sequence_length=args.max_input_sequence_length,
                                               max_interaction_times=args.max_interaction_times,
-                                              device=args.device)
+                                              device=args.device, time_encoder=time_encoder)
             elif args.model_name == 'DyGFormer':
                 dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                              time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                              num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device, time_encoder=time_encoder)
             else:
                 raise ValueError(f"Wrong value for model_name {args.model_name}!")
 

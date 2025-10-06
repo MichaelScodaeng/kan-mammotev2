@@ -12,7 +12,7 @@ class DyGMamba(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, channel_embedding_dim: int, patch_size: int = 1, num_layers: int = 2, num_heads: int = 2,
-                 dropout: float = 0.1,gamma: float = 0.5, max_input_sequence_length: int = 512, max_interaction_times: int = 10, device: str = 'cpu'):
+                 dropout: float = 0.1,gamma: float = 0.5, max_input_sequence_length: int = 512, max_interaction_times: int = 10, device: str = 'cpu', time_encoder: nn.Module = None):
         """
         DyGMamba model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -28,6 +28,7 @@ class DyGMamba(nn.Module):
         :param max_input_sequence_length: int, maximal length of the input sequence for each node
         :param max_interaction_times: int, maximal interactions for src and dst to consider
         :param device: str, device
+        :param time_encoder: nn.Module, optional custom time encoder (if None, uses default TimeEncoder)
         """
         super(DyGMamba, self).__init__()
 
@@ -48,8 +49,13 @@ class DyGMamba(nn.Module):
         self.max_interaction_times = max_interaction_times
         self.device = device
 
-
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+        # Use provided time encoder or create default one
+        if time_encoder is not None:
+            self.time_encoder = time_encoder
+            print(f"DyGMamba: Using custom time encoder: {type(time_encoder).__name__}")
+        else:
+            self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+            print(f"DyGMamba: Using default TimeEncoder")
 
         self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim
         self.neighbor_co_occurrence_encoder = NIFEncoder(nif_feat_dim=self.neighbor_co_occurrence_feat_dim, device=self.device)

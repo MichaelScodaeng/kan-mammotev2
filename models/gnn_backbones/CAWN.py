@@ -10,7 +10,7 @@ from utils.utils import NeighborSampler
 class CAWN(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
-                 time_feat_dim: int, position_feat_dim: int, walk_length: int = 2, num_walk_heads: int = 8, dropout: float = 0.1, device: str = 'cpu'):
+                 time_feat_dim: int, position_feat_dim: int, walk_length: int = 2, num_walk_heads: int = 8, dropout: float = 0.1, device: str = 'cpu', time_encoder: nn.Module = None):
         """
         Causal anonymous walks network.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -22,6 +22,7 @@ class CAWN(nn.Module):
         :param num_walk_heads: int, number of attention heads to aggregate random walks
         :param dropout: float, dropout rate
         :param device: str, device
+        :param time_encoder: nn.Module, optional custom time encoder (if None, uses default TimeEncoder)
         """
         super(CAWN, self).__init__()
 
@@ -38,7 +39,13 @@ class CAWN(nn.Module):
         self.dropout = dropout
         self.device = device
 
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+        # Use provided time encoder or create default one
+        if time_encoder is not None:
+            self.time_encoder = time_encoder
+            print(f"CAWN: Using custom time encoder: {type(time_encoder).__name__}")
+        else:
+            self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+            print(f"CAWN: Using default TimeEncoder")
 
         self.position_encoder = PositionEncoder(position_feat_dim=self.position_feat_dim, walk_length=self.walk_length, device=device)
 

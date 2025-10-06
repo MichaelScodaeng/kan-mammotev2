@@ -138,6 +138,7 @@ def get_available_encoders():
     """
     encoders = [
         'kan_mammote',
+        'kan_mammote_dual_kmote',  # NEW: Dual K-MOTE variant
         'kan_mammote_lite',
         'original',
         'time_encoder',
@@ -177,9 +178,22 @@ def get_encoder_config(encoder_type: str):
                 'mamba_d_state': 16,
                 'mamba_d_conv': 4, 
                 'mamba_expand': 2,
-                'mamba_headdim': 64
+                'mamba_headdim': 64,
+                'use_kmote_for_relative': False
             },
-            'description': 'KAN-MAMMOTE: Advanced time encoder with Mamba2 and spectral kernels'
+            'description': 'KAN-MAMMOTE: Advanced time encoder with Mamba2 and SM-kernel for relative time'
+        },
+        'kan_mammote_dual_kmote': {
+            'required_params': ['embedding_dim', 'expert_dim'],
+            'optional_params': {
+                'mamba_d_state': 16,
+                'mamba_d_conv': 4, 
+                'mamba_expand': 2,
+                'mamba_headdim': 64,
+                'use_kmote_for_relative': True,
+                'num_mixtures': 16  # Still needed for fusion architecture
+            },
+            'description': 'KAN-MAMMOTE Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding'
         },
         'kan_mammote_lite': {
             'required_params': ['embedding_dim', 'num_mixtures'],
@@ -253,6 +267,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
             batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
             num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
+            # NEW: Support for dual K-MOTE mode
+            use_kmote_for_relative = getattr(args, 'use_kmote_for_relative', kwargs.get('use_kmote_for_relative', False))
         else:
             # Get from kwargs or use defaults
             print("INFO: Extracting KAN-MAMMOTE parameters from kwargs or using defaults.")
@@ -264,6 +280,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_headdim = kwargs.get('mamba_headdim', 64)
             batch_size = kwargs.get('batch_size', 200)
             num_neighbors = kwargs.get('num_neighbors', 20)
+            # NEW: Support for dual K-MOTE mode
+            use_kmote_for_relative = kwargs.get('use_kmote_for_relative', False)
         
         print(f"KAN-MAMMOTE parameters:")
         print(f"  - embedding_dim: {time_dim}")
@@ -272,6 +290,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         print(f"  - mamba_d_state: {mamba_d_state}")
         print(f"  - mamba_d_conv: {mamba_d_conv}")
         print(f"  - mamba_expand: {mamba_expand}")
+        print(f"  - use_kmote_for_relative: {use_kmote_for_relative}")
         
         time_encoder = KAN_MAMMOTE(
             embedding_dim=time_dim,
@@ -279,7 +298,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             num_mixtures=num_mixtures,
             mamba_d_state=mamba_d_state,
             mamba_d_conv=mamba_d_conv,
-            mamba_expand=mamba_expand
+            mamba_expand=mamba_expand,
+            use_kmote_for_relative=use_kmote_for_relative
         )
         
         # SM-Kernel Initialization (if data is provided)
@@ -308,6 +328,49 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
                 print(f"WARNING: SM-Kernel initialization failed: {e}. Using default initialization.")
         else:
             print("INFO: No training data provided. SM-Kernel will use default initialization.")
+    
+    elif encoder_type == 'kan_mammote_dual_kmote':
+        print("INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).")
+        
+        # Handle args gracefully - try args first, then kwargs, then defaults
+        if args is not None:
+            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.")
+            expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 128))
+            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
+            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
+            mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))
+            mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
+            mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
+        else:
+            # Get from kwargs or use defaults
+            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from kwargs or using defaults.")
+            expert_dim = kwargs.get('expert_dim', 64)
+            num_mixtures = kwargs.get('num_mixtures', 4)
+            mamba_d_state = kwargs.get('mamba_d_state', 16)
+            mamba_d_conv = kwargs.get('mamba_d_conv', 4)
+            mamba_expand = kwargs.get('mamba_expand', 2)
+            mamba_headdim = kwargs.get('mamba_headdim', 64)
+        
+        print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
+        print(f"  - embedding_dim: {time_dim}")
+        print(f"  - expert_dim: {expert_dim}")
+        print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
+        print(f"  - mamba_d_state: {mamba_d_state}")
+        print(f"  - mamba_d_conv: {mamba_d_conv}")
+        print(f"  - mamba_expand: {mamba_expand}")
+        print(f"  - use_kmote_for_relative: True (dual K-MOTE mode)")
+        
+        time_encoder = KAN_MAMMOTE(
+            embedding_dim=time_dim,
+            expert_dim=expert_dim,
+            num_mixtures=num_mixtures,
+            mamba_d_state=mamba_d_state,
+            mamba_d_conv=mamba_d_conv,
+            mamba_expand=mamba_expand,
+            use_kmote_for_relative=True  # Force dual K-MOTE mode
+        )
+        
+        print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
     
     elif encoder_type == 'kan_mammote_lite':
         print("INFO: Creating KAN-MAMMOTE Lite time encoder (stateless version).")

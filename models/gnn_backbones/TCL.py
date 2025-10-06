@@ -9,7 +9,7 @@ from utils.utils import NeighborSampler
 class TCL(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
-                 time_feat_dim: int, num_layers: int = 2, num_heads: int = 2, num_depths: int = 20, dropout: float = 0.1, device: str = 'cpu'):
+                 time_feat_dim: int, num_layers: int = 2, num_heads: int = 2, num_depths: int = 20, dropout: float = 0.1, device: str = 'cpu', time_encoder: nn.Module = None):
         """
         TCL model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -21,6 +21,7 @@ class TCL(nn.Module):
         :param num_depths: int, number of depths, identical to the number of sampled neighbors plus 1 (involving the target node)
         :param dropout: float, dropout rate
         :param device: str, device
+        :param time_encoder: nn.Module, optional custom time encoder (if None, uses default TimeEncoder)
         """
         super(TCL, self).__init__()
 
@@ -37,7 +38,14 @@ class TCL(nn.Module):
         self.dropout = dropout
         self.device = device
 
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+        # Use provided time encoder or create default one
+        if time_encoder is not None:
+            self.time_encoder = time_encoder
+            print(f"TCL: Using custom time encoder: {type(time_encoder).__name__}")
+        else:
+            self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+            print(f"TCL: Using default TimeEncoder")
+            
         self.depth_embedding = nn.Embedding(num_embeddings=num_depths, embedding_dim=self.node_feat_dim)
 
         self.projection_layer = nn.ModuleDict({

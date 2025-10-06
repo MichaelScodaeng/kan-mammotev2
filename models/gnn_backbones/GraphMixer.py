@@ -10,7 +10,7 @@ class GraphMixer(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, num_tokens: int, num_layers: int = 2, token_dim_expansion_factor: float = 0.5,
-                 channel_dim_expansion_factor: float = 4.0, dropout: float = 0.1, device: str = 'cpu'):
+                 channel_dim_expansion_factor: float = 4.0, dropout: float = 0.1, device: str = 'cpu', time_encoder: nn.Module = None):
         """
         TCL model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -23,6 +23,7 @@ class GraphMixer(nn.Module):
         :param channel_dim_expansion_factor: float, dimension expansion factor for channels
         :param dropout: float, dropout rate
         :param device: str, device
+        :param time_encoder: nn.Module, optional custom time encoder (if None, uses default TimeEncoder)
         """
         super(GraphMixer, self).__init__()
 
@@ -41,8 +42,15 @@ class GraphMixer(nn.Module):
         self.device = device
 
         self.num_channels = self.edge_feat_dim
-        # in GraphMixer, the time encoding function is not trainable
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim, parameter_requires_grad=False)
+        # Use provided time encoder or create default one
+        if time_encoder is not None:
+            self.time_encoder = time_encoder
+            print(f"GraphMixer: Using custom time encoder: {type(time_encoder).__name__}")
+        else:
+            # in GraphMixer, the time encoding function is not trainable
+            self.time_encoder = TimeEncoder(time_dim=time_feat_dim, parameter_requires_grad=False)
+            print(f"GraphMixer: Using default TimeEncoder (non-trainable)")
+            
         self.projection_layer = nn.Linear(self.edge_feat_dim + time_feat_dim, self.num_channels)
 
         self.mlp_mixers = nn.ModuleList([

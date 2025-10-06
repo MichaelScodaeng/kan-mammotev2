@@ -14,7 +14,8 @@ class KAN_MAMMOTE(nn.Module):
     def __init__(self, embedding_dim: int, expert_dim: int, num_mixtures: int, 
                  mamba_d_state: int = 256, mamba_d_conv: int = 4, mamba_expand: int = 4, 
                  wavelet_type: str = 'shock', mamba_headdim: int = 16, 
-                 use_controllable_mamba: bool = True,  # NEW: Option to use vanilla Mamba2
+                 use_controllable_mamba: bool = True,  # Option to use vanilla Mamba2
+                 use_kmote_for_relative: bool = False,  # NEW: Option to use K-MOTE instead of SM-kernel for relative time
                  **kwargs):
         super().__init__()
         
@@ -23,17 +24,34 @@ class KAN_MAMMOTE(nn.Module):
             raise ValueError(f"expert_dim ({expert_dim}) must be a multiple of 16 for Mamba2 compatibility.")
         if mamba_d_state % 16 != 0:
             raise ValueError(f"mamba_d_state ({mamba_d_state}) must be a multiple of 16 for Mamba2 compatibility.")
-        
+         # ===== NEW: Enforce num_mixtures = expert_dim for fair comparison =====
+        if num_mixtures != expert_dim:
+            print(f"⚠️  WARNING: num_mixtures ({num_mixtures}) != expert_dim ({expert_dim})")
+            print(f"🔧 Setting num_mixtures = expert_dim = {expert_dim} for architectural consistency")
+            num_mixtures = expert_dim
+            
         self.embedding_dim = embedding_dim
         self.wavelet_type = wavelet_type
         self.expert_dim = expert_dim
         self.use_controllable_mamba = use_controllable_mamba
+        self.use_kmote_for_relative = use_kmote_for_relative
         
-        # Enhanced K-MOTE with configurable wavelet type
-        self.k_mote = KMOTE(input_dim=1, output_dim=expert_dim, wavelet_type=wavelet_type)
-        self.sm_kernel = SMKernelLayer(num_mixtures=num_mixtures, input_dim=1)
+        # Enhanced K-MOTE for absolute time with configurable wavelet type
+        self.k_mote_abs = KMOTE(input_dim=1, output_dim=expert_dim, wavelet_type=wavelet_type)
         
-        # ===== NEW: Choose between ControllableMamba2 and vanilla Mamba2 =====
+        # ===== NEW: Choose between SM-kernel and K-MOTE for relative time =====
+        if use_kmote_for_relative:
+            print("🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)")
+            self.k_mote_rel = KMOTE(input_dim=1, output_dim=expert_dim, wavelet_type=wavelet_type)
+            self.sm_kernel = None
+            fusion_input_dim = expert_dim  # K-MOTE outputs expert_dim
+        else:
+            print("🔧 Using SM-Kernel for relative time encoding (default mode)")
+            self.k_mote_rel = None
+            self.sm_kernel = SMKernelLayer(num_mixtures=num_mixtures, input_dim=1)
+            fusion_input_dim = num_mixtures  # SM-kernel outputs num_mixtures
+        
+        # ===== Mamba2 and Fusion Architecture =====
         if use_controllable_mamba:
             print("🔧 Using ControllableMamba2 (with FiLM modulation)")
             self.mamba2 = ControllableMamba2(
@@ -44,9 +62,7 @@ class KAN_MAMMOTE(nn.Module):
                 headdim=mamba_headdim
             )
             
-            # ===== SHARED: Both paths use same fusion architecture =====
-            fusion_input_dim = num_mixtures
-            # Path 1: SM-Kernel → expert_dim (for residual addition to u_k)
+            # Fusion architecture: relative features → expert_dim (for residual addition)
             self.fusion_mlp_base = nn.Sequential(
                 nn.Linear(fusion_input_dim, expert_dim),
                 nn.LayerNorm(expert_dim),
@@ -71,8 +87,7 @@ class KAN_MAMMOTE(nn.Module):
                 headdim=mamba_headdim
             )
             
-            # ===== SAME architecture as ControllableMamba2 base =====
-            fusion_input_dim = num_mixtures
+            # Same fusion architecture as ControllableMamba2 base
             self.fusion_mlp_base = nn.Sequential(
                 nn.Linear(fusion_input_dim, expert_dim),
                 nn.LayerNorm(expert_dim),
@@ -80,7 +95,7 @@ class KAN_MAMMOTE(nn.Module):
                 nn.Linear(expert_dim, expert_dim)
             )
             # No modulator head for vanilla
-        # ===== END NEW =====
+        # ===== END MAMBA ARCHITECTURE =====
         
         print(f"Mamba2 parameters:")
         print(f"  nheads: {self.mamba2.nheads}")
@@ -89,7 +104,7 @@ class KAN_MAMMOTE(nn.Module):
         print(f"  expand: {self.mamba2.expand}")
         print(f"  headdim: {self.mamba2.headdim}")
         print(f"  embedding_dim: {self.embedding_dim}")
-        print(f"  Controllable: {use_controllable_mamba}")
+        print(f"  use_kmote_for_relative: {use_kmote_for_relative}")
 
         print(f"Initialized Enhanced KAN-MAMMOTE Framework with {wavelet_type} wavelet.")
         
@@ -103,8 +118,11 @@ class KAN_MAMMOTE(nn.Module):
             self.output_projection = nn.Identity()
     
     def initialize_sm_kernel(self, delta_t_sample: torch.Tensor):
-        """Passes the initialization call to the SM-Kernel module."""
-        self.sm_kernel.initialize_from_data(delta_t_sample)
+        """Passes the initialization call to the SM-Kernel module (if using SM-kernel mode)."""
+        if self.sm_kernel is not None:
+            self.sm_kernel.initialize_from_data(delta_t_sample)
+        else:
+            print("INFO: Skipping SM-kernel initialization (using dual K-MOTE mode)")
     
     def warmup(self, device='cuda', num_iterations=3):
         """
@@ -155,9 +173,13 @@ class KAN_MAMMOTE(nn.Module):
         
     def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass with FAIR comparison between ControllableMamba2 and vanilla Mamba2.
+        Forward pass with flexible relative time encoding and FAIR comparison between ControllableMamba2 and vanilla Mamba2.
         
-        Both paths now:
+        Two modes supported:
+        1. SM-kernel mode (default): Uses SM-kernel for relative time
+        2. Dual K-MOTE mode: Uses K-MOTE for both absolute and relative time
+        
+        Both modes:
         1. Use the same fusion_mlp_base architecture
         2. Add fusion features to u_k (residual connection)
         3. Pass combined input to Mamba2
@@ -173,14 +195,21 @@ class KAN_MAMMOTE(nn.Module):
         Returns:
             final_embedding: Output embeddings (B, S, embedding_dim)
         """
-        # Get K-MOTE and SM-Kernel outputs
-        u_k = self.k_mote(t_abs)  # (B, S, expert_dim)
-        v_k = self.sm_kernel(t_rel)  # (B, S, num_mixtures)
+        # Get absolute time features using K-MOTE
+        u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
         
-        # ===== SHARED: Fuse SM-Kernel features (same for both paths) =====
+        # ===== Get relative time features based on mode =====
+        if self.use_kmote_for_relative:
+            # Dual K-MOTE mode: Use K-MOTE for relative time
+            v_k = self.k_mote_rel(t_rel)  # (B, S, expert_dim)
+        else:
+            # SM-kernel mode: Use SM-kernel for relative time
+            v_k = self.sm_kernel(t_rel)  # (B, S, num_mixtures)
+        
+        # ===== Fuse relative time features to expert_dim =====
         fusion_features = self.fusion_mlp_base(v_k)  # (B, S, expert_dim)
         
-        # ===== SHARED: Combine with K-MOTE (residual connection) =====
+        # ===== Combine with absolute time features (residual connection) =====
         combined_input = u_k + fusion_features  # (B, S, expert_dim)
         
         if self.use_controllable_mamba:
