@@ -266,7 +266,16 @@ class TimeEncoderClassifier(nn.Module):
                 mamba_d_conv=kwargs.get('mamba_d_conv', 4),
                 mamba_expand= 4 #kwargs.get('mamba_expand', 2)
             )
-            
+        elif encoder_type == 'kan_mammote_dual_kmote':
+            return KAN_MAMMOTE(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', 64),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                mamba_d_state=kwargs.get('mamba_d_state', 16),
+                mamba_d_conv=kwargs.get('mamba_d_conv', 4),
+                mamba_expand= 4, #kwargs.get('mamba_expand', 2)
+                dual_kmote_stream=True
+            )
         else:
             raise ValueError(f"Unknown encoder type: {encoder_type}")
     
@@ -274,7 +283,7 @@ class TimeEncoderClassifier(nn.Module):
         """Check if encoder needs both absolute and relative time"""
         dual_time_encoders = [
             'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
-            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full'
+            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full', 'kan_mammote_dual_kmote'
         ]
         return encoder_type in dual_time_encoders
     
@@ -351,7 +360,7 @@ def get_available_encoders():
     """Get list of available encoders based on imports"""
     # lstm_only is always available (no external dependency)
     encoders = ['lstm_only', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
-                'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full']
+                'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full', 'kan_mammote_dual_kmote']
     
     if LETE_AVAILABLE:
         encoders.append('lete')

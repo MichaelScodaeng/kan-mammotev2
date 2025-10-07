@@ -441,42 +441,48 @@ if __name__ == "__main__":
                 model[0].memory_bank.reload_memory_bank(val_backup_memory_bank)
 
             logger.info(f'Epoch: {epoch + 1}, learning rate: {optimizer.param_groups[0]["lr"]}, train loss: {np.mean(train_losses):.4f}')
-            for metric_name in train_metrics[0].keys():
-                logger.info(f'train {metric_name}, {np.mean([train_metric[metric_name] for train_metric in train_metrics]):.4f}')
+            if len(train_metrics) > 0:
+                for metric_name in train_metrics[0].keys():
+                    logger.info(f'train {metric_name}, {np.mean([train_metric[metric_name] for train_metric in train_metrics]):.4f}')
             logger.info(f'validate loss: {np.mean(val_losses):.4f}')
-            for metric_name in val_metrics[0].keys():
-                logger.info(f'validate {metric_name}, {np.mean([val_metric[metric_name] for val_metric in val_metrics]):.4f}')
+            if len(val_metrics) > 0:
+                for metric_name in val_metrics[0].keys():
+                    logger.info(f'validate {metric_name}, {np.mean([val_metric[metric_name] for val_metric in val_metrics]):.4f}')
             logger.info(f'new node validate loss: {np.mean(new_node_val_losses):.4f}')
-            for metric_name in new_node_val_metrics[0].keys():
-                logger.info(f'new node validate {metric_name}, {np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics]):.4f}')
+            if len(new_node_val_metrics) > 0:
+                for metric_name in new_node_val_metrics[0].keys():
+                    logger.info(f'new node validate {metric_name}, {np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics]):.4f}')
 
             # ===== LOG METRICS TO CSV =====
             # Log training metrics
-            train_metrics_avg = {k: np.mean([m[k] for m in train_metrics]) for k in train_metrics[0].keys()}
-            metrics_logger.log_epoch_metrics(
-                epoch=epoch + 1,
-                phase='train',
-                metrics=train_metrics_avg,
-                loss=np.mean(train_losses)
-            )
+            if len(train_metrics) > 0:
+                train_metrics_avg = {k: np.mean([m[k] for m in train_metrics]) for k in train_metrics[0].keys()}
+                metrics_logger.log_epoch_metrics(
+                    epoch=epoch + 1,
+                    phase='train',
+                    metrics=train_metrics_avg,
+                    loss=np.mean(train_losses)
+                )
             
             # Log validation metrics
-            val_metrics_avg = {k: np.mean([m[k] for m in val_metrics]) for k in val_metrics[0].keys()}
-            metrics_logger.log_epoch_metrics(
-                epoch=epoch + 1,
-                phase='val',
-                metrics=val_metrics_avg,
-                loss=np.mean(val_losses)
-            )
+            if len(val_metrics) > 0:
+                val_metrics_avg = {k: np.mean([m[k] for m in val_metrics]) for k in val_metrics[0].keys()}
+                metrics_logger.log_epoch_metrics(
+                    epoch=epoch + 1,
+                    phase='val',
+                    metrics=val_metrics_avg,
+                    loss=np.mean(val_losses)
+                )
             
             # Log new node validation metrics
-            new_node_val_metrics_avg = {k: np.mean([m[k] for m in new_node_val_metrics]) for k in new_node_val_metrics[0].keys()}
-            metrics_logger.log_epoch_metrics(
-                epoch=epoch + 1,
-                phase='new_node_val',
-                metrics=new_node_val_metrics_avg,
-                loss=np.mean(new_node_val_losses)
-            )
+            if len(new_node_val_metrics) > 0:
+                new_node_val_metrics_avg = {k: np.mean([m[k] for m in new_node_val_metrics]) for k in new_node_val_metrics[0].keys()}
+                metrics_logger.log_epoch_metrics(
+                    epoch=epoch + 1,
+                    phase='new_node_val',
+                    metrics=new_node_val_metrics_avg,
+                    loss=np.mean(new_node_val_losses)
+                )
             # ===== END METRICS LOGGING =====
 
             # perform testing once after test_interval_epochs
@@ -546,8 +552,9 @@ if __name__ == "__main__":
 
             # select the best model based on all the validate metrics
             val_metric_indicator = []
-            for metric_name in val_metrics[0].keys():
-                val_metric_indicator.append((metric_name, np.mean([val_metric[metric_name] for val_metric in val_metrics]), True))
+            if len(val_metrics) > 0:
+                for metric_name in val_metrics[0].keys():
+                    val_metric_indicator.append((metric_name, np.mean([val_metric[metric_name] for val_metric in val_metrics]), True))
             early_stop = early_stopping.step(val_metric_indicator, model)
 
             if early_stop:
@@ -613,16 +620,18 @@ if __name__ == "__main__":
 
         if args.model_name not in ['JODIE', 'DyRep', 'TGN']:
             logger.info(f'validate loss: {np.mean(val_losses):.4f}')
-            for metric_name in val_metrics[0].keys():
-                average_val_metric = np.mean([val_metric[metric_name] for val_metric in val_metrics])
-                logger.info(f'validate {metric_name}, {average_val_metric:.4f}')
-                val_metric_dict[metric_name] = average_val_metric
+            if len(val_metrics) > 0:
+                for metric_name in val_metrics[0].keys():
+                    average_val_metric = np.mean([val_metric[metric_name] for val_metric in val_metrics])
+                    logger.info(f'validate {metric_name}, {average_val_metric:.4f}')
+                    val_metric_dict[metric_name] = average_val_metric
         
             logger.info(f'new node validate loss: {np.mean(new_node_val_losses):.4f}')
-            for metric_name in new_node_val_metrics[0].keys():
-                average_new_node_val_metric = np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics])
-                logger.info(f'new node validate {metric_name}, {average_new_node_val_metric:.4f}')
-                new_node_val_metric_dict[metric_name] = average_new_node_val_metric
+            if len(new_node_val_metrics) > 0:
+                for metric_name in new_node_val_metrics[0].keys():
+                    average_new_node_val_metric = np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics])
+                    logger.info(f'new node validate {metric_name}, {average_new_node_val_metric:.4f}')
+                    new_node_val_metric_dict[metric_name] = average_new_node_val_metric
 
         logger.info(f'test loss: {np.mean(test_losses):.4f}')
         for metric_name in test_metrics[0].keys():

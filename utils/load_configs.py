@@ -111,10 +111,16 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_layers = 2
         if args.dataset_name in ['enron']:
             args.dropout = 0.2
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative dropout for new datasets
+            args.dropout = 0.1
         else:
             args.dropout = 0.1
         if args.dataset_name in ['reddit']:
             args.sample_neighbor_strategy = 'uniform'
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Use recent strategy for new datasets (generally works better)
+            args.sample_neighbor_strategy = 'recent'
         else:
             args.sample_neighbor_strategy = 'recent'
     elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -127,11 +133,17 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.dropout = 0.3
             elif args.dataset_name in ['uci']:
                 args.dropout = 0.4
+            elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+                # Conservative dropout for new datasets
+                args.dropout = 0.1
             else:
                 args.dropout = 0.1
         elif args.model_name == 'DyRep':
             if args.dataset_name in ['mooc', 'lastfm', 'enron', 'uci']:
                 args.dropout = 0.0
+            elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+                # Conservative dropout for new datasets
+                args.dropout = 0.1
             else:
                 args.dropout = 0.1
         else:
@@ -142,6 +154,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.dropout = 0.3
             elif args.dataset_name in ['enron', 'SocialEvo']:
                 args.dropout = 0.0
+            elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+                # Conservative dropout for new datasets
+                args.dropout = 0.1
             else:
                 args.dropout = 0.1
         if args.model_name in ['TGN', 'DyRep']:
@@ -152,6 +167,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_neighbors = 64
         elif args.dataset_name in ['lastfm']:
             args.num_neighbors = 128
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative setting for new datasets
+            args.num_neighbors = 32
         else:
             args.num_neighbors = 32
         args.dropout = 0.1
@@ -161,10 +179,16 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_layers = 2
         if args.dataset_name in ['SocialEvo', 'uci']:
             args.dropout = 0.0
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative dropout for new datasets
+            args.dropout = 0.1
         else:
             args.dropout = 0.1
         if args.dataset_name in ['reddit']:
             args.sample_neighbor_strategy = 'uniform'
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Use recent strategy for new datasets
+            args.sample_neighbor_strategy = 'recent'
         else:
             args.sample_neighbor_strategy = 'recent'
     elif args.model_name == 'GraphMixer':
@@ -173,6 +197,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_neighbors = 30
         elif args.dataset_name in ['reddit', 'lastfm']:
             args.num_neighbors = 10
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative setting for new datasets
+            args.num_neighbors = 20
         else:
             args.num_neighbors = 20
         if args.dataset_name in ['wikipedia', 'reddit', 'enron']:
@@ -183,6 +210,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.0
         elif args.dataset_name in ['SocialEvo']:
             args.dropout = 0.3
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative dropout for new datasets
+            args.dropout = 0.1
         else:
             args.dropout = 0.1
         args.sample_neighbor_strategy = 'recent'
@@ -197,6 +227,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['lastfm']:
             args.max_input_sequence_length = 512
             args.patch_size = 16
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative settings for new datasets
+            args.max_input_sequence_length = 32
+            args.patch_size = 1
         else:
             args.max_input_sequence_length = 32 
             args.patch_size = 1
@@ -205,6 +239,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.2
         elif args.dataset_name in ['enron']:
             args.dropout = 0.0
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative dropout for new datasets
+            args.dropout = 0.1
         else:
             args.dropout = 0.1
     elif args.model_name == 'DyGMamba':
@@ -218,6 +255,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['lastfm']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Default configurations for new datasets
+            args.max_input_sequence_length = 32
+            args.patch_size = 1
         else:
             args.max_input_sequence_length = 32
             args.patch_size = 1
@@ -226,12 +267,18 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.2
         elif args.dataset_name in ['enron']:
             args.dropout = 0.0
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative dropout for new datasets
+            args.dropout = 0.1
         else:
             args.dropout = 0.1
         if args.dataset_name in ['enron']:
             args.max_interaction_times = 30
         elif args.dataset_name in ['mooc','lastfm']:
             args.max_interaction_times = 10
+        elif args.dataset_name in ['CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']:
+            # Conservative setting for new datasets
+            args.max_interaction_times = 5
         else:
             args.max_interaction_times = 5
     else:

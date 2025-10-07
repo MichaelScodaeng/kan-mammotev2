@@ -1,0 +1,152 @@
+2025-10-07 04:27:00,008 - root - INFO - ********** Run 1 starts. **********
+2025-10-07 04:27:00,008 - root - INFO - configuration is Namespace(dataset_name='CanParl', batch_size=200, model_name='DyGMamba', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=True, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=1, optimizer='Adam', weight_decay=0.0, patience=30, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=False, data_ratio=0.1, seed=0, save_model_name_suffix='kan_mammote_dual_kmote', ablation_dir='ablation_20251007_042531', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, device='cuda:0', save_model_name='DyGMamba_kan_mammote_dual_kmote_seed0_kan_mammote_dual_kmote')
+2025-10-07 04:27:00,010 - root - INFO - Metrics will be saved to: ablation_20251007_042531/saved_metrics/DyGMamba/CanParl/DyGMamba_kan_mammote_dual_kmote_seed0
+2025-10-07 04:27:00,017 - root - INFO - time encoder type: kan_mammote_dual_kmote
+2025-10-07 04:27:00,017 - root - INFO - Time encoder will be injected into DyGMamba model
+2025-10-07 04:27:00,834 - root - INFO - model -> Sequential(
+  (0): DyGMamba(
+    (time_encoder): KAN_MAMMOTE(
+      (k_mote_abs): KMOTE(
+        (experts): ModuleList(
+          (0): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+          )
+          (1): FourierKANLayer()
+          (2): WaveletKANLayer(
+            (linear): Linear(in_features=16, out_features=128, bias=True)
+          )
+          (3): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+            (local_linear): Linear(in_features=8, out_features=128, bias=True)
+          )
+        )
+        (gating_network): Sequential(
+          (0): Linear(in_features=1, out_features=64, bias=True)
+          (1): GELU(approximate='none')
+          (2): Linear(in_features=64, out_features=4, bias=True)
+        )
+        (layer_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      )
+      (k_mote_rel): KMOTE(
+        (experts): ModuleList(
+          (0): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+          )
+          (1): FourierKANLayer()
+          (2): WaveletKANLayer(
+            (linear): Linear(in_features=16, out_features=128, bias=True)
+          )
+          (3): SplineKANLayer(
+            (input_projection): Linear(in_features=1, out_features=1, bias=True)
+            (global_branch): Sequential(
+              (0): Linear(in_features=1, out_features=32, bias=True)
+              (1): GELU(approximate='none')
+              (2): Linear(in_features=32, out_features=128, bias=True)
+            )
+            (local_linear): Linear(in_features=8, out_features=128, bias=True)
+          )
+        )
+        (gating_network): Sequential(
+          (0): Linear(in_features=1, out_features=64, bias=True)
+          (1): GELU(approximate='none')
+          (2): Linear(in_features=64, out_features=4, bias=True)
+        )
+        (layer_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      )
+      (mamba2): ControllableMamba2(
+        (in_proj): Linear(in_features=128, out_features=1040, bias=False)
+        (conv1d): Conv1d(768, 768, kernel_size=(4,), stride=(1,), padding=(3,), groups=768)
+        (act): SiLU()
+        (norm): RMSNorm()
+        (out_proj): Linear(in_features=256, out_features=128, bias=False)
+      )
+      (fusion_mlp_base): Sequential(
+        (0): Linear(in_features=128, out_features=128, bias=True)
+        (1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (2): GELU(approximate='none')
+        (3): Linear(in_features=128, out_features=128, bias=True)
+      )
+      (modulator_head): Sequential(
+        (0): Linear(in_features=128, out_features=64, bias=True)
+        (1): GELU(approximate='none')
+        (2): Linear(in_features=64, out_features=32, bias=True)
+      )
+      (output_projection): Sequential(
+        (0): Linear(in_features=128, out_features=100, bias=True)
+        (1): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (neighbor_co_occurrence_encoder): NIFEncoder(
+      (nif_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (output_layer): Linear(in_features=100, out_features=172, bias=True)
+    (output_layer_t_diff): Linear(in_features=25, out_features=172, bias=True)
+    (mamba): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=100, out_features=200, bias=False)
+        (conv1d): Conv1d(100, 100, kernel_size=(4,), stride=(1,), padding=(3,), groups=100)
+        (act): SiLU()
+        (x_proj): Linear(in_features=100, out_features=39, bias=False)
+        (dt_proj): Linear(in_features=7, out_features=100, bias=True)
+        (out_proj): Linear(in_features=100, out_features=100, bias=False)
+      )
+    )
+    (mamba_t_diff): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=25, out_features=50, bias=False)
+        (conv1d): Conv1d(25, 25, kernel_size=(4,), stride=(1,), padding=(3,), groups=25)
+        (act): SiLU()
+        (x_proj): Linear(in_features=25, out_features=34, bias=False)
+        (dt_proj): Linear(in_features=2, out_features=25, bias=True)
+        (out_proj): Linear(in_features=25, out_features=25, bias=False)
+      )
+    )
+    (projection_layer_t_diff): Linear(in_features=100, out_features=25, bias=True)
+    (projection_layer_t_diff_up): Linear(in_features=25, out_features=100, bias=True)
+    (weightagg): Linear(in_features=100, out_features=1, bias=True)
+    (reduce_layer): Linear(in_features=200, out_features=100, bias=True)
+    (channel_norm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+    (channel_feedforward): FeedForwardNet(
+      (ffn): Sequential(
+        (0): Linear(in_features=100, out_features=400, bias=True)
+        (1): GELU(approximate='none')
+        (2): Dropout(p=0.1, inplace=False)
+        (3): Linear(in_features=400, out_features=100, bias=True)
+        (4): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (neighbor_selection_layer): Linear(in_features=100, out_features=100, bias=True)
+  )
+  (1): MergeLayerTD(
+    (fc1): Linear(in_features=516, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-07 04:27:00,835 - root - INFO - model name: DyGMamba, #parameters: 2409956 B, 2353.47265625 KB, 2.2983131408691406 MB.
+2025-10-07 04:27:00,840 - root - INFO - Warming up time encoder...

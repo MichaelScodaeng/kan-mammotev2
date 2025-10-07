@@ -1,0 +1,39 @@
+2025-10-07 04:27:43,339 - root - INFO - ********** Run 1 starts. **********
+2025-10-07 04:27:43,339 - root - INFO - configuration is Namespace(dataset_name='CanParl', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=True, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=1, optimizer='Adam', weight_decay=0.0, patience=30, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=False, data_ratio=0.1, seed=0, save_model_name_suffix='mercer', ablation_dir='ablation_20251007_042722', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, device='cuda:0', save_model_name='TGAT_mercer_seed0_mercer')
+2025-10-07 04:27:43,341 - root - INFO - Metrics will be saved to: ablation_20251007_042722/saved_metrics/TGAT/CanParl/TGAT_mercer_seed0
+2025-10-07 04:27:43,342 - root - INFO - time encoder type: mercer
+2025-10-07 04:27:43,342 - root - INFO - Time encoder will be injected into TGAT model
+2025-10-07 04:27:43,558 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): MercerTimeEncoder()
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-07 04:27:43,559 - root - INFO - model name: TGAT, #parameters: 4218180 B, 4119.31640625 KB, 4.022769927978516 MB.
+2025-10-07 04:27:51,057 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6931
+2025-10-07 04:27:51,057 - root - INFO - train average_precision, 0.5148
+2025-10-07 04:27:51,058 - root - INFO - train roc_auc, 0.5258
+2025-10-07 04:27:51,058 - root - INFO - validate loss: nan
