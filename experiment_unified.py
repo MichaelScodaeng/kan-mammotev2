@@ -651,7 +651,7 @@ if __name__ == "__main__":
             '--num_runs', str(args.num_runs),
             '--load_best_configs',
             '--save_checkpoints',  # Enable checkpoint saving
-            '--checkpoint_strategy', 'smart',  # Use smart checkpointing
+            '--can you write a script to test that the resume check point works properly? Or how can we test it? especially that it resume at correct seed', 'smart',  # Use smart checkpointing
             '--max_checkpoints_to_keep', '3',  # Keep last 3 checkpoints
             '--validate_checkpoints'  # Enable checkpoint validation
         ]
