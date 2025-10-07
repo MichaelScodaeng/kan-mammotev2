@@ -76,18 +76,16 @@ class SpectralEntropyAnalyzer:
             pd.DataFrame: DataFrame with columns ['u', 'i', 'ts', 'label', 'idx']
         """
         print(f"Loading dataset: {dataset_name}")
-        
+        """
+        """
         # Try different possible file formats and locations
         possible_files = [
-            self.data_root / f"{dataset_name}.csv",
-            self.data_root / f"{dataset_name}" / f"{dataset_name}.csv",
-            self.data_root / f"{dataset_name}" / "edges.csv",
-            self.data_root / f"{dataset_name}" / "ml_{dataset_name}.csv",
-            self.data_root / f"ml_{dataset_name}.csv"
+            self.data_root / f"{dataset_name}/ml_{dataset_name}.csv"
         ]
         
         df = None
         for file_path in possible_files:
+            print(f"  Trying to load: {file_path}")
             if file_path.exists():
                 try:
                     print(f"  Trying to load: {file_path}")

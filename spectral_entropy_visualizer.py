@@ -46,9 +46,9 @@ class SpectralEntropyVisualizer:
             self.entropy_results = pickle.load(f)
         print(f"Loaded results for {len(self.entropy_results)} datasets")
     
-    def create_density_plots(self, figsize=(15, 6), save_format='pdf'):
+    def create_density_plots(self, figsize=(16, 6), save_format='pdf'):
         """
-        Create density plots similar to Figure 8, showing all datasets.
+        Create density plots similar to Figure 8, showing all datasets with improved styling.
         
         Args:
             figsize (tuple): Figure size (width, height)
@@ -58,104 +58,114 @@ class SpectralEntropyVisualizer:
             print("No results to plot. Run analysis first.")
             return
         
-        # Set up the plotting style
+        # Set up the plotting style to match the reference
         plt.style.use('default')
-        sns.set_palette("husl", n_colors=len(self.entropy_results))
         
+        # Create figure with proper sizing and layout
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        fig.patch.set_facecolor('white')
         
-        # Colors for different datasets
-        colors = plt.cm.Set3(np.linspace(0, 1, len(self.entropy_results)))
+        # Define beautiful colors for each dataset (similar to reference)
+        colors = [
+            '#87CEEB',  # Light blue (Wikipedia)
+            '#FFA07A',  # Light salmon (Reddit) 
+            '#98D982',  # Light green (Mooc)
+            '#FFB6C1',  # Light pink (Lastfm)
+            '#DDA0DD',  # Plum (Enron)
+            '#F0E68C',  # Khaki (SocialEvo)
+            '#20B2AA',  # Light sea green (UCI)
+            '#FFE4B5',  # Moccasin (CanParl)
+            '#E6E6FA',  # Lavender (Contacts)
+            '#F5DEB3',  # Wheat (Flights)
+            '#D3D3D3',  # Light gray (UNtrade)
+            '#FFEFD5',  # Papaya whip (UNvote)
+            '#FFFACD'   # Lemon chiffon (USLegis)
+        ]
         
-        # Plot timestamp entropies (left plot)
-        ax1.set_title('Density Plot of Spectral Entropy (Timestamp of Interactions)', 
-                     fontsize=14, pad=20)
-        ax1.set_xlabel('Spectral Entropy', fontsize=12)
-        ax1.set_ylabel('Density', fontsize=12)
-        
-        # Plot time difference entropies (right plot)
-        ax2.set_title('Density Plot of Spectral Entropy (Time Difference between Interactions)', 
-                     fontsize=14, pad=20)
-        ax2.set_xlabel('Spectral Entropy', fontsize=12)
-        ax2.set_ylabel('Density', fontsize=12)
-        
-        # Process each dataset
-        max_density = 0
+        # Collect all valid datasets and their data
+        valid_datasets = []
+        timestamp_data = []
+        time_diff_data = []
         dataset_labels = []
         
         for i, (dataset_name, results) in enumerate(self.entropy_results.items()):
-            if results is None:
+            if results is None or len(results.get('timestamp_entropies', [])) == 0:
                 continue
                 
-            color = colors[i]
-            dataset_labels.append(dataset_name.title())
+            valid_datasets.append(dataset_name)
+            timestamp_data.append(results['timestamp_entropies'])
+            time_diff_data.append(results['time_diff_entropies'])
             
-            # Plot timestamp entropy density
-            ts_entropies = results['timestamp_entropies']
-            if len(ts_entropies) > 0:
-                # Use KDE for smooth density estimation
-                try:
-                    kde_ts = gaussian_kde(ts_entropies)
-                    x_ts = np.linspace(max(0, ts_entropies.min()), ts_entropies.max(), 200)
-                    density_ts = kde_ts(x_ts)
-                    
-                    ax1.fill_between(x_ts, density_ts, alpha=0.6, color=color, 
-                                   label=dataset_name.title())
-                    ax1.plot(x_ts, density_ts, color=color, linewidth=1.5)
-                    
-                    max_density = max(max_density, density_ts.max())
-                except:
-                    # Fallback to histogram if KDE fails
-                    ax1.hist(ts_entropies, bins=30, alpha=0.6, color=color, 
-                           density=True, label=dataset_name.title())
-            
-            # Plot time difference entropy density
-            td_entropies = results['time_diff_entropies']
-            if len(td_entropies) > 0:
-                try:
-                    kde_td = gaussian_kde(td_entropies)
-                    x_td = np.linspace(max(0, td_entropies.min()), td_entropies.max(), 200)
-                    density_td = kde_td(x_td)
-                    
-                    ax2.fill_between(x_td, density_td, alpha=0.6, color=color)
-                    ax2.plot(x_td, density_td, color=color, linewidth=1.5)
-                    
-                    max_density = max(max_density, density_td.max())
-                except:
-                    # Fallback to histogram if KDE fails
-                    ax2.hist(td_entropies, bins=30, alpha=0.6, color=color, density=True)
+            # Create proper labels (capitalize first letter)
+            label = dataset_name.replace('_', ' ').title()
+            if dataset_name.lower() == 'uci':
+                label = 'UCI'
+            elif dataset_name.lower() == 'socialevo':
+                label = 'SocialEvo'
+            dataset_labels.append(label)
         
-        # Set consistent y-axis limits
-        y_max = max_density * 1.1
-        ax1.set_ylim(0, y_max)
-        ax2.set_ylim(0, y_max)
+        # Plot 1: Timestamp Entropies
+        for i, (data, label) in enumerate(zip(timestamp_data, dataset_labels)):
+            if len(data) > 0:
+                # Use seaborn KDE for smooth density curves
+                sns.kdeplot(data=data, ax=ax1, 
+                           color=colors[i % len(colors)], 
+                           alpha=0.7, 
+                           fill=True, 
+                           label=label,
+                           linewidth=1.5)
         
-        # Add legend (only on the first plot to avoid duplication)
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-        
-        # Grid and styling
+        ax1.set_xlabel('Spectral Entropy', fontsize=12, fontweight='bold')
+        ax1.set_ylabel('Density', fontsize=12, fontweight='bold')
+        ax1.set_title('Density Plot of Spectral Entropy (Timestamp of Interactions)', 
+                     fontsize=14, fontweight='bold', pad=20)
         ax1.grid(True, alpha=0.3)
-        ax2.grid(True, alpha=0.3)
+        ax1.set_xlim(0, 12)
+        ax1.set_ylim(0, None)
         
-        # Tight layout
+        # Plot 2: Time Difference Entropies  
+        for i, (data, label) in enumerate(zip(time_diff_data, dataset_labels)):
+            if len(data) > 0:
+                sns.kdeplot(data=data, ax=ax2, 
+                           color=colors[i % len(colors)], 
+                           alpha=0.7, 
+                           fill=True, 
+                           label=label,
+                           linewidth=1.5)
+        
+        ax2.set_xlabel('Spectral Entropy', fontsize=12, fontweight='bold')
+        ax2.set_ylabel('Density', fontsize=12, fontweight='bold')
+        ax2.set_title('Density Plot of Spectral Entropy (Time Difference between Interactions)', 
+                     fontsize=14, fontweight='bold', pad=20)
+        ax2.grid(True, alpha=0.3)
+        ax2.set_xlim(0, 12)
+        ax2.set_ylim(0, None)
+        
+        # Add legends with better positioning
+        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+        ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+        
+        # Adjust layout to prevent legend cutoff
         plt.tight_layout()
         
         # Save the plot
         output_file = self.output_dir / f'spectral_entropy_density_plots.{save_format}'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+                   facecolor='white', edgecolor='none')
         print(f"Density plots saved to: {output_file}")
         
         # Also save as PNG for easy viewing
         if save_format != 'png':
             png_file = self.output_dir / 'spectral_entropy_density_plots.png'
-            plt.savefig(png_file, dpi=300, bbox_inches='tight')
+            plt.savefig(png_file, dpi=300, bbox_inches='tight', 
+                       facecolor='white', edgecolor='none')
             print(f"PNG version saved to: {png_file}")
         
         plt.show()
     
-    def create_summary_statistics_plot(self, figsize=(12, 8)):
+    def create_summary_statistics_plot(self, figsize=(15, 6)):
         """
-        Create a summary plot showing statistics across datasets.
+        Create a summary plot showing statistics across datasets with improved styling.
         
         Args:
             figsize (tuple): Figure size
@@ -170,8 +180,15 @@ class SpectralEntropyVisualizer:
             if results is None:
                 continue
             
+            # Create proper labels
+            label = dataset_name.replace('_', ' ').title()
+            if dataset_name.lower() == 'uci':
+                label = 'UCI'
+            elif dataset_name.lower() == 'socialevo':
+                label = 'SocialEvo'
+            
             data.append({
-                'dataset': dataset_name.title(),
+                'dataset': label,
                 'nodes_analyzed': results['total_nodes'],
                 'total_interactions': results['total_interactions'],
                 'avg_timestamp_entropy': np.mean(results['timestamp_entropies']),
@@ -180,48 +197,52 @@ class SpectralEntropyVisualizer:
                 'std_time_diff_entropy': np.std(results['time_diff_entropies'])
             })
         
+        if not data:
+            print("No valid datasets found for summary statistics.")
+            return
+        
         df = pd.DataFrame(data)
         
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
+        # Create figure with improved styling
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        fig.patch.set_facecolor('white')
         
-        # Plot 1: Number of nodes analyzed
-        bars1 = ax1.bar(range(len(df)), df['nodes_analyzed'], color=plt.cm.Set3(np.linspace(0, 1, len(df))))
-        ax1.set_title('Nodes Analyzed per Dataset', fontsize=12)
-        ax1.set_ylabel('Number of Nodes')
-        ax1.set_xticks(range(len(df)))
+        x_pos = np.arange(len(df))
+        
+        # Plot mean entropies with improved colors
+        bars1 = ax1.bar(x_pos - 0.2, df['avg_timestamp_entropy'], 0.4, 
+                       label='Timestamp Entropy', alpha=0.8, color='#87CEEB')
+        bars2 = ax1.bar(x_pos + 0.2, df['avg_time_diff_entropy'], 0.4, 
+                       label='Time Diff Entropy', alpha=0.8, color='#FFA07A')
+        
+        ax1.set_xlabel('Datasets', fontsize=12, fontweight='bold')
+        ax1.set_ylabel('Mean Spectral Entropy', fontsize=12, fontweight='bold')
+        ax1.set_title('Mean Spectral Entropy by Dataset', fontsize=14, fontweight='bold', pad=20)
+        ax1.set_xticks(x_pos)
         ax1.set_xticklabels(df['dataset'], rotation=45, ha='right')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
         
-        # Plot 2: Total interactions
-        bars2 = ax2.bar(range(len(df)), df['total_interactions'], color=plt.cm.Set3(np.linspace(0, 1, len(df))))
-        ax2.set_title('Total Interactions per Dataset', fontsize=12)
-        ax2.set_ylabel('Number of Interactions')
-        ax2.set_xticks(range(len(df)))
+        # Plot standard deviations with improved colors
+        bars3 = ax2.bar(x_pos - 0.2, df['std_timestamp_entropy'], 0.4, 
+                       label='Timestamp Entropy', alpha=0.8, color='#98D982')
+        bars4 = ax2.bar(x_pos + 0.2, df['std_time_diff_entropy'], 0.4, 
+                       label='Time Diff Entropy', alpha=0.8, color='#FFB6C1')
+        
+        ax2.set_xlabel('Datasets', fontsize=12, fontweight='bold')
+        ax2.set_ylabel('Std Spectral Entropy', fontsize=12, fontweight='bold')
+        ax2.set_title('Standard Deviation of Spectral Entropy by Dataset', fontsize=14, fontweight='bold', pad=20)
+        ax2.set_xticks(x_pos)
         ax2.set_xticklabels(df['dataset'], rotation=45, ha='right')
-        ax2.set_yscale('log')  # Log scale for better visibility
-        
-        # Plot 3: Average timestamp entropy
-        bars3 = ax3.bar(range(len(df)), df['avg_timestamp_entropy'], 
-                       yerr=df['std_timestamp_entropy'], capsize=5,
-                       color=plt.cm.Set3(np.linspace(0, 1, len(df))))
-        ax3.set_title('Average Timestamp Entropy', fontsize=12)
-        ax3.set_ylabel('Spectral Entropy')
-        ax3.set_xticks(range(len(df)))
-        ax3.set_xticklabels(df['dataset'], rotation=45, ha='right')
-        
-        # Plot 4: Average time difference entropy
-        bars4 = ax4.bar(range(len(df)), df['avg_time_diff_entropy'], 
-                       yerr=df['std_time_diff_entropy'], capsize=5,
-                       color=plt.cm.Set3(np.linspace(0, 1, len(df))))
-        ax4.set_title('Average Time Difference Entropy', fontsize=12)
-        ax4.set_ylabel('Spectral Entropy')
-        ax4.set_xticks(range(len(df)))
-        ax4.set_xticklabels(df['dataset'], rotation=45, ha='right')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
         # Save the plot
         output_file = self.output_dir / 'spectral_entropy_summary_statistics.png'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+                   facecolor='white', edgecolor='none')
         print(f"Summary statistics plot saved to: {output_file}")
         
         plt.show()
@@ -231,9 +252,9 @@ class SpectralEntropyVisualizer:
         df.to_csv(csv_file, index=False)
         print(f"Statistics saved to: {csv_file}")
     
-    def create_comparison_heatmap(self, figsize=(10, 8)):
+    def create_comparison_heatmap(self, figsize=(12, 8)):
         """
-        Create a heatmap comparing entropy values across datasets.
+        Create a heatmap comparing entropy values across datasets with improved styling.
         
         Args:
             figsize (tuple): Figure size
@@ -242,65 +263,66 @@ class SpectralEntropyVisualizer:
             print("No results to plot. Run analysis first.")
             return
         
-        # Prepare data matrix
-        datasets = []
-        timestamp_means = []
-        timestamp_stds = []
-        timediff_means = []
-        timediff_stds = []
+        # Collect data for heatmap
+        data_for_heatmap = []
+        dataset_labels = []
         
         for dataset_name, results in self.entropy_results.items():
-            if results is None:
+            if results is None or len(results.get('timestamp_entropies', [])) == 0:
                 continue
+                
+            # Create proper labels
+            label = dataset_name.replace('_', ' ').title()
+            if dataset_name.lower() == 'uci':
+                label = 'UCI'
+            elif dataset_name.lower() == 'socialevo':
+                label = 'SocialEvo'
+            dataset_labels.append(label)
             
-            datasets.append(dataset_name.title())
-            timestamp_means.append(np.mean(results['timestamp_entropies']))
-            timestamp_stds.append(np.std(results['timestamp_entropies']))
-            timediff_means.append(np.mean(results['time_diff_entropies']))
-            timediff_stds.append(np.std(results['time_diff_entropies']))
+            ts_entropies = results['timestamp_entropies']
+            td_entropies = results['time_diff_entropies']
+            
+            row_data = [
+                np.mean(ts_entropies),      # Mean timestamp entropy
+                np.std(ts_entropies),       # Std timestamp entropy
+                np.mean(td_entropies),      # Mean time diff entropy
+                np.std(td_entropies),       # Std time diff entropy
+                np.min(ts_entropies),       # Min timestamp entropy
+                np.max(ts_entropies),       # Max timestamp entropy
+                np.min(td_entropies),       # Min time diff entropy
+                np.max(td_entropies)        # Max time diff entropy
+            ]
+            data_for_heatmap.append(row_data)
         
-        # Create data matrix
-        data_matrix = np.array([
-            timestamp_means,
-            timestamp_stds,
-            timediff_means,
-            timediff_stds
-        ])
+        if not data_for_heatmap:
+            print("No valid datasets found for heatmap.")
+            return
         
-        # Create heatmap
-        fig, ax = plt.subplots(figsize=figsize)
+        # Create DataFrame
+        columns = ['TS Mean', 'TS Std', 'TD Mean', 'TD Std', 
+                  'TS Min', 'TS Max', 'TD Min', 'TD Max']
+        df = pd.DataFrame(data_for_heatmap, index=dataset_labels, columns=columns)
         
-        im = ax.imshow(data_matrix, cmap='viridis', aspect='auto')
+        # Create heatmap with improved styling
+        plt.figure(figsize=figsize)
+        plt.gca().set_facecolor('white')
         
-        # Set labels
-        ax.set_xticks(range(len(datasets)))
-        ax.set_xticklabels(datasets, rotation=45, ha='right')
-        ax.set_yticks(range(4))
-        ax.set_yticklabels([
-            'Timestamp Entropy (Mean)',
-            'Timestamp Entropy (Std)',
-            'Time Diff Entropy (Mean)',
-            'Time Diff Entropy (Std)'
-        ])
+        sns.heatmap(df, annot=True, fmt='.2f', cmap='viridis', 
+                   cbar_kws={'label': 'Spectral Entropy'},
+                   linewidths=0.5, linecolor='white')
         
-        # Add colorbar
-        cbar = plt.colorbar(im)
-        cbar.set_label('Entropy Value')
-        
-        # Add text annotations
-        for i in range(4):
-            for j in range(len(datasets)):
-                text = ax.text(j, i, f'{data_matrix[i, j]:.2f}',
-                             ha="center", va="center", color="white" if data_matrix[i, j] > np.median(data_matrix) else "black")
-        
-        ax.set_title('Spectral Entropy Comparison Across Datasets', fontsize=14, pad=20)
+        plt.title('Spectral Entropy Statistics Heatmap Across Datasets', 
+                 fontsize=16, fontweight='bold', pad=20)
+        plt.xlabel('Entropy Statistics', fontsize=12, fontweight='bold')
+        plt.ylabel('Datasets', fontsize=12, fontweight='bold')
         
         plt.tight_layout()
         
         # Save the plot
         output_file = self.output_dir / 'spectral_entropy_heatmap.png'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight')
-        print(f"Heatmap saved to: {output_file}")
+        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+                   facecolor='white', edgecolor='none')
+        print(f"Comparison heatmap saved to: {output_file}")
         
         plt.show()
 

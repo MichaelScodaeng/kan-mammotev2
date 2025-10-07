@@ -87,8 +87,10 @@ if __name__ == "__main__":
             set_random_seed(seed=run)
 
             args.seed = run
-            args.load_model_name = f'{args.model_name}_seed{args.seed}'
-            args.save_result_name = f'{args.negative_sample_strategy}_negative_sampling_{args.model_name}_seed{args.seed}'
+            # Include time encoder in model name to match training script naming convention
+            base_load_name = f'{args.model_name}_{args.time_encoder_type}_seed{args.seed}'
+            args.load_model_name = base_load_name
+            args.save_result_name = f'{args.negative_sample_strategy}_negative_sampling_{args.model_name}_{args.time_encoder_type}_seed{args.seed}'
 
             # set up logger
             logging.basicConfig(level=logging.INFO)

@@ -85,6 +85,23 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='Mamba head dimension (for kan_mammote encoder)')
     
     # Arguments specific to KAN-MAMMOTE
+    
+    # Checkpoint and resuming arguments
+    parser.add_argument('--resume_from_checkpoint', type=str, default=None,
+                        help='path to checkpoint file to resume training from')
+    parser.add_argument('--save_checkpoints', action='store_true', default=False,
+                        help='save training checkpoints every few epochs')
+    parser.add_argument('--checkpoint_interval', type=int, default=5,
+                        help='save checkpoint every N epochs (default: 5)')
+    parser.add_argument('--start_from_seed', type=int, default=0,
+                        help='start training from specific seed/run (for resuming)')
+    parser.add_argument('--max_checkpoints_to_keep', type=int, default=3,
+                        help='maximum number of recent checkpoints to keep (default: 3)')
+    parser.add_argument('--checkpoint_strategy', type=str, default='smart', 
+                        choices=['frequent', 'smart', 'minimal'],
+                        help='checkpoint frequency strategy')
+    parser.add_argument('--validate_checkpoints', action='store_true', default=True,
+                        help='validate checkpoint integrity before loading (recommended)')
 
     try:
         args = parser.parse_args()

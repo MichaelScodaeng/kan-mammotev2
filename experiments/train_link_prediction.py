@@ -31,6 +31,158 @@ from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import get_link_prediction_args
 from models.time_encoders import KAN_MAMMOTE, KAN_MAMMOTE_Lite, TimeEncoderWrapper
+from datetime import datetime
+
+def validate_checkpoint(checkpoint_path, logger):
+    """
+    Validate that a checkpoint file is not corrupted and contains required fields
+    
+    Args:
+        checkpoint_path: Path to checkpoint file
+        logger: Logger instance
+    
+    Returns:
+        bool: True if checkpoint is valid, False otherwise
+    """
+    try:
+        # Attempt to load the checkpoint
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        
+        # Check for required fields
+        required_fields = ['epoch', 'model_state_dict', 'optimizer_state_dict', 'seed']
+        missing_fields = [field for field in required_fields if field not in checkpoint]
+        
+        if missing_fields:
+            logger.warning(f"Checkpoint {checkpoint_path} missing required fields: {missing_fields}")
+            return False
+        
+        # Basic validation of state dicts
+        if not isinstance(checkpoint['model_state_dict'], dict):
+            logger.warning(f"Checkpoint {checkpoint_path} has invalid model_state_dict")
+            return False
+        
+        if not isinstance(checkpoint['optimizer_state_dict'], dict):
+            logger.warning(f"Checkpoint {checkpoint_path} has invalid optimizer_state_dict")
+            return False
+        
+        # Check epoch is reasonable
+        epoch = checkpoint['epoch']
+        if not isinstance(epoch, int) or epoch < 0:
+            logger.warning(f"Checkpoint {checkpoint_path} has invalid epoch: {epoch}")
+            return False
+        
+        logger.info(f"Checkpoint {checkpoint_path} validation passed (epoch {epoch})")
+        return True
+        
+    except Exception as e:
+        logger.warning(f"Checkpoint {checkpoint_path} validation failed: {e}")
+        return False
+
+def find_best_checkpoint(checkpoint_dir, logger, validate=True):
+    """
+    Find the best available checkpoint, trying newest first with fallback to older ones
+    
+    Args:
+        checkpoint_dir: Directory containing checkpoints
+        logger: Logger instance
+        validate: Whether to validate checkpoint integrity
+    
+    Returns:
+        tuple: (checkpoint_path, epoch) or (None, None) if no valid checkpoint found
+    """
+    try:
+        import glob
+        
+        # Find all checkpoint files
+        checkpoint_pattern = os.path.join(checkpoint_dir, 'checkpoint_epoch_*.pth')
+        checkpoint_files = glob.glob(checkpoint_pattern)
+        
+        if not checkpoint_files:
+            logger.info(f"No checkpoints found in {checkpoint_dir}")
+            return None, None
+        
+        # Sort by epoch number (newest first)
+        def extract_epoch(filepath):
+            try:
+                filename = os.path.basename(filepath)
+                epoch_str = filename.split('checkpoint_epoch_')[1].split('.pth')[0]
+                return int(epoch_str)
+            except (IndexError, ValueError):
+                return -1
+        
+        checkpoint_files.sort(key=extract_epoch, reverse=True)
+        
+        logger.info(f"Found {len(checkpoint_files)} checkpoints in {checkpoint_dir}")
+        
+        # Try each checkpoint from newest to oldest
+        for checkpoint_path in checkpoint_files:
+            epoch = extract_epoch(checkpoint_path)
+            logger.info(f"Trying checkpoint: {checkpoint_path} (epoch {epoch})")
+            
+            # Validate checkpoint if requested
+            if validate:
+                if validate_checkpoint(checkpoint_path, logger):
+                    logger.info(f"✅ Using valid checkpoint: {checkpoint_path} (epoch {epoch})")
+                    return checkpoint_path, epoch
+                else:
+                    logger.warning(f"❌ Checkpoint corrupted, trying next: {checkpoint_path}")
+                    continue
+            else:
+                # Skip validation, use directly
+                logger.info(f"Using checkpoint (no validation): {checkpoint_path} (epoch {epoch})")
+                return checkpoint_path, epoch
+        
+        # No valid checkpoint found
+        logger.warning(f"No valid checkpoints found in {checkpoint_dir}")
+        return None, None
+        
+    except Exception as e:
+        logger.error(f"Error finding checkpoints in {checkpoint_dir}: {e}")
+        return None, None
+
+def cleanup_old_checkpoints(save_model_folder, max_to_keep, logger):
+    """
+    Keep only the most recent N checkpoints to save disk space
+    
+    Args:
+        save_model_folder: Directory containing checkpoints
+        max_to_keep: Maximum number of checkpoints to keep
+        logger: Logger instance
+    """
+    try:
+        import glob
+        
+        # Find all checkpoint files
+        checkpoint_pattern = os.path.join(save_model_folder, 'checkpoint_epoch_*.pth')
+        checkpoint_files = glob.glob(checkpoint_pattern)
+        
+        if len(checkpoint_files) <= max_to_keep:
+            return  # No need to cleanup
+        
+        # Sort by epoch number (extract from filename)
+        def extract_epoch(filepath):
+            try:
+                filename = os.path.basename(filepath)
+                epoch_str = filename.split('checkpoint_epoch_')[1].split('.pth')[0]
+                return int(epoch_str)
+            except (IndexError, ValueError):
+                return 0
+        
+        checkpoint_files.sort(key=extract_epoch)
+        
+        # Remove oldest checkpoints (keep newest max_to_keep)
+        files_to_remove = checkpoint_files[:-max_to_keep]
+        for file_path in files_to_remove:
+            try:
+                os.remove(file_path)
+                epoch_num = extract_epoch(file_path)
+                logger.info(f'Removed old checkpoint: epoch {epoch_num}')
+            except OSError as e:
+                logger.warning(f'Could not remove old checkpoint {file_path}: {e}')
+                
+    except Exception as e:
+        logger.warning(f'Error during checkpoint cleanup: {e}')
+
 if __name__ == "__main__":
 
     warnings.filterwarnings('ignore')
@@ -100,7 +252,9 @@ if __name__ == "__main__":
 
     val_metric_all_runs, new_node_val_metric_all_runs, test_metric_all_runs, new_node_test_metric_all_runs = [], [], [], []
 
-    for run in range(args.num_runs):
+    # Support seed-level resuming: start from specified seed instead of always 0
+    start_seed = getattr(args, 'start_from_seed', 0)
+    for run in range(start_seed, args.num_runs):
 
         set_random_seed(seed=run)
 
@@ -252,9 +406,92 @@ if __name__ == "__main__":
         early_stopping = EarlyStopping(patience=args.patience, save_model_folder=save_model_folder,
                                        save_model_name=args.save_model_name, logger=logger, model_name=args.model_name)
 
+        # Smart checkpoint loading with automatic best checkpoint finding and validation
+        start_epoch = 0
+        checkpoint_loaded = False
+
+        if args.resume_from_checkpoint:
+            if os.path.isfile(args.resume_from_checkpoint):
+                # Specific checkpoint file provided
+                if args.validate_checkpoints and not validate_checkpoint(args.resume_from_checkpoint, logger):
+                    logger.error(f"Specified checkpoint is corrupted: {args.resume_from_checkpoint}")
+                    logger.info("Attempting to find alternative checkpoint...")
+                    
+                    # Try to find another checkpoint in the same directory
+                    checkpoint_dir = os.path.dirname(args.resume_from_checkpoint)
+                    best_checkpoint, best_epoch = find_best_checkpoint(checkpoint_dir, logger, validate=True)
+                    
+                    if best_checkpoint:
+                        args.resume_from_checkpoint = best_checkpoint
+                        logger.info(f"Using alternative checkpoint: {best_checkpoint}")
+                    else:
+                        logger.warning("No valid alternative checkpoint found, starting fresh")
+                        args.resume_from_checkpoint = None
+                
+            elif os.path.isdir(args.resume_from_checkpoint):
+                # Directory provided, find best checkpoint automatically
+                logger.info(f"Searching for best checkpoint in directory: {args.resume_from_checkpoint}")
+                best_checkpoint, best_epoch = find_best_checkpoint(args.resume_from_checkpoint, logger, validate=args.validate_checkpoints)
+                
+                if best_checkpoint:
+                    args.resume_from_checkpoint = best_checkpoint
+                    logger.info(f"Auto-selected checkpoint: {best_checkpoint} (epoch {best_epoch})")
+                else:
+                    logger.warning(f"No valid checkpoints found in {args.resume_from_checkpoint}, starting fresh")
+                    args.resume_from_checkpoint = None
+            else:
+                logger.error(f"Checkpoint path not found: {args.resume_from_checkpoint}")
+                args.resume_from_checkpoint = None
+
+        # Load checkpoint if available
+        if args.resume_from_checkpoint and os.path.exists(args.resume_from_checkpoint):
+            try:
+                logger.info(f'Loading checkpoint: {args.resume_from_checkpoint}')
+                checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu')
+                start_epoch = checkpoint['epoch']
+                
+                # Load model and optimizer state
+                model.load_state_dict(checkpoint['model_state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                
+                # Restore other training state
+                if 'random_state' in checkpoint:
+                    torch.set_rng_state(checkpoint['random_state'])
+                
+                best_acc = checkpoint.get('best_acc', 0)
+                
+                # Restore early stopping state if available
+                if 'early_stopping_counter' in checkpoint:
+                    early_stopping.counter = checkpoint['early_stopping_counter']
+                    early_stopping.best_score = checkpoint.get('early_stopping_best_score', None)
+                
+                checkpoint_loaded = True
+                
+                logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_acc: {best_acc:.4f}')
+                
+            except Exception as e:
+                logger.error(f'Failed to load checkpoint {args.resume_from_checkpoint}: {e}')
+                logger.info('Starting fresh training')
+                start_epoch = 0
+                checkpoint_loaded = False
+
+        # Adaptive checkpoint interval based on strategy
+        if hasattr(args, 'checkpoint_strategy') and args.save_checkpoints:
+            if args.checkpoint_strategy == 'frequent':
+                args.checkpoint_interval = 5
+            elif args.checkpoint_strategy == 'smart':
+                # Adaptive interval based on total epochs
+                if args.num_epochs <= 50:
+                    args.checkpoint_interval = 5  # Every 10 epochs for short training
+                elif args.num_epochs <= 100:
+                    args.checkpoint_interval = 5  # Every 15 epochs for medium training
+                else:
+                    args.checkpoint_interval = 5  # Every 20 epochs for long training
+            elif args.checkpoint_strategy == 'minimal':
+                args.checkpoint_interval = max(20, args.num_epochs // 3)  # Only 3 checkpoints total
+
         loss_func = nn.BCELoss()
-        best_acc = 0
-        for epoch in range(args.num_epochs):
+        for epoch in range(start_epoch, args.num_epochs):
 
             model.train()
             if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba']:
@@ -549,6 +786,60 @@ if __name__ == "__main__":
                     loss=np.mean(new_node_test_losses)
                 )
                 # ===== END TEST METRICS LOGGING =====
+
+            # Save checkpoint periodically with robust error handling and validation
+            if args.save_checkpoints and (epoch + 1) % args.checkpoint_interval == 0:
+                checkpoint = {
+                    'epoch': epoch + 1,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'train_losses': train_losses,
+                    'val_metrics': val_metrics,
+                    'random_state': torch.get_rng_state(),
+                    'args': args,
+                    'best_acc': best_acc,
+                    'seed': run,
+                    'early_stopping_counter': early_stopping.counter,
+                    'early_stopping_best_score': early_stopping.best_score,
+                    'timestamp': datetime.now().isoformat(),
+                    'pytorch_version': torch.__version__
+                }
+                
+                checkpoint_path = os.path.join(save_model_folder, f'checkpoint_epoch_{epoch + 1}.pth')
+                
+                try:
+                    # Save checkpoint with atomic write (write to temp file first)
+                    temp_checkpoint_path = checkpoint_path + '.tmp'
+                    torch.save(checkpoint, temp_checkpoint_path)
+                    
+                    # Verify the checkpoint was saved correctly if validation is enabled
+                    if args.validate_checkpoints:
+                        if validate_checkpoint(temp_checkpoint_path, logger):
+                            # Atomic move (rename is atomic on most filesystems)
+                            os.rename(temp_checkpoint_path, checkpoint_path)
+                            logger.info(f'✅ Checkpoint saved and validated: {checkpoint_path}')
+                        else:
+                            logger.error(f'❌ Checkpoint validation failed, removing corrupt file')
+                            os.remove(temp_checkpoint_path)
+                            continue  # Skip cleanup if checkpoint failed
+                    else:
+                        # Direct save without validation for speed
+                        os.rename(temp_checkpoint_path, checkpoint_path)
+                        logger.info(f'✅ Checkpoint saved: {checkpoint_path}')
+                    
+                    # Cleanup old checkpoints (only after successful save)
+                    max_checkpoints = getattr(args, 'max_checkpoints_to_keep', 3)
+                    cleanup_old_checkpoints(save_model_folder, max_checkpoints, logger)
+                    
+                except Exception as e:
+                    logger.error(f'❌ Failed to save checkpoint: {e}')
+                    # Clean up temp file if it exists
+                    temp_checkpoint_path = checkpoint_path + '.tmp'
+                    if os.path.exists(temp_checkpoint_path):
+                        try:
+                            os.remove(temp_checkpoint_path)
+                        except:
+                            pass
 
             # select the best model based on all the validate metrics
             val_metric_indicator = []
