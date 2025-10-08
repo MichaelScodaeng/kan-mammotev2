@@ -72,8 +72,8 @@ def validate_checkpoint(checkpoint_path, logger):
         bool: True if checkpoint is valid, False otherwise
     """
     try:
-        # Attempt to load the checkpoint
-        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        # Attempt to load the checkpoint with PyTorch 2.6+ compatibility
+        checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
         
         # Check for required fields
         required_fields = ['epoch', 'model_state_dict', 'optimizer_state_dict', 'seed']
@@ -486,7 +486,7 @@ if __name__ == "__main__":
         if args.resume_from_checkpoint and os.path.exists(args.resume_from_checkpoint):
             try:
                 logger.info(f'Loading checkpoint: {args.resume_from_checkpoint}')
-                checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu')
+                checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu', weights_only=False)
                 start_epoch = checkpoint['epoch']
                 
                 # Load model and optimizer state

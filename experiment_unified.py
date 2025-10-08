@@ -627,6 +627,10 @@ def build_training_command(model, dataset, time_encoder_name, args,
     if start_seed > 0:
         command.extend(['--start_from_seed', str(start_seed)])
     
+    # Add disable_progress_bar if specified
+    if args.disable_progress_bar:
+        command.append('--disable_progress_bar')
+    
     # Add encoder-specific arguments
     encoder_args = get_time_encoder_args(time_encoder_name)
     if encoder_args:
@@ -897,6 +901,10 @@ if __name__ == "__main__":
         encoder_specific_args = get_time_encoder_args(time_encoder_name)
         if encoder_specific_args:
             command.extend(encoder_specific_args.split())
+        
+        # Add disable_progress_bar if specified
+        if args.disable_progress_bar:
+            command.append('--disable_progress_bar')
         
         # Add seed-level resuming if needed
         if start_from_seed > 0:
