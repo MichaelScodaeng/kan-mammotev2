@@ -16,7 +16,14 @@ from models.gnn_backbones.CAWN import CAWN
 from models.gnn_backbones.TCL import TCL
 from models.gnn_backbones.GraphMixer import GraphMixer
 from models.gnn_backbones.DyGFormer import DyGFormer
-from models.gnn_backbones.DyGMamba import DyGMamba
+
+# Optional Mamba-based model
+try:
+    from models.gnn_backbones.DyGMamba import DyGMamba
+    DYGMAMBA_AVAILABLE = True
+except ImportError:
+    DyGMamba = None
+    DYGMAMBA_AVAILABLE = False
 
 from models.gnn_backbones.modules import MergeLayer, MergeLayerTD
 from models.time_encoders.factory import create_time_encoder
@@ -79,7 +86,12 @@ if __name__ == "__main__":
 
 
 
-    if args.model_name in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba']:
+    # Define available models dynamically
+    available_models = ['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer']
+    if DYGMAMBA_AVAILABLE:
+        available_models.append('DyGMamba')
+
+    if args.model_name in available_models:
         val_metric_all_runs, new_node_val_metric_all_runs, test_metric_all_runs, new_node_test_metric_all_runs = [], [], [], []
 
         for run in range(args.num_runs):
@@ -152,6 +164,8 @@ if __name__ == "__main__":
                                               time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
 
             elif args.model_name == 'DyGMamba':
+                if not DYGMAMBA_AVAILABLE:
+                    raise ImportError("DyGMamba is not available. Please install Mamba dependencies or use a different model.")
                 dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features,
                                               neighbor_sampler=full_neighbor_sampler ,
                                               time_feat_dim=args.time_feat_dim,
@@ -171,7 +185,7 @@ if __name__ == "__main__":
             else:
                 raise ValueError(f"Wrong value for model_name {args.model_name}!")
 
-            if args.model_name == 'DyGMamba':
+            if args.model_name == 'DyGMamba' and DYGMAMBA_AVAILABLE:
                 link_predictor = MergeLayerTD(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1], input_dim3=node_raw_features.shape[1],
                                             hidden_dim=node_raw_features.shape[1], output_dim=1)
             else:

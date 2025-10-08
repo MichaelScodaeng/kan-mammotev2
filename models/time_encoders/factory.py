@@ -2,10 +2,20 @@ import torch
 import numpy as np
 import sys
 import inspect
-# Import all encoder classes that will be used
-from .kan_mammote import KAN_MAMMOTE
-from .kan_mammote_lite import KAN_MAMMOTE_Lite
+
+# Import standard encoder
 from ..gnn_backbones.modules import TimeEncoder as OriginalTimeEncoder
+
+# Import Mamba-based encoders with optional fallback
+try:
+    from .kan_mammote import KAN_MAMMOTE
+except ImportError:
+    KAN_MAMMOTE = None
+
+try:
+    from .kan_mammote_lite import KAN_MAMMOTE_Lite
+except ImportError:
+    KAN_MAMMOTE_Lite = None
 
 # Import additional encoders
 try:
@@ -137,13 +147,21 @@ def get_available_encoders():
     Return a list of available time encoder types.
     """
     encoders = [
-        'kan_mammote',
-        'kan_mammote_dual_kmote',  # NEW: Dual K-MOTE variant
-        'kan_mammote_lite',
         'original',
         'time_encoder',
         'default'
     ]
+    
+    # Add Mamba-based encoders only if available
+    if KAN_MAMMOTE is not None:
+        encoders.extend([
+            'kan_mammote',
+            'kan_mammote_dual_kmote'  # NEW: Dual K-MOTE variant
+            ,'dual_stream_baseline'
+        ])
+    
+    if KAN_MAMMOTE_Lite is not None:
+        encoders.append('kan_mammote_lite')
     
     # Add available optional encoders
     if MercerTimeEncoder is not None:
@@ -160,7 +178,7 @@ def get_available_encoders():
         'sm_kernel_only',
         'kmote_abs_only',
         'kmote_rel_only',
-        'dual_stream_baseline'
+        
     ])
     
     return encoders
@@ -254,6 +272,9 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
     print(f"Requested encoder: {encoder_type}")
     
     if encoder_type == 'kan_mammote':
+        if KAN_MAMMOTE is None:
+            raise ImportError(f"KAN_MAMMOTE encoder is not available. Please install Mamba dependencies or use a different encoder.")
+        
         print("INFO: Creating KAN-MAMMOTE time encoder.")
         
         # Handle args gracefully - try args first, then kwargs, then defaults
@@ -330,6 +351,9 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             print("INFO: No training data provided. SM-Kernel will use default initialization.")
     
     elif encoder_type == 'kan_mammote_dual_kmote':
+        if KAN_MAMMOTE is None:
+            raise ImportError(f"KAN_MAMMOTE encoder is not available. Please install Mamba dependencies or use a different encoder.")
+        
         print("INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).")
         
         # Handle args gracefully - try args first, then kwargs, then defaults
@@ -373,6 +397,9 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
     
     elif encoder_type == 'kan_mammote_lite':
+        if KAN_MAMMOTE_Lite is None:
+            raise ImportError(f"KAN_MAMMOTE_Lite encoder is not available. Please install Mamba dependencies or use a different encoder.")
+        
         print("INFO: Creating KAN-MAMMOTE Lite time encoder (stateless version).")
         
         # Handle args gracefully

@@ -20,7 +20,20 @@ from models.gnn_backbones.CAWN import CAWN
 from models.gnn_backbones.TCL import TCL
 from models.gnn_backbones.GraphMixer import GraphMixer
 from models.gnn_backbones.DyGFormer import DyGFormer
-from models.gnn_backbones.DyGMamba import DyGMamba
+
+# Optional Mamba-based imports
+try:
+    from models.gnn_backbones.DyGMamba import DyGMamba
+    from models.time_encoders import KAN_MAMMOTE, KAN_MAMMOTE_Lite, TimeEncoderWrapper
+    MAMBA_AVAILABLE = True
+except ImportError as e:
+    DyGMamba = None
+    KAN_MAMMOTE = None
+    KAN_MAMMOTE_Lite = None
+    TimeEncoderWrapper = None
+    MAMBA_AVAILABLE = False
+    print(f"Warning: Mamba-based models not available: {e}")
+
 from models.gnn_backbones.modules import MergeLayer, MergeLayerTD
 from models.time_encoders.factory import create_time_encoder
 from utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer
@@ -31,8 +44,21 @@ from utils.metrics import get_link_prediction_metrics
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import get_link_prediction_args
-from models.time_encoders import KAN_MAMMOTE, KAN_MAMMOTE_Lite, TimeEncoderWrapper
 from datetime import datetime
+
+def get_available_models():
+    """Return list of available model types"""
+    base_models = ['TGAT', 'JODIE', 'DyRep', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer']
+    if MAMBA_AVAILABLE:
+        base_models.append('DyGMamba')
+    return base_models
+
+def get_available_encoders():
+    """Return list of available encoder types"""
+    base_encoders = ['original', 'lete', 'mercer', 'bochner', 'time2vec']
+    if MAMBA_AVAILABLE:
+        base_encoders.extend(['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite'])
+    return base_encoders
 
 def validate_checkpoint(checkpoint_path, logger):
     """
@@ -317,6 +343,11 @@ if __name__ == "__main__":
         logger.info(f'time encoder type: {args.time_encoder_type}')
         logger.info(f'Time encoder will be injected into {args.model_name} model')
 
+        # Check if trying to use unavailable models
+        if args.model_name == 'DyGMamba' and not MAMBA_AVAILABLE:
+            raise RuntimeError(f"Cannot use DyGMamba: Mamba libraries not installed. "
+                             f"Available models: {get_available_models()}")
+
         if args.model_name == 'TGAT':
             # Inject the created encoder into TGAT backbone
             dynamic_backbone = TGAT(
@@ -352,6 +383,8 @@ if __name__ == "__main__":
                                           time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
 
         elif args.model_name == 'DyGMamba':
+            if not MAMBA_AVAILABLE:
+                raise RuntimeError("DyGMamba requires Mamba libraries which are not installed")
             dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,gamma=args.gamma,
@@ -381,18 +414,20 @@ if __name__ == "__main__":
         model = convert_to_gpu(model, device=args.device)
 
         # ===== WARM UP KAN-MAMMOTE (if applicable) =====
-        # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
-        if args.model_name == 'TGAT' and hasattr(time_encoder, 'encoder'):
-            # Unwrap the TimeEncoderWrapper to access the actual encoder
-            actual_encoder = time_encoder.encoder
-            if isinstance(actual_encoder, (KAN_MAMMOTE, KAN_MAMMOTE_Lite)):
-                logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
-                actual_encoder.warmup(device=args.device, num_iterations=3)
-        elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite']:
-            # Direct usage without wrapper (for other models)
-            if hasattr(time_encoder, 'warmup'):
-                logger.info(f"Warming up time encoder...")
-                time_encoder.warmup(device=args.device, num_iterations=3)
+        # Only attempt warmup if Mamba is available
+        if MAMBA_AVAILABLE:
+            # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
+            if args.model_name == 'TGAT' and hasattr(time_encoder, 'encoder'):
+                # Unwrap the TimeEncoderWrapper to access the actual encoder
+                actual_encoder = time_encoder.encoder
+                if isinstance(actual_encoder, (KAN_MAMMOTE, KAN_MAMMOTE_Lite)):
+                    logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
+                    actual_encoder.warmup(device=args.device, num_iterations=3)
+            elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite']:
+                # Direct usage without wrapper (for other models)
+                if hasattr(time_encoder, 'warmup'):
+                    logger.info(f"Warming up time encoder...")
+                    time_encoder.warmup(device=args.device, num_iterations=3)
         # ===== END WARM UP =====
 
         # Use ablation_dir if provided, otherwise default to ./saved_models
