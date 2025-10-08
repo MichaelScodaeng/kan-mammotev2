@@ -111,7 +111,8 @@ def parse_arguments():
                         help='Automatically retry failed experiments (no checkpoints, fresh start)')
     parser.add_argument('--max_retries', type=int, default=2,
                         help='Maximum number of retries for failed experiments (default: 2)')
-    
+    parser.add_argument('--disable_progress_bar', action='store_true', default=False,
+                        help='Disable tqdm progress bars (useful for logging to files in batch jobs)')
     return parser.parse_args()
 
 def get_encoder_log_dir(time_encoder):

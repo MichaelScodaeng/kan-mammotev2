@@ -686,13 +686,14 @@ if __name__ == "__main__":
                     train_idx_data_loader_tqdm.set_description(
                         f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader)}, Loss: {loss.item():.4f}'
                     )
-                elif not use_tqdm and batch_idx % 50 == 0:  # Print progress every 50 batches when not using tqdm
-                    logger.info(f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader)}, Loss: {loss.item():.4f}')
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
                     model[0].memory_bank.detach_memory_bank()
 
+            # Add epoch-level progress logging when tqdm is disabled
+            if not use_tqdm:
+                logger.info(f'Epoch: {epoch + 1}/{args.num_epochs} completed, Average Loss: {np.mean(train_losses):.4f}, Batches: {len(train_idx_data_loader)}')
 
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # backup memory bank after training so it can be used for new validation nodes
