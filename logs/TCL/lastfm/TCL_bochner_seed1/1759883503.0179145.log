@@ -1,0 +1,93 @@
+2025-10-08 09:31:43,021 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 09:31:43,021 - root - INFO - configuration is Namespace(dataset_name='lastfm', batch_size=200, model_name='TCL', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TCL_bochner_seed1')
+2025-10-08 09:31:43,023 - root - INFO - Metrics will be saved to: ./saved_metrics/TCL/lastfm/TCL_bochner_seed1
+2025-10-08 09:31:43,023 - root - INFO - time encoder type: bochner
+2025-10-08 09:31:43,023 - root - INFO - Time encoder will be injected into TCL model
+2025-10-08 09:31:43,426 - root - INFO - model -> Sequential(
+  (0): TCL(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (depth_embedding): Embedding(21, 172)
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=172, bias=True)
+      (edge): Linear(in_features=172, out_features=172, bias=True)
+      (time): Linear(in_features=100, out_features=172, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=172, out_features=172, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=172, out_features=688, bias=True)
+          (1): Linear(in_features=688, out_features=172, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=172, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 09:31:43,426 - root - INFO - model name: TCL, #parameters: 3537412 B, 3454.50390625 KB, 3.3735389709472656 MB.
+2025-10-08 09:31:52,477 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6415
+2025-10-08 09:31:52,478 - root - INFO - train average_precision, 0.6171
+2025-10-08 09:31:52,478 - root - INFO - train roc_auc, 0.6574
+2025-10-08 09:31:52,478 - root - INFO - validate loss: 0.6809
+2025-10-08 09:31:52,478 - root - INFO - validate average_precision, 0.5323
+2025-10-08 09:31:52,478 - root - INFO - validate roc_auc, 0.5493
+2025-10-08 09:31:52,478 - root - INFO - new node validate loss: 0.6996
+2025-10-08 09:31:52,478 - root - INFO - new node validate average_precision, 0.5114
+2025-10-08 09:31:52,478 - root - INFO - new node validate roc_auc, 0.5107
+2025-10-08 09:31:52,487 - root - INFO - save model ./saved_models/TCL/lastfm/TCL_bochner_seed1/TCL_bochner_seed1.pkl
+2025-10-08 09:32:01,583 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6472
+2025-10-08 09:32:01,583 - root - INFO - train average_precision, 0.6147
+2025-10-08 09:32:01,583 - root - INFO - train roc_auc, 0.6570
+2025-10-08 09:32:01,583 - root - INFO - validate loss: 0.6818
+2025-10-08 09:32:01,583 - root - INFO - validate average_precision, 0.5337
+2025-10-08 09:32:01,583 - root - INFO - validate roc_auc, 0.5498
+2025-10-08 09:32:01,583 - root - INFO - new node validate loss: 0.7018
+2025-10-08 09:32:01,584 - root - INFO - new node validate average_precision, 0.5162
+2025-10-08 09:32:01,584 - root - INFO - new node validate roc_auc, 0.5172
+2025-10-08 09:32:01,588 - root - INFO - save model ./saved_models/TCL/lastfm/TCL_bochner_seed1/TCL_bochner_seed1.pkl
+2025-10-08 09:32:01,626 - root - INFO - load model ./saved_models/TCL/lastfm/TCL_bochner_seed1/TCL_bochner_seed1.pkl
+2025-10-08 09:32:01,642 - root - INFO - get final performance on dataset lastfm...
+2025-10-08 09:32:04,226 - root - INFO - validate loss: 0.6818
+2025-10-08 09:32:04,227 - root - INFO - validate average_precision, 0.5337
+2025-10-08 09:32:04,227 - root - INFO - validate roc_auc, 0.5498
+2025-10-08 09:32:04,227 - root - INFO - new node validate loss: 0.7018
+2025-10-08 09:32:04,227 - root - INFO - new node validate average_precision, 0.5162
+2025-10-08 09:32:04,227 - root - INFO - new node validate roc_auc, 0.5172
+2025-10-08 09:32:04,227 - root - INFO - test loss: 0.6866
+2025-10-08 09:32:04,227 - root - INFO - test average_precision, 0.5244
+2025-10-08 09:32:04,227 - root - INFO - test roc_auc, 0.5340
+2025-10-08 09:32:04,227 - root - INFO - new node test loss: 0.7032
+2025-10-08 09:32:04,227 - root - INFO - new node test average_precision, 0.5061
+2025-10-08 09:32:04,227 - root - INFO - new node test roc_auc, 0.5053
+2025-10-08 09:32:04,236 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TCL/lastfm/TCL_bochner_seed1
+2025-10-08 09:32:04,236 - root - INFO - Run 2 cost 21.21 seconds.
+2025-10-08 09:32:04,240 - root - INFO - metrics over 2 runs:
+2025-10-08 09:32:04,240 - root - INFO - validate average_precision, [np.float64(0.5328533753282905), np.float64(0.5337017315566003)]
+2025-10-08 09:32:04,240 - root - INFO - average validate average_precision, 0.5333 ± 0.0006
+2025-10-08 09:32:04,240 - root - INFO - validate roc_auc, [np.float64(0.5487070055844078), np.float64(0.549758816904521)]
+2025-10-08 09:32:04,240 - root - INFO - average validate roc_auc, 0.5492 ± 0.0007
+2025-10-08 09:32:04,240 - root - INFO - new node validate average_precision, [np.float64(0.5042072356406835), np.float64(0.5161754626878762)]
+2025-10-08 09:32:04,240 - root - INFO - average new node validate average_precision, 0.5102 ± 0.0085
+2025-10-08 09:32:04,240 - root - INFO - new node validate roc_auc, [np.float64(0.5065366173570021), np.float64(0.5171598991667673)]
+2025-10-08 09:32:04,240 - root - INFO - average new node validate roc_auc, 0.5118 ± 0.0075
+2025-10-08 09:32:04,241 - root - INFO - test average_precision, [np.float64(0.5200324243770317), np.float64(0.5244437741372882)]
+2025-10-08 09:32:04,241 - root - INFO - average test average_precision, 0.5222 ± 0.0031
+2025-10-08 09:32:04,241 - root - INFO - test roc_auc, [np.float64(0.526685376205885), np.float64(0.5339631287883995)]
+2025-10-08 09:32:04,241 - root - INFO - average test roc_auc, 0.5303 ± 0.0051
+2025-10-08 09:32:04,241 - root - INFO - new node test average_precision, [np.float64(0.5063634385930247), np.float64(0.5060742722557816)]
+2025-10-08 09:32:04,241 - root - INFO - average new node test average_precision, 0.5062 ± 0.0002
+2025-10-08 09:32:04,241 - root - INFO - new node test roc_auc, [np.float64(0.4986204217863895), np.float64(0.5052604643194707)]
+2025-10-08 09:32:04,241 - root - INFO - average new node test roc_auc, 0.5019 ± 0.0047

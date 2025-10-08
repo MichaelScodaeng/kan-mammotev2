@@ -1,0 +1,776 @@
+Command: python experiments/train_link_prediction.py --model_name TGN --dataset_name reddit --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:14:40.831822
+Test: Training-time2vec-TGN-reddit
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: reddit
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 672,447 interactions
+   Subsampled data size: 33,622 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 33622 interactions, involving 7295 different nodes
+The training dataset has 17876 interactions, involving 5287 different nodes
+The validation dataset has 5043 interactions, involving 2746 different nodes
+The test dataset has 5044 interactions, involving 2977 different nodes
+The new node validation dataset has 2166 interactions, involving 1438 different nodes
+The new node test dataset has 2352 interactions, involving 1598 different nodes
+729 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 33,622 edges
+   Train data: 17,876 edges (53.2%)
+   Val data: 5,043 edges (15.0%)
+   Test data: 5,044 edges (15.0%)
+   Expected batches: 90
+   ✅ All splits proportionally scaled with ratio 0.53:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/reddit/TGN_time2vec_seed0
+   Train metrics: train_metrics_20251008_101406.csv
+   Val metrics: val_metrics_20251008_101406.csv
+   New node val metrics: new_node_val_metrics_20251008_101406.csv
+   Test metrics: test_metrics_20251008_101406.csv
+   New node test metrics: new_node_test_metrics_20251008_101406.csv
+   Test periodic metrics: test_periodic_metrics_20251008_101406.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_101406.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  90
+num training interactions:  17876
+batch size:  200
+num batches:  90
+num training interactions:  17876
+📄 Metrics summary saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/reddit/TGN_time2vec_seed1
+   Train metrics: train_metrics_20251008_101423.csv
+   Val metrics: val_metrics_20251008_101423.csv
+   New node val metrics: new_node_val_metrics_20251008_101423.csv
+   Test metrics: test_metrics_20251008_101423.csv
+   New node test metrics: new_node_test_metrics_20251008_101423.csv
+   Test periodic metrics: test_periodic_metrics_20251008_101423.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_101423.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  90
+num training interactions:  17876
+batch size:  200
+num batches:  90
+num training interactions:  17876
+📄 Metrics summary saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/90, Loss: 0.6938:   0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/90, Loss: 0.6938:   1%|          | 1/90 [00:00<00:23,  3.80it/s]
+Epoch: 1, Batch: 1/90, Loss: 0.6938:   3%|▎         | 3/90 [00:00<00:09,  9.12it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6782:   3%|▎         | 3/90 [00:00<00:09,  9.12it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6782:   7%|▋         | 6/90 [00:00<00:05, 15.12it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6782:  10%|█         | 9/90 [00:00<00:04, 18.71it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6665:  10%|█         | 9/90 [00:00<00:04, 18.71it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6665:  13%|█▎        | 12/90 [00:00<00:03, 20.27it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6665:  17%|█▋        | 15/90 [00:00<00:03, 21.32it/s]
+Epoch: 1, Batch: 16/90, Loss: 0.6417:  17%|█▋        | 15/90 [00:00<00:03, 21.32it/s]
+Epoch: 1, Batch: 16/90, Loss: 0.6417:  20%|██        | 18/90 [00:00<00:03, 21.86it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5978:  20%|██        | 18/90 [00:01<00:03, 21.86it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5978:  23%|██▎       | 21/90 [00:01<00:03, 22.38it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5978:  27%|██▋       | 24/90 [00:01<00:02, 22.34it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5378:  27%|██▋       | 24/90 [00:01<00:02, 22.34it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5378:  30%|███       | 27/90 [00:01<00:02, 22.46it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5378:  33%|███▎      | 30/90 [00:01<00:02, 22.15it/s]
+Epoch: 1, Batch: 31/90, Loss: 0.5066:  33%|███▎      | 30/90 [00:01<00:02, 22.15it/s]
+Epoch: 1, Batch: 31/90, Loss: 0.5066:  37%|███▋      | 33/90 [00:01<00:02, 22.13it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4675:  37%|███▋      | 33/90 [00:01<00:02, 22.13it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4675:  40%|████      | 36/90 [00:01<00:02, 22.07it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4675:  43%|████▎     | 39/90 [00:01<00:02, 21.99it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4088:  43%|████▎     | 39/90 [00:02<00:02, 21.99it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4088:  47%|████▋     | 42/90 [00:02<00:02, 22.10it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4088:  50%|█████     | 45/90 [00:02<00:02, 22.13it/s]
+Epoch: 1, Batch: 46/90, Loss: 0.4560:  50%|█████     | 45/90 [00:02<00:02, 22.13it/s]
+Epoch: 1, Batch: 46/90, Loss: 0.4560:  53%|█████▎    | 48/90 [00:02<00:01, 21.66it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4221:  53%|█████▎    | 48/90 [00:02<00:01, 21.66it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4221:  57%|█████▋    | 51/90 [00:02<00:01, 21.29it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4221:  60%|██████    | 54/90 [00:02<00:01, 21.16it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4082:  60%|██████    | 54/90 [00:02<00:01, 21.16it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4082:  63%|██████▎   | 57/90 [00:02<00:01, 20.78it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4082:  67%|██████▋   | 60/90 [00:02<00:01, 20.54it/s]
+Epoch: 1, Batch: 61/90, Loss: 0.4316:  67%|██████▋   | 60/90 [00:02<00:01, 20.54it/s]
+Epoch: 1, Batch: 61/90, Loss: 0.4316:  70%|███████   | 63/90 [00:03<00:01, 20.45it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4391:  70%|███████   | 63/90 [00:03<00:01, 20.45it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4391:  73%|███████▎  | 66/90 [00:03<00:01, 20.39it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4391:  77%|███████▋  | 69/90 [00:03<00:01, 20.66it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4742:  77%|███████▋  | 69/90 [00:03<00:01, 20.66it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4742:  80%|████████  | 72/90 [00:03<00:00, 20.42it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4742:  83%|████████▎ | 75/90 [00:03<00:00, 20.32it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.4059:  83%|████████▎ | 75/90 [00:03<00:00, 20.32it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.4059:  87%|████████▋ | 78/90 [00:03<00:00, 19.77it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.4059:  89%|████████▉ | 80/90 [00:03<00:00, 19.57it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4174:  89%|████████▉ | 80/90 [00:03<00:00, 19.57it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4174:  91%|█████████ | 82/90 [00:04<00:00, 19.36it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4174:  93%|█████████▎| 84/90 [00:04<00:00, 19.30it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.4088:  93%|█████████▎| 84/90 [00:04<00:00, 19.30it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.4088:  96%|█████████▌| 86/90 [00:04<00:00, 19.39it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.4088:  98%|█████████▊| 88/90 [00:04<00:00, 19.50it/s]
+Epoch: 1, Batch: 90/90, Loss: 0.3631:  98%|█████████▊| 88/90 [00:04<00:00, 19.50it/s]
+Epoch: 1, Batch: 90/90, Loss: 0.3631: 100%|██████████| 90/90 [00:04<00:00, 19.59it/s]
+                                                                                     
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.44454947113990784:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.3978720009326935:   0%|          | 0/26 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.4389934837818146:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.40609103441238403:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.40609103441238403:  15%|█▌        | 4/26 [00:00<00:00, 36.20it/s]
+evaluate for the 5-th batch, evaluate loss: 0.41678404808044434:  15%|█▌        | 4/26 [00:00<00:00, 36.20it/s]
+evaluate for the 6-th batch, evaluate loss: 0.41254156827926636:  15%|█▌        | 4/26 [00:00<00:00, 36.20it/s]
+evaluate for the 7-th batch, evaluate loss: 0.4558910131454468:  15%|█▌        | 4/26 [00:00<00:00, 36.20it/s] 
+evaluate for the 8-th batch, evaluate loss: 0.4375235140323639:  15%|█▌        | 4/26 [00:00<00:00, 36.20it/s]
+evaluate for the 8-th batch, evaluate loss: 0.4375235140323639:  31%|███       | 8/26 [00:00<00:00, 36.32it/s]
+evaluate for the 9-th batch, evaluate loss: 0.4101985692977905:  31%|███       | 8/26 [00:00<00:00, 36.32it/s]
+evaluate for the 10-th batch, evaluate loss: 0.44153693318367004:  31%|███       | 8/26 [00:00<00:00, 36.32it/s]
+evaluate for the 11-th batch, evaluate loss: 0.4294467866420746:  31%|███       | 8/26 [00:00<00:00, 36.32it/s] 
+evaluate for the 12-th batch, evaluate loss: 0.4479750096797943:  31%|███       | 8/26 [00:00<00:00, 36.32it/s]
+evaluate for the 12-th batch, evaluate loss: 0.4479750096797943:  46%|████▌     | 12/26 [00:00<00:00, 36.24it/s]
+evaluate for the 13-th batch, evaluate loss: 0.45813697576522827:  46%|████▌     | 12/26 [00:00<00:00, 36.24it/s]
+evaluate for the 14-th batch, evaluate loss: 0.3751174211502075:  46%|████▌     | 12/26 [00:00<00:00, 36.24it/s] 
+evaluate for the 15-th batch, evaluate loss: 0.45977145433425903:  46%|████▌     | 12/26 [00:00<00:00, 36.24it/s]
+evaluate for the 16-th batch, evaluate loss: 0.45727071166038513:  46%|████▌     | 12/26 [00:00<00:00, 36.24it/s]
+evaluate for the 16-th batch, evaluate loss: 0.45727071166038513:  62%|██████▏   | 16/26 [00:00<00:00, 35.66it/s]
+evaluate for the 17-th batch, evaluate loss: 0.4291890263557434:  62%|██████▏   | 16/26 [00:00<00:00, 35.66it/s] 
+evaluate for the 18-th batch, evaluate loss: 0.4105454087257385:  62%|██████▏   | 16/26 [00:00<00:00, 35.66it/s]
+evaluate for the 19-th batch, evaluate loss: 0.42377516627311707:  62%|██████▏   | 16/26 [00:00<00:00, 35.66it/s]
+evaluate for the 20-th batch, evaluate loss: 0.3880592882633209:  62%|██████▏   | 16/26 [00:00<00:00, 35.66it/s] 
+evaluate for the 20-th batch, evaluate loss: 0.3880592882633209:  77%|███████▋  | 20/26 [00:00<00:00, 35.53it/s]
+evaluate for the 21-th batch, evaluate loss: 0.49496352672576904:  77%|███████▋  | 20/26 [00:00<00:00, 35.53it/s]
+evaluate for the 22-th batch, evaluate loss: 0.4087493121623993:  77%|███████▋  | 20/26 [00:00<00:00, 35.53it/s] 
+evaluate for the 23-th batch, evaluate loss: 0.3822377622127533:  77%|███████▋  | 20/26 [00:00<00:00, 35.53it/s]
+evaluate for the 24-th batch, evaluate loss: 0.4500543177127838:  77%|███████▋  | 20/26 [00:00<00:00, 35.53it/s]
+evaluate for the 24-th batch, evaluate loss: 0.4500543177127838:  92%|█████████▏| 24/26 [00:00<00:00, 35.39it/s]
+evaluate for the 25-th batch, evaluate loss: 0.4333738684654236:  92%|█████████▏| 24/26 [00:00<00:00, 35.39it/s]
+evaluate for the 26-th batch, evaluate loss: 0.4662390351295471:  92%|█████████▏| 24/26 [00:00<00:00, 35.39it/s]
+                                                                                                                
+
+  0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6452778577804565:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.5992734432220459:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6914768815040588:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5869685411453247:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5869685411453247:  36%|███▋      | 4/11 [00:00<00:00, 36.68it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6026347875595093:  36%|███▋      | 4/11 [00:00<00:00, 36.68it/s]
+evaluate for the 6-th batch, evaluate loss: 0.546994686126709:  36%|███▋      | 4/11 [00:00<00:00, 36.68it/s] 
+evaluate for the 7-th batch, evaluate loss: 0.5668879747390747:  36%|███▋      | 4/11 [00:00<00:00, 36.68it/s]
+evaluate for the 8-th batch, evaluate loss: 0.6231537461280823:  36%|███▋      | 4/11 [00:00<00:00, 36.68it/s]
+evaluate for the 8-th batch, evaluate loss: 0.6231537461280823:  73%|███████▎  | 8/11 [00:00<00:00, 36.25it/s]
+evaluate for the 9-th batch, evaluate loss: 0.5768065452575684:  73%|███████▎  | 8/11 [00:00<00:00, 36.25it/s]
+evaluate for the 10-th batch, evaluate loss: 0.6099993586540222:  73%|███████▎  | 8/11 [00:00<00:00, 36.25it/s]
+evaluate for the 11-th batch, evaluate loss: 0.606427788734436:  73%|███████▎  | 8/11 [00:00<00:00, 36.25it/s] 
+                                                                                                              
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.4979
+INFO:root:train average_precision, 0.8735
+INFO:root:train roc_auc, 0.8676
+INFO:root:validate loss: 0.4299
+INFO:root:validate average_precision, 0.8935
+INFO:root:validate roc_auc, 0.8862
+INFO:root:new node validate loss: 0.6051
+INFO:root:new node validate average_precision, 0.7897
+INFO:root:new node validate roc_auc, 0.7672
+INFO:root:save model ./saved_models/TGN/reddit/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+
+  0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/90, Loss: 1.0196:   0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/90, Loss: 1.0196:   3%|▎         | 3/90 [00:00<00:03, 26.21it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.5077:   3%|▎         | 3/90 [00:00<00:03, 26.21it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.5077:   7%|▋         | 6/90 [00:00<00:03, 25.99it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.5077:  10%|█         | 9/90 [00:00<00:03, 25.95it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4813:  10%|█         | 9/90 [00:00<00:03, 25.95it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4813:  13%|█▎        | 12/90 [00:00<00:03, 25.13it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4813:  17%|█▋        | 15/90 [00:00<00:03, 24.60it/s]
+Epoch: 2, Batch: 16/90, Loss: 0.4252:  17%|█▋        | 15/90 [00:00<00:03, 24.60it/s]
+Epoch: 2, Batch: 16/90, Loss: 0.4252:  20%|██        | 18/90 [00:00<00:02, 24.04it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.3925:  20%|██        | 18/90 [00:00<00:02, 24.04it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.3925:  23%|██▎       | 21/90 [00:00<00:02, 23.84it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.3925:  27%|██▋       | 24/90 [00:00<00:02, 23.12it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4147:  27%|██▋       | 24/90 [00:01<00:02, 23.12it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4147:  30%|███       | 27/90 [00:01<00:02, 22.65it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4147:  33%|███▎      | 30/90 [00:01<00:02, 22.53it/s]
+Epoch: 2, Batch: 31/90, Loss: 0.3840:  33%|███▎      | 30/90 [00:01<00:02, 22.53it/s]
+Epoch: 2, Batch: 31/90, Loss: 0.3840:  37%|███▋      | 33/90 [00:01<00:02, 22.44it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.3719:  37%|███▋      | 33/90 [00:01<00:02, 22.44it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.3719:  40%|████      | 36/90 [00:01<00:02, 22.10it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.3719:  43%|████▎     | 39/90 [00:01<00:02, 21.61it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.3529:  43%|████▎     | 39/90 [00:01<00:02, 21.61it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.3529:  47%|████▋     | 42/90 [00:01<00:02, 21.61it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.3529:  50%|█████     | 45/90 [00:01<00:02, 21.23it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3704:  50%|█████     | 45/90 [00:02<00:02, 21.23it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3704:  53%|█████▎    | 48/90 [00:02<00:02, 16.60it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3704:  56%|█████▌    | 50/90 [00:02<00:02, 17.11it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.4258:  56%|█████▌    | 50/90 [00:02<00:02, 17.11it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.4258:  59%|█████▉    | 53/90 [00:02<00:02, 18.07it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3678:  59%|█████▉    | 53/90 [00:02<00:02, 18.07it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3678:  62%|██████▏   | 56/90 [00:02<00:01, 18.86it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3678:  64%|██████▍   | 58/90 [00:02<00:01, 18.89it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4097:  64%|██████▍   | 58/90 [00:02<00:01, 18.89it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4097:  68%|██████▊   | 61/90 [00:02<00:01, 19.54it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4097:  71%|███████   | 64/90 [00:03<00:01, 19.97it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4223:  71%|███████   | 64/90 [00:03<00:01, 19.97it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4223:  74%|███████▍  | 67/90 [00:03<00:01, 19.91it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4223:  78%|███████▊  | 70/90 [00:03<00:01, 19.79it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4041:  78%|███████▊  | 70/90 [00:03<00:01, 19.79it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4041:  80%|████████  | 72/90 [00:03<00:00, 19.51it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4041:  82%|████████▏ | 74/90 [00:03<00:00, 19.62it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3639:  82%|████████▏ | 74/90 [00:03<00:00, 19.62it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3639:  84%|████████▍ | 76/90 [00:03<00:00, 19.55it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3639:  87%|████████▋ | 78/90 [00:03<00:00, 19.35it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3639:  89%|████████▉ | 80/90 [00:03<00:00, 19.51it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.3797:  89%|████████▉ | 80/90 [00:03<00:00, 19.51it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.3797:  91%|█████████ | 82/90 [00:03<00:00, 18.96it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.3797:  93%|█████████▎| 84/90 [00:04<00:00, 18.75it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3670:  93%|█████████▎| 84/90 [00:04<00:00, 18.75it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3670:  96%|█████████▌| 86/90 [00:04<00:00, 18.98it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3670:  98%|█████████▊| 88/90 [00:04<00:00, 18.72it/s]
+Epoch: 2, Batch: 90/90, Loss: 0.3597:  98%|█████████▊| 88/90 [00:04<00:00, 18.72it/s]
+                                                                                     
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.4260922968387604:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.36270907521247864:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.4039391577243805:   0%|          | 0/26 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.35951918363571167:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.35951918363571167:  15%|█▌        | 4/26 [00:00<00:00, 35.48it/s]
+evaluate for the 5-th batch, evaluate loss: 0.3847666084766388:  15%|█▌        | 4/26 [00:00<00:00, 35.48it/s] 
+evaluate for the 6-th batch, evaluate loss: 0.3614354729652405:  15%|█▌        | 4/26 [00:00<00:00, 35.48it/s]
+evaluate for the 7-th batch, evaluate loss: 0.4194782078266144:  15%|█▌        | 4/26 [00:00<00:00, 35.48it/s]
+evaluate for the 8-th batch, evaluate loss: 0.37264004349708557:  15%|█▌        | 4/26 [00:00<00:00, 35.48it/s]
+evaluate for the 8-th batch, evaluate loss: 0.37264004349708557:  31%|███       | 8/26 [00:00<00:00, 35.62it/s]
+evaluate for the 9-th batch, evaluate loss: 0.37363937497138977:  31%|███       | 8/26 [00:00<00:00, 35.62it/s]
+evaluate for the 10-th batch, evaluate loss: 0.40942075848579407:  31%|███       | 8/26 [00:00<00:00, 35.62it/s]
+evaluate for the 11-th batch, evaluate loss: 0.3875693380832672:  31%|███       | 8/26 [00:00<00:00, 35.62it/s] 
+evaluate for the 12-th batch, evaluate loss: 0.4008203148841858:  31%|███       | 8/26 [00:00<00:00, 35.62it/s]
+evaluate for the 12-th batch, evaluate loss: 0.4008203148841858:  46%|████▌     | 12/26 [00:00<00:00, 35.39it/s]
+evaluate for the 13-th batch, evaluate loss: 0.42589643597602844:  46%|████▌     | 12/26 [00:00<00:00, 35.39it/s]
+evaluate for the 14-th batch, evaluate loss: 0.35006871819496155:  46%|████▌     | 12/26 [00:00<00:00, 35.39it/s]
+evaluate for the 15-th batch, evaluate loss: 0.4171002209186554:  46%|████▌     | 12/26 [00:00<00:00, 35.39it/s] 
+evaluate for the 16-th batch, evaluate loss: 0.39725515246391296:  46%|████▌     | 12/26 [00:00<00:00, 35.39it/s]
+evaluate for the 16-th batch, evaluate loss: 0.39725515246391296:  62%|██████▏   | 16/26 [00:00<00:00, 34.84it/s]
+evaluate for the 17-th batch, evaluate loss: 0.3683411180973053:  62%|██████▏   | 16/26 [00:00<00:00, 34.84it/s] 
+evaluate for the 18-th batch, evaluate loss: 0.37147483229637146:  62%|██████▏   | 16/26 [00:00<00:00, 34.84it/s]
+evaluate for the 19-th batch, evaluate loss: 0.3902662992477417:  62%|██████▏   | 16/26 [00:00<00:00, 34.84it/s] 
+evaluate for the 20-th batch, evaluate loss: 0.34543922543525696:  62%|██████▏   | 16/26 [00:00<00:00, 34.84it/s]
+evaluate for the 20-th batch, evaluate loss: 0.34543922543525696:  77%|███████▋  | 20/26 [00:00<00:00, 34.84it/s]
+evaluate for the 21-th batch, evaluate loss: 0.4272482991218567:  77%|███████▋  | 20/26 [00:00<00:00, 34.84it/s] 
+evaluate for the 22-th batch, evaluate loss: 0.37261763215065:  77%|███████▋  | 20/26 [00:00<00:00, 34.84it/s]  
+evaluate for the 23-th batch, evaluate loss: 0.3439764678478241:  77%|███████▋  | 20/26 [00:00<00:00, 34.84it/s]
+evaluate for the 24-th batch, evaluate loss: 0.4022179841995239:  77%|███████▋  | 20/26 [00:00<00:00, 34.84it/s]
+evaluate for the 24-th batch, evaluate loss: 0.4022179841995239:  92%|█████████▏| 24/26 [00:00<00:00, 34.71it/s]
+evaluate for the 25-th batch, evaluate loss: 0.40662696957588196:  92%|█████████▏| 24/26 [00:00<00:00, 34.71it/s]
+evaluate for the 26-th batch, evaluate loss: 0.42350679636001587:  92%|█████████▏| 24/26 [00:00<00:00, 34.71it/s]
+                                                                                                                 
+
+  0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6522413492202759:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.598791241645813:   0%|          | 0/11 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.6587769985198975:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5894396901130676:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5894396901130676:  36%|███▋      | 4/11 [00:00<00:00, 36.17it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5634098649024963:  36%|███▋      | 4/11 [00:00<00:00, 36.17it/s]
+evaluate for the 6-th batch, evaluate loss: 0.5224183797836304:  36%|███▋      | 4/11 [00:00<00:00, 36.17it/s]
+evaluate for the 7-th batch, evaluate loss: 0.5487304329872131:  36%|███▋      | 4/11 [00:00<00:00, 36.17it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5814495086669922:  36%|███▋      | 4/11 [00:00<00:00, 36.17it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5814495086669922:  73%|███████▎  | 8/11 [00:00<00:00, 35.96it/s]
+evaluate for the 9-th batch, evaluate loss: 0.5489106774330139:  73%|███████▎  | 8/11 [00:00<00:00, 35.96it/s]
+evaluate for the 10-th batch, evaluate loss: 0.6110938787460327:  73%|███████▎  | 8/11 [00:00<00:00, 35.96it/s]
+evaluate for the 11-th batch, evaluate loss: 0.6180106997489929:  73%|███████▎  | 8/11 [00:00<00:00, 35.96it/s]
+                                                                                                               
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.4162
+INFO:root:train average_precision, 0.8938
+INFO:root:train roc_auc, 0.8936
+INFO:root:validate loss: 0.3886
+INFO:root:validate average_precision, 0.9071
+INFO:root:validate roc_auc, 0.9096
+INFO:root:new node validate loss: 0.5903
+INFO:root:new node validate average_precision, 0.7860
+INFO:root:new node validate roc_auc, 0.7838
+INFO:root:save model ./saved_models/TGN/reddit/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+INFO:root:load model ./saved_models/TGN/reddit/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+INFO:root:get final performance on dataset reddit...
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.3576422929763794:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.4178411662578583:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.39075836539268494:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.4104038178920746:   0%|          | 0/26 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.4104038178920746:  15%|█▌        | 4/26 [00:00<00:00, 31.93it/s]
+evaluate for the 5-th batch, evaluate loss: 0.3968966603279114:  15%|█▌        | 4/26 [00:00<00:00, 31.93it/s]
+evaluate for the 6-th batch, evaluate loss: 0.33908987045288086:  15%|█▌        | 4/26 [00:00<00:00, 31.93it/s]
+evaluate for the 7-th batch, evaluate loss: 0.361277312040329:  15%|█▌        | 4/26 [00:00<00:00, 31.93it/s]  
+evaluate for the 8-th batch, evaluate loss: 0.2813224494457245:  15%|█▌        | 4/26 [00:00<00:00, 31.93it/s]
+evaluate for the 8-th batch, evaluate loss: 0.2813224494457245:  31%|███       | 8/26 [00:00<00:00, 32.14it/s]
+evaluate for the 9-th batch, evaluate loss: 0.39297041296958923:  31%|███       | 8/26 [00:00<00:00, 32.14it/s]
+evaluate for the 10-th batch, evaluate loss: 0.35898932814598083:  31%|███       | 8/26 [00:00<00:00, 32.14it/s]
+evaluate for the 11-th batch, evaluate loss: 0.37712737917900085:  31%|███       | 8/26 [00:00<00:00, 32.14it/s]
+evaluate for the 12-th batch, evaluate loss: 0.4110701382160187:  31%|███       | 8/26 [00:00<00:00, 32.14it/s] 
+evaluate for the 12-th batch, evaluate loss: 0.4110701382160187:  46%|████▌     | 12/26 [00:00<00:00, 32.08it/s]
+evaluate for the 13-th batch, evaluate loss: 0.4013378918170929:  46%|████▌     | 12/26 [00:00<00:00, 32.08it/s]
+evaluate for the 14-th batch, evaluate loss: 0.35051199793815613:  46%|████▌     | 12/26 [00:00<00:00, 32.08it/s]
+evaluate for the 15-th batch, evaluate loss: 0.34750112891197205:  46%|████▌     | 12/26 [00:00<00:00, 32.08it/s]
+evaluate for the 16-th batch, evaluate loss: 0.37562376260757446:  46%|████▌     | 12/26 [00:00<00:00, 32.08it/s]
+evaluate for the 16-th batch, evaluate loss: 0.37562376260757446:  62%|██████▏   | 16/26 [00:00<00:00, 31.81it/s]
+evaluate for the 17-th batch, evaluate loss: 0.4266155958175659:  62%|██████▏   | 16/26 [00:00<00:00, 31.81it/s] 
+evaluate for the 18-th batch, evaluate loss: 0.41258224844932556:  62%|██████▏   | 16/26 [00:00<00:00, 31.81it/s]
+evaluate for the 19-th batch, evaluate loss: 0.40580224990844727:  62%|██████▏   | 16/26 [00:00<00:00, 31.81it/s]
+evaluate for the 20-th batch, evaluate loss: 0.32272204756736755:  62%|██████▏   | 16/26 [00:00<00:00, 31.81it/s]
+evaluate for the 20-th batch, evaluate loss: 0.32272204756736755:  77%|███████▋  | 20/26 [00:00<00:00, 31.75it/s]
+evaluate for the 21-th batch, evaluate loss: 0.4697202146053314:  77%|███████▋  | 20/26 [00:00<00:00, 31.75it/s] 
+evaluate for the 22-th batch, evaluate loss: 0.3224436938762665:  77%|███████▋  | 20/26 [00:00<00:00, 31.75it/s]
+evaluate for the 23-th batch, evaluate loss: 0.3972421884536743:  77%|███████▋  | 20/26 [00:00<00:00, 31.75it/s]
+evaluate for the 24-th batch, evaluate loss: 0.40483081340789795:  77%|███████▋  | 20/26 [00:00<00:00, 31.75it/s]
+evaluate for the 24-th batch, evaluate loss: 0.40483081340789795:  92%|█████████▏| 24/26 [00:00<00:00, 31.63it/s]
+evaluate for the 25-th batch, evaluate loss: 0.3578440845012665:  92%|█████████▏| 24/26 [00:00<00:00, 31.63it/s] 
+evaluate for the 26-th batch, evaluate loss: 0.3141036629676819:  92%|█████████▏| 24/26 [00:00<00:00, 31.63it/s]
+                                                                                                                
+
+  0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.5322094559669495:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.5730664134025574:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5555413961410522:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6192697286605835:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6192697286605835:  33%|███▎      | 4/12 [00:00<00:00, 34.22it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6232228875160217:  33%|███▎      | 4/12 [00:00<00:00, 34.22it/s]
+evaluate for the 6-th batch, evaluate loss: 0.5435500741004944:  33%|███▎      | 4/12 [00:00<00:00, 34.22it/s]
+evaluate for the 7-th batch, evaluate loss: 0.552151083946228:  33%|███▎      | 4/12 [00:00<00:00, 34.22it/s] 
+evaluate for the 8-th batch, evaluate loss: 0.5986230373382568:  33%|███▎      | 4/12 [00:00<00:00, 34.22it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5986230373382568:  67%|██████▋   | 8/12 [00:00<00:00, 34.09it/s]
+evaluate for the 9-th batch, evaluate loss: 0.6130508780479431:  67%|██████▋   | 8/12 [00:00<00:00, 34.09it/s]
+evaluate for the 10-th batch, evaluate loss: 0.6000189781188965:  67%|██████▋   | 8/12 [00:00<00:00, 34.09it/s]
+evaluate for the 11-th batch, evaluate loss: 0.5575335025787354:  67%|██████▋   | 8/12 [00:00<00:00, 34.09it/s]
+evaluate for the 12-th batch, evaluate loss: 0.6815922260284424:  67%|██████▋   | 8/12 [00:00<00:00, 34.09it/s]
+evaluate for the 12-th batch, evaluate loss: 0.6815922260284424: 100%|██████████| 12/12 [00:00<00:00, 34.02it/s]
+                                                                                                                
+INFO:root:test loss: 0.3771
+INFO:root:test average_precision, 0.9141
+INFO:root:test roc_auc, 0.9197
+INFO:root:new node test loss: 0.5875
+INFO:root:new node test average_precision, 0.8319
+INFO:root:new node test roc_auc, 0.8362
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed0
+INFO:root:Run 1 cost 16.73 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_time2vec_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed1
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/90, Loss: 0.6956:   0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/90, Loss: 0.6956:   3%|▎         | 3/90 [00:00<00:03, 26.97it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6820:   3%|▎         | 3/90 [00:00<00:03, 26.97it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6820:   7%|▋         | 6/90 [00:00<00:03, 25.41it/s]
+Epoch: 1, Batch: 6/90, Loss: 0.6820:  10%|█         | 9/90 [00:00<00:03, 24.75it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6695:  10%|█         | 9/90 [00:00<00:03, 24.75it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6695:  13%|█▎        | 12/90 [00:00<00:03, 24.03it/s]
+Epoch: 1, Batch: 11/90, Loss: 0.6695:  17%|█▋        | 15/90 [00:00<00:03, 23.62it/s]
+Epoch: 1, Batch: 16/90, Loss: 0.6393:  17%|█▋        | 15/90 [00:00<00:03, 23.62it/s]
+Epoch: 1, Batch: 16/90, Loss: 0.6393:  20%|██        | 18/90 [00:00<00:03, 23.45it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5960:  20%|██        | 18/90 [00:00<00:03, 23.45it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5960:  23%|██▎       | 21/90 [00:00<00:03, 22.98it/s]
+Epoch: 1, Batch: 21/90, Loss: 0.5960:  27%|██▋       | 24/90 [00:01<00:02, 22.48it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5548:  27%|██▋       | 24/90 [00:01<00:02, 22.48it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5548:  30%|███       | 27/90 [00:01<00:02, 22.52it/s]
+Epoch: 1, Batch: 26/90, Loss: 0.5548:  33%|███▎      | 30/90 [00:01<00:02, 22.51it/s]
+Epoch: 1, Batch: 31/90, Loss: 0.4918:  33%|███▎      | 30/90 [00:01<00:02, 22.51it/s]
+Epoch: 1, Batch: 31/90, Loss: 0.4918:  37%|███▋      | 33/90 [00:01<00:02, 21.84it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4575:  37%|███▋      | 33/90 [00:01<00:02, 21.84it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4575:  40%|████      | 36/90 [00:01<00:03, 17.25it/s]
+Epoch: 1, Batch: 36/90, Loss: 0.4575:  43%|████▎     | 39/90 [00:01<00:02, 18.43it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4207:  43%|████▎     | 39/90 [00:01<00:02, 18.43it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4207:  47%|████▋     | 42/90 [00:01<00:02, 19.16it/s]
+Epoch: 1, Batch: 41/90, Loss: 0.4207:  50%|█████     | 45/90 [00:02<00:02, 19.73it/s]
+Epoch: 1, Batch: 46/90, Loss: 0.4252:  50%|█████     | 45/90 [00:02<00:02, 19.73it/s]
+Epoch: 1, Batch: 46/90, Loss: 0.4252:  53%|█████▎    | 48/90 [00:02<00:02, 19.97it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4210:  53%|█████▎    | 48/90 [00:02<00:02, 19.97it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4210:  57%|█████▋    | 51/90 [00:02<00:01, 19.97it/s]
+Epoch: 1, Batch: 51/90, Loss: 0.4210:  60%|██████    | 54/90 [00:02<00:01, 20.04it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4248:  60%|██████    | 54/90 [00:02<00:01, 20.04it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4248:  63%|██████▎   | 57/90 [00:02<00:01, 20.40it/s]
+Epoch: 1, Batch: 56/90, Loss: 0.4248:  67%|██████▋   | 60/90 [00:02<00:01, 20.27it/s]
+Epoch: 1, Batch: 61/90, Loss: 0.4688:  67%|██████▋   | 60/90 [00:02<00:01, 20.27it/s]
+Epoch: 1, Batch: 61/90, Loss: 0.4688:  70%|███████   | 63/90 [00:03<00:01, 19.84it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4501:  70%|███████   | 63/90 [00:03<00:01, 19.84it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4501:  73%|███████▎  | 66/90 [00:03<00:01, 20.17it/s]
+Epoch: 1, Batch: 66/90, Loss: 0.4501:  77%|███████▋  | 69/90 [00:03<00:01, 19.91it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4704:  77%|███████▋  | 69/90 [00:03<00:01, 19.91it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4704:  79%|███████▉  | 71/90 [00:03<00:00, 19.62it/s]
+Epoch: 1, Batch: 71/90, Loss: 0.4704:  82%|████████▏ | 74/90 [00:03<00:00, 19.66it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.3974:  82%|████████▏ | 74/90 [00:03<00:00, 19.66it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.3974:  84%|████████▍ | 76/90 [00:03<00:00, 19.51it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.3974:  87%|████████▋ | 78/90 [00:03<00:00, 19.57it/s]
+Epoch: 1, Batch: 76/90, Loss: 0.3974:  89%|████████▉ | 80/90 [00:03<00:00, 19.14it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4528:  89%|████████▉ | 80/90 [00:03<00:00, 19.14it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4528:  91%|█████████ | 82/90 [00:03<00:00, 18.77it/s]
+Epoch: 1, Batch: 81/90, Loss: 0.4528:  93%|█████████▎| 84/90 [00:04<00:00, 18.98it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.3942:  93%|█████████▎| 84/90 [00:04<00:00, 18.98it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.3942:  96%|█████████▌| 86/90 [00:04<00:00, 19.15it/s]
+Epoch: 1, Batch: 86/90, Loss: 0.3942:  98%|█████████▊| 88/90 [00:04<00:00, 19.08it/s]
+Epoch: 1, Batch: 90/90, Loss: 0.4073:  98%|█████████▊| 88/90 [00:04<00:00, 19.08it/s]
+Epoch: 1, Batch: 90/90, Loss: 0.4073: 100%|██████████| 90/90 [00:04<00:00, 19.28it/s]
+                                                                                     
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.4337632656097412:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.38526225090026855:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.4470912218093872:   0%|          | 0/26 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.39244344830513:   0%|          | 0/26 [00:00<?, ?it/s]  
+evaluate for the 4-th batch, evaluate loss: 0.39244344830513:  15%|█▌        | 4/26 [00:00<00:00, 34.37it/s]
+evaluate for the 5-th batch, evaluate loss: 0.39533430337905884:  15%|█▌        | 4/26 [00:00<00:00, 34.37it/s]
+evaluate for the 6-th batch, evaluate loss: 0.4157359302043915:  15%|█▌        | 4/26 [00:00<00:00, 34.37it/s] 
+evaluate for the 7-th batch, evaluate loss: 0.4551313817501068:  15%|█▌        | 4/26 [00:00<00:00, 34.37it/s]
+evaluate for the 8-th batch, evaluate loss: 0.4453260004520416:  15%|█▌        | 4/26 [00:00<00:00, 34.37it/s]
+evaluate for the 8-th batch, evaluate loss: 0.4453260004520416:  31%|███       | 8/26 [00:00<00:00, 34.92it/s]
+evaluate for the 9-th batch, evaluate loss: 0.40649938583374023:  31%|███       | 8/26 [00:00<00:00, 34.92it/s]
+evaluate for the 10-th batch, evaluate loss: 0.4463358223438263:  31%|███       | 8/26 [00:00<00:00, 34.92it/s]
+evaluate for the 11-th batch, evaluate loss: 0.43170180916786194:  31%|███       | 8/26 [00:00<00:00, 34.92it/s]
+evaluate for the 12-th batch, evaluate loss: 0.45621925592422485:  31%|███       | 8/26 [00:00<00:00, 34.92it/s]
+evaluate for the 12-th batch, evaluate loss: 0.45621925592422485:  46%|████▌     | 12/26 [00:00<00:00, 34.55it/s]
+evaluate for the 13-th batch, evaluate loss: 0.4517035186290741:  46%|████▌     | 12/26 [00:00<00:00, 34.55it/s] 
+evaluate for the 14-th batch, evaluate loss: 0.38151606917381287:  46%|████▌     | 12/26 [00:00<00:00, 34.55it/s]
+evaluate for the 15-th batch, evaluate loss: 0.4518033564090729:  46%|████▌     | 12/26 [00:00<00:00, 34.55it/s] 
+evaluate for the 16-th batch, evaluate loss: 0.4624658524990082:  46%|████▌     | 12/26 [00:00<00:00, 34.55it/s]
+evaluate for the 16-th batch, evaluate loss: 0.4624658524990082:  62%|██████▏   | 16/26 [00:00<00:00, 33.98it/s]
+evaluate for the 17-th batch, evaluate loss: 0.4226968288421631:  62%|██████▏   | 16/26 [00:00<00:00, 33.98it/s]
+evaluate for the 18-th batch, evaluate loss: 0.4105791747570038:  62%|██████▏   | 16/26 [00:00<00:00, 33.98it/s]
+evaluate for the 19-th batch, evaluate loss: 0.423092246055603:  62%|██████▏   | 16/26 [00:00<00:00, 33.98it/s] 
+evaluate for the 20-th batch, evaluate loss: 0.39743995666503906:  62%|██████▏   | 16/26 [00:00<00:00, 33.98it/s]
+evaluate for the 20-th batch, evaluate loss: 0.39743995666503906:  77%|███████▋  | 20/26 [00:00<00:00, 33.53it/s]
+evaluate for the 21-th batch, evaluate loss: 0.4894010126590729:  77%|███████▋  | 20/26 [00:00<00:00, 33.53it/s] 
+evaluate for the 22-th batch, evaluate loss: 0.4154804050922394:  77%|███████▋  | 20/26 [00:00<00:00, 33.53it/s]
+evaluate for the 23-th batch, evaluate loss: 0.39135292172431946:  77%|███████▋  | 20/26 [00:00<00:00, 33.53it/s]
+evaluate for the 24-th batch, evaluate loss: 0.441410094499588:  77%|███████▋  | 20/26 [00:00<00:00, 33.53it/s]  
+evaluate for the 24-th batch, evaluate loss: 0.441410094499588:  92%|█████████▏| 24/26 [00:00<00:00, 33.08it/s]
+evaluate for the 25-th batch, evaluate loss: 0.44388702511787415:  92%|█████████▏| 24/26 [00:00<00:00, 33.08it/s]
+evaluate for the 26-th batch, evaluate loss: 0.4882158637046814:  92%|█████████▏| 24/26 [00:00<00:00, 33.08it/s] 
+                                                                                                                
+
+  0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6227439045906067:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.5892208218574524:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6845319271087646:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5723446011543274:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5723446011543274:  36%|███▋      | 4/11 [00:00<00:00, 33.89it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5695672631263733:  36%|███▋      | 4/11 [00:00<00:00, 33.89it/s]
+evaluate for the 6-th batch, evaluate loss: 0.5424485802650452:  36%|███▋      | 4/11 [00:00<00:00, 33.89it/s]
+evaluate for the 7-th batch, evaluate loss: 0.5526713728904724:  36%|███▋      | 4/11 [00:00<00:00, 33.89it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5818070769309998:  36%|███▋      | 4/11 [00:00<00:00, 33.89it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5818070769309998:  73%|███████▎  | 8/11 [00:00<00:00, 32.38it/s]
+evaluate for the 9-th batch, evaluate loss: 0.5649112462997437:  73%|███████▎  | 8/11 [00:00<00:00, 32.38it/s]
+evaluate for the 10-th batch, evaluate loss: 0.6009544730186462:  73%|███████▎  | 8/11 [00:00<00:00, 32.38it/s]
+evaluate for the 11-th batch, evaluate loss: 0.5879072546958923:  73%|███████▎  | 8/11 [00:00<00:00, 32.38it/s]
+                                                                                                               
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.5011
+INFO:root:train average_precision, 0.8695
+INFO:root:train roc_auc, 0.8636
+INFO:root:validate loss: 0.4301
+INFO:root:validate average_precision, 0.8944
+INFO:root:validate roc_auc, 0.8866
+INFO:root:new node validate loss: 0.5881
+INFO:root:new node validate average_precision, 0.7948
+INFO:root:new node validate roc_auc, 0.7734
+INFO:root:save model ./saved_models/TGN/reddit/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+
+  0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/90, Loss: 0.8947:   0%|          | 0/90 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/90, Loss: 0.8947:   3%|▎         | 3/90 [00:00<00:03, 27.73it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.4821:   3%|▎         | 3/90 [00:00<00:03, 27.73it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.4821:   7%|▋         | 6/90 [00:00<00:03, 24.83it/s]
+Epoch: 2, Batch: 6/90, Loss: 0.4821:  10%|█         | 9/90 [00:00<00:03, 23.47it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4434:  10%|█         | 9/90 [00:00<00:03, 23.47it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4434:  13%|█▎        | 12/90 [00:00<00:03, 22.96it/s]
+Epoch: 2, Batch: 11/90, Loss: 0.4434:  17%|█▋        | 15/90 [00:00<00:03, 22.04it/s]
+Epoch: 2, Batch: 16/90, Loss: 0.4305:  17%|█▋        | 15/90 [00:00<00:03, 22.04it/s]
+Epoch: 2, Batch: 16/90, Loss: 0.4305:  20%|██        | 18/90 [00:00<00:03, 21.86it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.4309:  20%|██        | 18/90 [00:00<00:03, 21.86it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.4309:  23%|██▎       | 21/90 [00:00<00:03, 21.69it/s]
+Epoch: 2, Batch: 21/90, Loss: 0.4309:  27%|██▋       | 24/90 [00:01<00:03, 20.93it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4035:  27%|██▋       | 24/90 [00:01<00:03, 20.93it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4035:  30%|███       | 27/90 [00:01<00:03, 20.50it/s]
+Epoch: 2, Batch: 26/90, Loss: 0.4035:  33%|███▎      | 30/90 [00:01<00:02, 20.26it/s]
+Epoch: 2, Batch: 31/90, Loss: 0.4016:  33%|███▎      | 30/90 [00:01<00:02, 20.26it/s]
+Epoch: 2, Batch: 31/90, Loss: 0.4016:  37%|███▋      | 33/90 [00:01<00:02, 19.94it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.4145:  37%|███▋      | 33/90 [00:01<00:02, 19.94it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.4145:  40%|████      | 36/90 [00:01<00:02, 19.74it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.4145:  42%|████▏     | 38/90 [00:01<00:03, 15.48it/s]
+Epoch: 2, Batch: 36/90, Loss: 0.4145:  44%|████▍     | 40/90 [00:02<00:03, 16.14it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.4322:  44%|████▍     | 40/90 [00:02<00:03, 16.14it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.4322:  48%|████▊     | 43/90 [00:02<00:02, 16.95it/s]
+Epoch: 2, Batch: 41/90, Loss: 0.4322:  50%|█████     | 45/90 [00:02<00:02, 17.37it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3688:  50%|█████     | 45/90 [00:02<00:02, 17.37it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3688:  52%|█████▏    | 47/90 [00:02<00:02, 17.26it/s]
+Epoch: 2, Batch: 46/90, Loss: 0.3688:  54%|█████▍    | 49/90 [00:02<00:02, 17.52it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.3615:  54%|█████▍    | 49/90 [00:02<00:02, 17.52it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.3615:  57%|█████▋    | 51/90 [00:02<00:02, 17.69it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.3615:  59%|█████▉    | 53/90 [00:02<00:02, 18.26it/s]
+Epoch: 2, Batch: 51/90, Loss: 0.3615:  61%|██████    | 55/90 [00:02<00:01, 18.10it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3821:  61%|██████    | 55/90 [00:02<00:01, 18.10it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3821:  63%|██████▎   | 57/90 [00:02<00:01, 17.85it/s]
+Epoch: 2, Batch: 56/90, Loss: 0.3821:  66%|██████▌   | 59/90 [00:03<00:01, 17.62it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4094:  66%|██████▌   | 59/90 [00:03<00:01, 17.62it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4094:  68%|██████▊   | 61/90 [00:03<00:01, 17.92it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4094:  70%|███████   | 63/90 [00:03<00:01, 17.33it/s]
+Epoch: 2, Batch: 61/90, Loss: 0.4094:  72%|███████▏  | 65/90 [00:03<00:01, 17.33it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4376:  72%|███████▏  | 65/90 [00:03<00:01, 17.33it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4376:  74%|███████▍  | 67/90 [00:03<00:01, 17.51it/s]
+Epoch: 2, Batch: 66/90, Loss: 0.4376:  77%|███████▋  | 69/90 [00:03<00:01, 17.24it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4168:  77%|███████▋  | 69/90 [00:03<00:01, 17.24it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4168:  79%|███████▉  | 71/90 [00:03<00:01, 17.24it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4168:  81%|████████  | 73/90 [00:03<00:01, 16.81it/s]
+Epoch: 2, Batch: 71/90, Loss: 0.4168:  83%|████████▎ | 75/90 [00:04<00:00, 17.17it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3347:  83%|████████▎ | 75/90 [00:04<00:00, 17.17it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3347:  86%|████████▌ | 77/90 [00:04<00:00, 16.98it/s]
+Epoch: 2, Batch: 76/90, Loss: 0.3347:  88%|████████▊ | 79/90 [00:04<00:00, 16.94it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.4182:  88%|████████▊ | 79/90 [00:04<00:00, 16.94it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.4182:  90%|█████████ | 81/90 [00:04<00:00, 17.04it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.4182:  92%|█████████▏| 83/90 [00:04<00:00, 16.79it/s]
+Epoch: 2, Batch: 81/90, Loss: 0.4182:  94%|█████████▍| 85/90 [00:04<00:00, 17.03it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3973:  94%|█████████▍| 85/90 [00:04<00:00, 17.03it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3973:  97%|█████████▋| 87/90 [00:04<00:00, 16.68it/s]
+Epoch: 2, Batch: 86/90, Loss: 0.3973:  99%|█████████▉| 89/90 [00:04<00:00, 16.33it/s]
+Epoch: 2, Batch: 90/90, Loss: 0.3213:  99%|█████████▉| 89/90 [00:04<00:00, 16.33it/s]
+                                                                                     
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.42014461755752563:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.36658987402915955:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.413343608379364:   0%|          | 0/26 [00:00<?, ?it/s]  
+evaluate for the 4-th batch, evaluate loss: 0.35378608107566833:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.35378608107566833:  15%|█▌        | 4/26 [00:00<00:00, 30.05it/s]
+evaluate for the 5-th batch, evaluate loss: 0.36463239789009094:  15%|█▌        | 4/26 [00:00<00:00, 30.05it/s]
+evaluate for the 6-th batch, evaluate loss: 0.36316412687301636:  15%|█▌        | 4/26 [00:00<00:00, 30.05it/s]
+evaluate for the 7-th batch, evaluate loss: 0.4135044813156128:  15%|█▌        | 4/26 [00:00<00:00, 30.05it/s] 
+evaluate for the 8-th batch, evaluate loss: 0.38198015093803406:  15%|█▌        | 4/26 [00:00<00:00, 30.05it/s]
+evaluate for the 8-th batch, evaluate loss: 0.38198015093803406:  31%|███       | 8/26 [00:00<00:00, 30.08it/s]
+evaluate for the 9-th batch, evaluate loss: 0.3656420111656189:  31%|███       | 8/26 [00:00<00:00, 30.08it/s] 
+evaluate for the 10-th batch, evaluate loss: 0.4180290997028351:  31%|███       | 8/26 [00:00<00:00, 30.08it/s]
+evaluate for the 11-th batch, evaluate loss: 0.3831965923309326:  31%|███       | 8/26 [00:00<00:00, 30.08it/s]
+evaluate for the 12-th batch, evaluate loss: 0.40649762749671936:  31%|███       | 8/26 [00:00<00:00, 30.08it/s]
+evaluate for the 12-th batch, evaluate loss: 0.40649762749671936:  46%|████▌     | 12/26 [00:00<00:00, 31.97it/s]
+evaluate for the 13-th batch, evaluate loss: 0.4233451783657074:  46%|████▌     | 12/26 [00:00<00:00, 31.97it/s] 
+evaluate for the 14-th batch, evaluate loss: 0.3448886275291443:  46%|████▌     | 12/26 [00:00<00:00, 31.97it/s]
+evaluate for the 15-th batch, evaluate loss: 0.4044761657714844:  46%|████▌     | 12/26 [00:00<00:00, 31.97it/s]
+evaluate for the 16-th batch, evaluate loss: 0.3882313370704651:  46%|████▌     | 12/26 [00:00<00:00, 31.97it/s]
+evaluate for the 16-th batch, evaluate loss: 0.3882313370704651:  62%|██████▏   | 16/26 [00:00<00:00, 32.73it/s]
+evaluate for the 17-th batch, evaluate loss: 0.3620099425315857:  62%|██████▏   | 16/26 [00:00<00:00, 32.73it/s]
+evaluate for the 18-th batch, evaluate loss: 0.3600383698940277:  62%|██████▏   | 16/26 [00:00<00:00, 32.73it/s]
+evaluate for the 19-th batch, evaluate loss: 0.39293432235717773:  62%|██████▏   | 16/26 [00:00<00:00, 32.73it/s]
+evaluate for the 20-th batch, evaluate loss: 0.35648685693740845:  62%|██████▏   | 16/26 [00:00<00:00, 32.73it/s]
+evaluate for the 20-th batch, evaluate loss: 0.35648685693740845:  77%|███████▋  | 20/26 [00:00<00:00, 33.16it/s]
+evaluate for the 21-th batch, evaluate loss: 0.4292201101779938:  77%|███████▋  | 20/26 [00:00<00:00, 33.16it/s] 
+evaluate for the 22-th batch, evaluate loss: 0.3779853284358978:  77%|███████▋  | 20/26 [00:00<00:00, 33.16it/s]
+evaluate for the 23-th batch, evaluate loss: 0.3452140986919403:  77%|███████▋  | 20/26 [00:00<00:00, 33.16it/s]
+evaluate for the 24-th batch, evaluate loss: 0.3974156081676483:  77%|███████▋  | 20/26 [00:00<00:00, 33.16it/s]
+evaluate for the 24-th batch, evaluate loss: 0.3974156081676483:  92%|█████████▏| 24/26 [00:00<00:00, 33.42it/s]
+evaluate for the 25-th batch, evaluate loss: 0.4094049334526062:  92%|█████████▏| 24/26 [00:00<00:00, 33.42it/s]
+evaluate for the 26-th batch, evaluate loss: 0.4206019639968872:  92%|█████████▏| 24/26 [00:00<00:00, 33.42it/s]
+                                                                                                                
+
+  0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6140817403793335:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.5753806829452515:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6148117780685425:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5689904093742371:   0%|          | 0/11 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5689904093742371:  36%|███▋      | 4/11 [00:00<00:00, 35.58it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5302718877792358:  36%|███▋      | 4/11 [00:00<00:00, 35.58it/s]
+evaluate for the 6-th batch, evaluate loss: 0.501779317855835:  36%|███▋      | 4/11 [00:00<00:00, 35.58it/s] 
+evaluate for the 7-th batch, evaluate loss: 0.5001930594444275:  36%|███▋      | 4/11 [00:00<00:00, 35.58it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5430375337600708:  36%|███▋      | 4/11 [00:00<00:00, 35.58it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5430375337600708:  73%|███████▎  | 8/11 [00:00<00:00, 35.60it/s]
+evaluate for the 9-th batch, evaluate loss: 0.5244497656822205:  73%|███████▎  | 8/11 [00:00<00:00, 35.60it/s]
+evaluate for the 10-th batch, evaluate loss: 0.5652288794517517:  73%|███████▎  | 8/11 [00:00<00:00, 35.60it/s]
+evaluate for the 11-th batch, evaluate loss: 0.5608032941818237:  73%|███████▎  | 8/11 [00:00<00:00, 35.60it/s]
+                                                                                                               
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.4117
+INFO:root:train average_precision, 0.8973
+INFO:root:train roc_auc, 0.8957
+INFO:root:validate loss: 0.3870
+INFO:root:validate average_precision, 0.9115
+INFO:root:validate roc_auc, 0.9087
+INFO:root:new node validate loss: 0.5545
+INFO:root:new node validate average_precision, 0.8052
+INFO:root:new node validate roc_auc, 0.7941
+INFO:root:save model ./saved_models/TGN/reddit/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+INFO:root:load model ./saved_models/TGN/reddit/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+INFO:root:get final performance on dataset reddit...
+
+  0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.3476840853691101:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.3875659108161926:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.37839728593826294:   0%|          | 0/26 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.3806265890598297:   0%|          | 0/26 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.3806265890598297:  15%|█▌        | 4/26 [00:00<00:00, 30.82it/s]
+evaluate for the 5-th batch, evaluate loss: 0.38604971766471863:  15%|█▌        | 4/26 [00:00<00:00, 30.82it/s]
+evaluate for the 6-th batch, evaluate loss: 0.3216128945350647:  15%|█▌        | 4/26 [00:00<00:00, 30.82it/s] 
+evaluate for the 7-th batch, evaluate loss: 0.3666957914829254:  15%|█▌        | 4/26 [00:00<00:00, 30.82it/s]
+evaluate for the 8-th batch, evaluate loss: 0.2731879651546478:  15%|█▌        | 4/26 [00:00<00:00, 30.82it/s]
+evaluate for the 8-th batch, evaluate loss: 0.2731879651546478:  31%|███       | 8/26 [00:00<00:00, 31.08it/s]
+evaluate for the 9-th batch, evaluate loss: 0.3873211443424225:  31%|███       | 8/26 [00:00<00:00, 31.08it/s]
+evaluate for the 10-th batch, evaluate loss: 0.35376566648483276:  31%|███       | 8/26 [00:00<00:00, 31.08it/s]
+evaluate for the 11-th batch, evaluate loss: 0.3725438714027405:  31%|███       | 8/26 [00:00<00:00, 31.08it/s] 
+evaluate for the 12-th batch, evaluate loss: 0.4001319408416748:  31%|███       | 8/26 [00:00<00:00, 31.08it/s]
+evaluate for the 12-th batch, evaluate loss: 0.4001319408416748:  46%|████▌     | 12/26 [00:00<00:00, 31.08it/s]
+evaluate for the 13-th batch, evaluate loss: 0.37619850039482117:  46%|████▌     | 12/26 [00:00<00:00, 31.08it/s]
+evaluate for the 14-th batch, evaluate loss: 0.3582674562931061:  46%|████▌     | 12/26 [00:00<00:00, 31.08it/s] 
+evaluate for the 15-th batch, evaluate loss: 0.3428473472595215:  46%|████▌     | 12/26 [00:00<00:00, 31.08it/s]
+evaluate for the 16-th batch, evaluate loss: 0.36482200026512146:  46%|████▌     | 12/26 [00:00<00:00, 31.08it/s]
+evaluate for the 16-th batch, evaluate loss: 0.36482200026512146:  62%|██████▏   | 16/26 [00:00<00:00, 31.01it/s]
+evaluate for the 17-th batch, evaluate loss: 0.4092034101486206:  62%|██████▏   | 16/26 [00:00<00:00, 31.01it/s] 
+evaluate for the 18-th batch, evaluate loss: 0.4131350517272949:  62%|██████▏   | 16/26 [00:00<00:00, 31.01it/s]
+evaluate for the 19-th batch, evaluate loss: 0.40249377489089966:  62%|██████▏   | 16/26 [00:00<00:00, 31.01it/s]
+evaluate for the 20-th batch, evaluate loss: 0.307087779045105:  62%|██████▏   | 16/26 [00:00<00:00, 31.01it/s]  
+evaluate for the 20-th batch, evaluate loss: 0.307087779045105:  77%|███████▋  | 20/26 [00:00<00:00, 30.91it/s]
+evaluate for the 21-th batch, evaluate loss: 0.45567116141319275:  77%|███████▋  | 20/26 [00:00<00:00, 30.91it/s]
+evaluate for the 22-th batch, evaluate loss: 0.31310033798217773:  77%|███████▋  | 20/26 [00:00<00:00, 30.91it/s]
+evaluate for the 23-th batch, evaluate loss: 0.3947393000125885:  77%|███████▋  | 20/26 [00:00<00:00, 30.91it/s] 
+evaluate for the 24-th batch, evaluate loss: 0.39621710777282715:  77%|███████▋  | 20/26 [00:00<00:00, 30.91it/s]
+evaluate for the 24-th batch, evaluate loss: 0.39621710777282715:  92%|█████████▏| 24/26 [00:00<00:00, 30.73it/s]
+evaluate for the 25-th batch, evaluate loss: 0.33989477157592773:  92%|█████████▏| 24/26 [00:00<00:00, 30.73it/s]
+evaluate for the 26-th batch, evaluate loss: 0.3174052834510803:  92%|█████████▏| 24/26 [00:00<00:00, 30.73it/s] 
+                                                                                                                
+
+  0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.48273923993110657:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.5454486608505249:   0%|          | 0/12 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.523910641670227:   0%|          | 0/12 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.5807714462280273:   0%|          | 0/12 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5807714462280273:  33%|███▎      | 4/12 [00:00<00:00, 33.67it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5700497031211853:  33%|███▎      | 4/12 [00:00<00:00, 33.67it/s]
+evaluate for the 6-th batch, evaluate loss: 0.49151355028152466:  33%|███▎      | 4/12 [00:00<00:00, 33.67it/s]
+evaluate for the 7-th batch, evaluate loss: 0.5069903135299683:  33%|███▎      | 4/12 [00:00<00:00, 33.67it/s] 
+evaluate for the 8-th batch, evaluate loss: 0.5342973470687866:  33%|███▎      | 4/12 [00:00<00:00, 33.67it/s]
+evaluate for the 8-th batch, evaluate loss: 0.5342973470687866:  67%|██████▋   | 8/12 [00:00<00:00, 33.35it/s]
+evaluate for the 9-th batch, evaluate loss: 0.559506356716156:  67%|██████▋   | 8/12 [00:00<00:00, 33.35it/s] 
+evaluate for the 10-th batch, evaluate loss: 0.55096036195755:  67%|██████▋   | 8/12 [00:00<00:00, 33.35it/s]
+evaluate for the 11-th batch, evaluate loss: 0.505664587020874:  67%|██████▋   | 8/12 [00:00<00:00, 33.35it/s]
+evaluate for the 12-th batch, evaluate loss: 0.5909737348556519:  67%|██████▋   | 8/12 [00:00<00:00, 33.35it/s]
+evaluate for the 12-th batch, evaluate loss: 0.5909737348556519: 100%|██████████| 12/12 [00:00<00:00, 33.29it/s]
+                                                                                                                
+INFO:root:test loss: 0.3672
+INFO:root:test average_precision, 0.9192
+INFO:root:test roc_auc, 0.9205
+INFO:root:new node test loss: 0.5369
+INFO:root:new node test average_precision, 0.8464
+INFO:root:new node test roc_auc, 0.8418
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/reddit/TGN_time2vec_seed1
+INFO:root:Run 2 cost 16.48 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:test average_precision, [np.float64(0.9140591056152915), np.float64(0.919225634625023)]
+INFO:root:average test average_precision, 0.9166 ± 0.0037
+INFO:root:test roc_auc, [np.float64(0.9196697711379529), np.float64(0.9204650111252383)]
+INFO:root:average test roc_auc, 0.9201 ± 0.0006
+INFO:root:new node test average_precision, [np.float64(0.8318572925897496), np.float64(0.8464077841892096)]
+INFO:root:average new node test average_precision, 0.8391 ± 0.0103
+INFO:root:new node test roc_auc, [np.float64(0.8362197166435825), np.float64(0.8417834170129271)]
+INFO:root:average new node test roc_auc, 0.8390 ± 0.0039
+
+Return code: 0

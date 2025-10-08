@@ -1,0 +1,76 @@
+2025-10-08 09:37:43,024 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 09:37:43,024 - root - INFO - configuration is Namespace(dataset_name='UNvote', batch_size=200, model_name='TCL', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TCL_bochner_seed0')
+2025-10-08 09:37:43,027 - root - INFO - Metrics will be saved to: ./saved_metrics/TCL/UNvote/TCL_bochner_seed0
+2025-10-08 09:37:43,028 - root - INFO - time encoder type: bochner
+2025-10-08 09:37:43,028 - root - INFO - Time encoder will be injected into TCL model
+2025-10-08 09:37:43,593 - root - INFO - model -> Sequential(
+  (0): TCL(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (depth_embedding): Embedding(21, 172)
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=172, bias=True)
+      (edge): Linear(in_features=172, out_features=172, bias=True)
+      (time): Linear(in_features=100, out_features=172, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=172, out_features=172, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=172, out_features=688, bias=True)
+          (1): Linear(in_features=688, out_features=172, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=172, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 09:37:43,593 - root - INFO - model name: TCL, #parameters: 3537412 B, 3454.50390625 KB, 3.3735389709472656 MB.
+2025-10-08 09:37:55,043 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6654
+2025-10-08 09:37:55,043 - root - INFO - train average_precision, 0.5377
+2025-10-08 09:37:55,043 - root - INFO - train roc_auc, 0.5584
+2025-10-08 09:37:55,043 - root - INFO - validate loss: 0.6934
+2025-10-08 09:37:55,043 - root - INFO - validate average_precision, 0.5095
+2025-10-08 09:37:55,043 - root - INFO - validate roc_auc, 0.5038
+2025-10-08 09:37:55,043 - root - INFO - new node validate loss: 0.6953
+2025-10-08 09:37:55,043 - root - INFO - new node validate average_precision, 0.4583
+2025-10-08 09:37:55,043 - root - INFO - new node validate roc_auc, 0.4345
+2025-10-08 09:37:55,052 - root - INFO - save model ./saved_models/TCL/UNvote/TCL_bochner_seed0/TCL_bochner_seed0.pkl
+2025-10-08 09:38:05,653 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6710
+2025-10-08 09:38:05,654 - root - INFO - train average_precision, 0.5389
+2025-10-08 09:38:05,654 - root - INFO - train roc_auc, 0.5614
+2025-10-08 09:38:05,654 - root - INFO - validate loss: 0.6930
+2025-10-08 09:38:05,654 - root - INFO - validate average_precision, 0.5155
+2025-10-08 09:38:05,654 - root - INFO - validate roc_auc, 0.5042
+2025-10-08 09:38:05,654 - root - INFO - new node validate loss: 0.6897
+2025-10-08 09:38:05,654 - root - INFO - new node validate average_precision, 0.6109
+2025-10-08 09:38:05,654 - root - INFO - new node validate roc_auc, 0.5905
+2025-10-08 09:38:05,658 - root - INFO - save model ./saved_models/TCL/UNvote/TCL_bochner_seed0/TCL_bochner_seed0.pkl
+2025-10-08 09:38:05,694 - root - INFO - load model ./saved_models/TCL/UNvote/TCL_bochner_seed0/TCL_bochner_seed0.pkl
+2025-10-08 09:38:05,713 - root - INFO - get final performance on dataset UNvote...
+2025-10-08 09:38:08,263 - root - INFO - validate loss: 0.6930
+2025-10-08 09:38:08,264 - root - INFO - validate average_precision, 0.5155
+2025-10-08 09:38:08,264 - root - INFO - validate roc_auc, 0.5042
+2025-10-08 09:38:08,264 - root - INFO - new node validate loss: 0.6897
+2025-10-08 09:38:08,264 - root - INFO - new node validate average_precision, 0.6109
+2025-10-08 09:38:08,264 - root - INFO - new node validate roc_auc, 0.5905
+2025-10-08 09:38:08,264 - root - INFO - test loss: 0.6932
+2025-10-08 09:38:08,264 - root - INFO - test average_precision, 0.4981
+2025-10-08 09:38:08,264 - root - INFO - test roc_auc, 0.4911
+2025-10-08 09:38:08,264 - root - INFO - new node test loss: 0.6930
+2025-10-08 09:38:08,264 - root - INFO - new node test average_precision, 0.5486
+2025-10-08 09:38:08,264 - root - INFO - new node test roc_auc, 0.5440
+2025-10-08 09:38:08,273 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TCL/UNvote/TCL_bochner_seed0
+2025-10-08 09:38:08,273 - root - INFO - Run 1 cost 25.25 seconds.

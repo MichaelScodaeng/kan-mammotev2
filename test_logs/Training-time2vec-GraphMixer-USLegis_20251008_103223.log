@@ -1,0 +1,179 @@
+Command: python experiments/train_link_prediction.py --model_name GraphMixer --dataset_name USLegis --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:32:31.621198
+Test: Training-time2vec-GraphMixer-USLegis
+================================================================================
+FAILED with return code: 1
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: USLegis
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 60,396 interactions
+   Subsampled data size: 3,019 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 3019 interactions, involving 101 different nodes
+The training dataset has 3019 interactions, involving 101 different nodes
+The validation dataset has 0 interactions, involving 0 different nodes
+The test dataset has 0 interactions, involving 0 different nodes
+The new node validation dataset has 0 interactions, involving 0 different nodes
+The new node test dataset has 0 interactions, involving 0 different nodes
+0 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 3,019 edges
+   Train data: 3,019 edges (100.0%)
+   Val data: 0 edges (0.0%)
+   Test data: 0 edges (0.0%)
+   Expected batches: 16
+   ✅ All splits proportionally scaled with ratio 1.00:0.00:0.00
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/GraphMixer/USLegis/GraphMixer_time2vec_seed0
+   Train metrics: train_metrics_20251008_103228.csv
+   Val metrics: val_metrics_20251008_103228.csv
+   New node val metrics: new_node_val_metrics_20251008_103228.csv
+   Test metrics: test_metrics_20251008_103228.csv
+   New node test metrics: new_node_test_metrics_20251008_103228.csv
+   Test periodic metrics: test_periodic_metrics_20251008_103228.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_103228.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+GraphMixer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  16
+num training interactions:  3019
+batch size:  200
+num batches:  16
+num training interactions:  3019
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='USLegis', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/GraphMixer/USLegis/GraphMixer_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into GraphMixer model
+INFO:root:model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: GraphMixer, #parameters: 2570804 B, 2510.55078125 KB, 2.451709747314453 MB.
+
+  0%|          | 0/16 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/16, Loss: 0.6936:   0%|          | 0/16 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/16, Loss: 0.6936:   6%|▋         | 1/16 [00:00<00:04,  3.51it/s]
+Epoch: 1, Batch: 1/16, Loss: 0.6936:  19%|█▉        | 3/16 [00:00<00:01,  8.51it/s]
+Epoch: 1, Batch: 1/16, Loss: 0.6936:  31%|███▏      | 5/16 [00:00<00:01, 10.96it/s]
+Epoch: 1, Batch: 6/16, Loss: 0.6930:  31%|███▏      | 5/16 [00:00<00:01, 10.96it/s]
+Epoch: 1, Batch: 6/16, Loss: 0.6930:  44%|████▍     | 7/16 [00:00<00:00, 12.59it/s]
+Epoch: 1, Batch: 6/16, Loss: 0.6930:  56%|█████▋    | 9/16 [00:00<00:00, 13.83it/s]
+Epoch: 1, Batch: 11/16, Loss: 0.6934:  56%|█████▋    | 9/16 [00:00<00:00, 13.83it/s]
+Epoch: 1, Batch: 11/16, Loss: 0.6934:  69%|██████▉   | 11/16 [00:00<00:00, 15.07it/s]
+Epoch: 1, Batch: 11/16, Loss: 0.6934:  81%|████████▏ | 13/16 [00:01<00:00, 15.99it/s]
+Epoch: 1, Batch: 11/16, Loss: 0.6934:  94%|█████████▍| 15/16 [00:01<00:00, 16.01it/s]
+Epoch: 1, Batch: 16/16, Loss: 0.6935:  94%|█████████▍| 15/16 [00:01<00:00, 16.01it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6933
+INFO:root:train average_precision, 0.5043
+INFO:root:train roc_auc, 0.4977
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/GraphMixer/USLegis/GraphMixer_time2vec_seed0/GraphMixer_time2vec_seed0.pkl
+
+  0%|          | 0/16 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/16, Loss: 0.6935:   0%|          | 0/16 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/16, Loss: 0.6935:  12%|█▎        | 2/16 [00:00<00:00, 15.40it/s]
+Epoch: 2, Batch: 1/16, Loss: 0.6935:  25%|██▌       | 4/16 [00:00<00:00, 15.94it/s]
+Epoch: 2, Batch: 6/16, Loss: 0.6925:  25%|██▌       | 4/16 [00:00<00:00, 15.94it/s]
+Epoch: 2, Batch: 6/16, Loss: 0.6925:  38%|███▊      | 6/16 [00:00<00:00, 17.53it/s]
+Epoch: 2, Batch: 6/16, Loss: 0.6925:  56%|█████▋    | 9/16 [00:00<00:00, 18.98it/s]
+Epoch: 2, Batch: 11/16, Loss: 0.6928:  56%|█████▋    | 9/16 [00:00<00:00, 18.98it/s]
+Epoch: 2, Batch: 11/16, Loss: 0.6928:  69%|██████▉   | 11/16 [00:00<00:00, 18.37it/s]
+Epoch: 2, Batch: 11/16, Loss: 0.6928:  88%|████████▊ | 14/16 [00:00<00:00, 18.88it/s]
+Epoch: 2, Batch: 16/16, Loss: 0.6936:  88%|████████▊ | 14/16 [00:00<00:00, 18.88it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6932
+INFO:root:train average_precision, 0.5062
+INFO:root:train roc_auc, 0.5015
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/GraphMixer/USLegis/GraphMixer_time2vec_seed0/GraphMixer_time2vec_seed0.pkl
+INFO:root:load model ./saved_models/GraphMixer/USLegis/GraphMixer_time2vec_seed0/GraphMixer_time2vec_seed0.pkl
+INFO:root:get final performance on dataset USLegis...
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:test loss: nan
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 942, in <module>
+    for metric_name in test_metrics[0].keys():
+                       ~~~~~~~~~~~~^^^
+IndexError: list index out of range

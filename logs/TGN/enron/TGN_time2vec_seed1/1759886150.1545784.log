@@ -1,0 +1,85 @@
+2025-10-08 10:15:50,158 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 10:15:50,158 - root - INFO - configuration is Namespace(dataset_name='enron', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_time2vec_seed1')
+2025-10-08 10:15:50,159 - root - INFO - Metrics will be saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed1
+2025-10-08 10:15:50,159 - root - INFO - time encoder type: time2vec
+2025-10-08 10:15:50,159 - root - INFO - Time encoder will be injected into TGN model
+2025-10-08 10:15:50,211 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 10:15:50,211 - root - INFO - model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+2025-10-08 10:15:50,810 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6908
+2025-10-08 10:15:50,810 - root - INFO - train average_precision, 0.6404
+2025-10-08 10:15:50,810 - root - INFO - train roc_auc, 0.6328
+2025-10-08 10:15:50,811 - root - INFO - validate loss: 0.6883
+2025-10-08 10:15:50,811 - root - INFO - validate average_precision, 0.6819
+2025-10-08 10:15:50,811 - root - INFO - validate roc_auc, 0.6894
+2025-10-08 10:15:50,811 - root - INFO - new node validate loss: 0.6925
+2025-10-08 10:15:50,811 - root - INFO - new node validate average_precision, 0.5456
+2025-10-08 10:15:50,811 - root - INFO - new node validate roc_auc, 0.5499
+2025-10-08 10:15:50,820 - root - INFO - save model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+2025-10-08 10:15:51,498 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6818
+2025-10-08 10:15:51,498 - root - INFO - train average_precision, 0.7352
+2025-10-08 10:15:51,498 - root - INFO - train roc_auc, 0.7419
+2025-10-08 10:15:51,498 - root - INFO - validate loss: 0.6712
+2025-10-08 10:15:51,498 - root - INFO - validate average_precision, 0.7564
+2025-10-08 10:15:51,498 - root - INFO - validate roc_auc, 0.7459
+2025-10-08 10:15:51,498 - root - INFO - new node validate loss: 0.6989
+2025-10-08 10:15:51,498 - root - INFO - new node validate average_precision, 0.4871
+2025-10-08 10:15:51,499 - root - INFO - new node validate roc_auc, 0.4644
+2025-10-08 10:15:51,503 - root - INFO - save model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+2025-10-08 10:15:51,589 - root - INFO - load model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+2025-10-08 10:15:51,653 - root - INFO - get final performance on dataset enron...
+2025-10-08 10:15:51,741 - root - INFO - test loss: 0.6755
+2025-10-08 10:15:51,742 - root - INFO - test average_precision, 0.7079
+2025-10-08 10:15:51,742 - root - INFO - test roc_auc, 0.7319
+2025-10-08 10:15:51,742 - root - INFO - new node test loss: 0.6896
+2025-10-08 10:15:51,742 - root - INFO - new node test average_precision, 0.6090
+2025-10-08 10:15:51,742 - root - INFO - new node test roc_auc, 0.5920
+2025-10-08 10:15:51,749 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed1
+2025-10-08 10:15:51,750 - root - INFO - Run 2 cost 1.59 seconds.
+2025-10-08 10:15:51,753 - root - INFO - metrics over 2 runs:
+2025-10-08 10:15:51,753 - root - INFO - test average_precision, [np.float64(0.7274920467793567), np.float64(0.7079302819750112)]
+2025-10-08 10:15:51,753 - root - INFO - average test average_precision, 0.7177 ± 0.0138
+2025-10-08 10:15:51,753 - root - INFO - test roc_auc, [np.float64(0.7334869940606166), np.float64(0.7318945897021573)]
+2025-10-08 10:15:51,753 - root - INFO - average test roc_auc, 0.7327 ± 0.0011
+2025-10-08 10:15:51,753 - root - INFO - new node test average_precision, [np.float64(0.5563260605423552), np.float64(0.6090451715731788)]
+2025-10-08 10:15:51,753 - root - INFO - average new node test average_precision, 0.5827 ± 0.0373
+2025-10-08 10:15:51,753 - root - INFO - new node test roc_auc, [np.float64(0.5636094674556212), np.float64(0.5920118343195266)]
+2025-10-08 10:15:51,753 - root - INFO - average new node test roc_auc, 0.5778 ± 0.0201

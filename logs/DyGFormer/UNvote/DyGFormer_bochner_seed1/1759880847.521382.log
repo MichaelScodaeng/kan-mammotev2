@@ -1,0 +1,99 @@
+2025-10-08 08:47:27,524 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 08:47:27,525 - root - INFO - configuration is Namespace(dataset_name='UNvote', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=4, channel_embedding_dim=50, max_input_sequence_length=128, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_bochner_seed1')
+2025-10-08 08:47:27,526 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/UNvote/DyGFormer_bochner_seed1
+2025-10-08 08:47:27,526 - root - INFO - time encoder type: bochner
+2025-10-08 08:47:27,526 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 08:47:27,849 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=688, out_features=50, bias=True)
+      (edge): Linear(in_features=688, out_features=50, bias=True)
+      (time): Linear(in_features=400, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=200, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.2, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 08:47:27,850 - root - INFO - model name: DyGFormer, #parameters: 4644140 B, 4535.29296875 KB, 4.428997039794922 MB.
+2025-10-08 08:48:01,839 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6830
+2025-10-08 08:48:01,839 - root - INFO - train average_precision, 0.5452
+2025-10-08 08:48:01,839 - root - INFO - train roc_auc, 0.5681
+2025-10-08 08:48:01,839 - root - INFO - validate loss: 0.6933
+2025-10-08 08:48:01,839 - root - INFO - validate average_precision, 0.5187
+2025-10-08 08:48:01,840 - root - INFO - validate roc_auc, 0.5119
+2025-10-08 08:48:01,840 - root - INFO - new node validate loss: 0.6944
+2025-10-08 08:48:01,840 - root - INFO - new node validate average_precision, 0.4819
+2025-10-08 08:48:01,840 - root - INFO - new node validate roc_auc, 0.4547
+2025-10-08 08:48:01,850 - root - INFO - save model ./saved_models/DyGFormer/UNvote/DyGFormer_bochner_seed1/DyGFormer_bochner_seed1.pkl
+2025-10-08 08:48:36,225 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6703
+2025-10-08 08:48:36,226 - root - INFO - train average_precision, 0.5453
+2025-10-08 08:48:36,226 - root - INFO - train roc_auc, 0.5670
+2025-10-08 08:48:36,226 - root - INFO - validate loss: 0.6928
+2025-10-08 08:48:36,226 - root - INFO - validate average_precision, 0.5146
+2025-10-08 08:48:36,226 - root - INFO - validate roc_auc, 0.5129
+2025-10-08 08:48:36,226 - root - INFO - new node validate loss: 0.6877
+2025-10-08 08:48:36,226 - root - INFO - new node validate average_precision, 0.5752
+2025-10-08 08:48:36,226 - root - INFO - new node validate roc_auc, 0.5733
+2025-10-08 08:48:36,233 - root - INFO - load model ./saved_models/DyGFormer/UNvote/DyGFormer_bochner_seed1/DyGFormer_bochner_seed1.pkl
+2025-10-08 08:48:36,258 - root - INFO - get final performance on dataset UNvote...
+2025-10-08 08:48:47,762 - root - INFO - validate loss: 0.6933
+2025-10-08 08:48:47,763 - root - INFO - validate average_precision, 0.5187
+2025-10-08 08:48:47,763 - root - INFO - validate roc_auc, 0.5119
+2025-10-08 08:48:47,763 - root - INFO - new node validate loss: 0.6944
+2025-10-08 08:48:47,763 - root - INFO - new node validate average_precision, 0.4819
+2025-10-08 08:48:47,763 - root - INFO - new node validate roc_auc, 0.4547
+2025-10-08 08:48:47,763 - root - INFO - test loss: 0.6936
+2025-10-08 08:48:47,763 - root - INFO - test average_precision, 0.5005
+2025-10-08 08:48:47,763 - root - INFO - test roc_auc, 0.5033
+2025-10-08 08:48:47,763 - root - INFO - new node test loss: 0.6924
+2025-10-08 08:48:47,763 - root - INFO - new node test average_precision, 0.5730
+2025-10-08 08:48:47,763 - root - INFO - new node test roc_auc, 0.5724
+2025-10-08 08:48:47,773 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGFormer/UNvote/DyGFormer_bochner_seed1
+2025-10-08 08:48:47,773 - root - INFO - Run 2 cost 80.25 seconds.
+2025-10-08 08:48:47,777 - root - INFO - metrics over 2 runs:
+2025-10-08 08:48:47,777 - root - INFO - validate average_precision, [np.float64(0.5239420492303125), np.float64(0.5186589070737992)]
+2025-10-08 08:48:47,778 - root - INFO - average validate average_precision, 0.5213 ± 0.0037
+2025-10-08 08:48:47,778 - root - INFO - validate roc_auc, [np.float64(0.5208452121780085), np.float64(0.5119286103902345)]
+2025-10-08 08:48:47,778 - root - INFO - average validate roc_auc, 0.5164 ± 0.0063
+2025-10-08 08:48:47,778 - root - INFO - new node validate average_precision, [np.float64(0.666607661325752), np.float64(0.48192877168819614)]
+2025-10-08 08:48:47,778 - root - INFO - average new node validate average_precision, 0.5743 ± 0.1306
+2025-10-08 08:48:47,778 - root - INFO - new node validate roc_auc, [np.float64(0.662256930908458), np.float64(0.4547383179603202)]
+2025-10-08 08:48:47,778 - root - INFO - average new node validate roc_auc, 0.5585 ± 0.1467
+2025-10-08 08:48:47,778 - root - INFO - test average_precision, [np.float64(0.5023540285481689), np.float64(0.5004755924152008)]
+2025-10-08 08:48:47,778 - root - INFO - average test average_precision, 0.5014 ± 0.0013
+2025-10-08 08:48:47,779 - root - INFO - test roc_auc, [np.float64(0.5061751885536825), np.float64(0.5032999691905747)]
+2025-10-08 08:48:47,779 - root - INFO - average test roc_auc, 0.5047 ± 0.0020
+2025-10-08 08:48:47,779 - root - INFO - new node test average_precision, [np.float64(0.5705574397738788), np.float64(0.5730400951700447)]
+2025-10-08 08:48:47,779 - root - INFO - average new node test average_precision, 0.5718 ± 0.0018
+2025-10-08 08:48:47,779 - root - INFO - new node test roc_auc, [np.float64(0.5760272856404959), np.float64(0.5723596306818182)]
+2025-10-08 08:48:47,779 - root - INFO - average new node test roc_auc, 0.5742 ± 0.0026

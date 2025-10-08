@@ -1,0 +1,432 @@
+Command: python experiments/train_link_prediction.py --model_name GraphMixer --dataset_name enron --time_encoder_type lete --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T12:04:38.735070
+Test: Training-lete-GraphMixer-enron
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: lete
+   Dataset: enron
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 125,235 interactions
+   Subsampled data size: 6,261 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 6261 interactions, involving 87 different nodes
+The training dataset has 3663 interactions, involving 63 different nodes
+The validation dataset has 965 interactions, involving 53 different nodes
+The test dataset has 907 interactions, involving 62 different nodes
+The new node validation dataset has 155 interactions, involving 23 different nodes
+The new node test dataset has 130 interactions, involving 30 different nodes
+8 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 6,261 edges
+   Train data: 3,663 edges (58.5%)
+   Val data: 965 edges (15.4%)
+   Test data: 907 edges (14.5%)
+   Expected batches: 19
+   ✅ All splits proportionally scaled with ratio 0.59:0.15:0.14
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed0
+   Train metrics: train_metrics_20251008_120431.csv
+   Val metrics: val_metrics_20251008_120431.csv
+   New node val metrics: new_node_val_metrics_20251008_120431.csv
+   Test metrics: test_metrics_20251008_120431.csv
+   New node test metrics: new_node_test_metrics_20251008_120431.csv
+   Test periodic metrics: test_periodic_metrics_20251008_120431.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_120431.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: lete
+INFO: Creating LeTE Time Encoder.
+Time Embedding dim: 100
+GraphMixer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed1
+   Train metrics: train_metrics_20251008_120435.csv
+   Val metrics: val_metrics_20251008_120435.csv
+   New node val metrics: new_node_val_metrics_20251008_120435.csv
+   Test metrics: test_metrics_20251008_120435.csv
+   New node test metrics: new_node_test_metrics_20251008_120435.csv
+   Test periodic metrics: test_periodic_metrics_20251008_120435.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_120435.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: lete
+INFO: Creating LeTE Time Encoder.
+Time Embedding dim: 100
+GraphMixer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.5, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_lete_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed0
+INFO:root:time encoder type: lete
+INFO:root:Time encoder will be injected into GraphMixer model
+INFO:root:model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: GraphMixer, #parameters: 2575676 B, 2515.30859375 KB, 2.4563560485839844 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6931:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6931:   5%|▌         | 1/19 [00:00<00:05,  3.23it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6931:  16%|█▌        | 3/19 [00:00<00:01,  8.43it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6931:  26%|██▋       | 5/19 [00:00<00:01, 10.96it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6790:  26%|██▋       | 5/19 [00:00<00:01, 10.96it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6790:  37%|███▋      | 7/19 [00:00<00:00, 13.47it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6790:  53%|█████▎    | 10/19 [00:00<00:00, 16.12it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6655:  53%|█████▎    | 10/19 [00:00<00:00, 16.12it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6655:  68%|██████▊   | 13/19 [00:00<00:00, 17.75it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6702:  68%|██████▊   | 13/19 [00:01<00:00, 17.75it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6702:  84%|████████▍ | 16/19 [00:01<00:00, 18.78it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6612:  84%|████████▍ | 16/19 [00:01<00:00, 18.78it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6612: 100%|██████████| 19/19 [00:01<00:00, 20.24it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6272028684616089:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6113412976264954:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6291195154190063:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6310750842094421:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6310750842094421:  80%|████████  | 4/5 [00:00<00:00, 33.65it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6347070932388306:  80%|████████  | 4/5 [00:00<00:00, 33.65it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6881669759750366:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6734
+INFO:root:train average_precision, 0.7729
+INFO:root:train roc_auc, 0.8012
+INFO:root:validate loss: 0.6267
+INFO:root:validate average_precision, 0.8087
+INFO:root:validate roc_auc, 0.8325
+INFO:root:new node validate loss: 0.6882
+INFO:root:new node validate average_precision, 0.5825
+INFO:root:new node validate roc_auc, 0.5938
+INFO:root:save model ./saved_models/GraphMixer/enron/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6488:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6488:  11%|█         | 2/19 [00:00<00:00, 19.55it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6488:  26%|██▋       | 5/19 [00:00<00:00, 20.80it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.5433:  26%|██▋       | 5/19 [00:00<00:00, 20.80it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.5433:  42%|████▏     | 8/19 [00:00<00:00, 21.13it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5251:  42%|████▏     | 8/19 [00:00<00:00, 21.13it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5251:  58%|█████▊    | 11/19 [00:00<00:00, 21.26it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5251:  74%|███████▎  | 14/19 [00:00<00:00, 21.19it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6224:  74%|███████▎  | 14/19 [00:00<00:00, 21.19it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6224:  89%|████████▉ | 17/19 [00:00<00:00, 21.34it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.5770:  89%|████████▉ | 17/19 [00:00<00:00, 21.34it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.5205127596855164:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.45508524775505066:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5355650186538696:   0%|          | 0/5 [00:00<?, ?it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.5283859968185425:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5283859968185425:  80%|████████  | 4/5 [00:00<00:00, 34.33it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5293115377426147:  80%|████████  | 4/5 [00:00<00:00, 34.33it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.8395023345947266:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.5795
+INFO:root:train average_precision, 0.8245
+INFO:root:train roc_auc, 0.8538
+INFO:root:validate loss: 0.5138
+INFO:root:validate average_precision, 0.8001
+INFO:root:validate roc_auc, 0.8341
+INFO:root:new node validate loss: 0.8395
+INFO:root:new node validate average_precision, 0.5618
+INFO:root:new node validate roc_auc, 0.5902
+INFO:root:load model ./saved_models/GraphMixer/enron/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6272028684616089:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6113412976264954:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6291195154190063:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6310750842094421:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6310750842094421:  80%|████████  | 4/5 [00:00<00:00, 35.21it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6347070932388306:  80%|████████  | 4/5 [00:00<00:00, 35.21it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6881669759750366:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6328205466270447:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6378002762794495:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6557483673095703:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6419941782951355:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6419941782951355:  80%|████████  | 4/5 [00:00<00:00, 35.91it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6482952237129211:  80%|████████  | 4/5 [00:00<00:00, 35.91it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6839210391044617:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:validate loss: 0.6267
+INFO:root:validate average_precision, 0.8087
+INFO:root:validate roc_auc, 0.8325
+INFO:root:new node validate loss: 0.6882
+INFO:root:new node validate average_precision, 0.5825
+INFO:root:new node validate roc_auc, 0.5938
+INFO:root:test loss: 0.6433
+INFO:root:test average_precision, 0.7694
+INFO:root:test roc_auc, 0.7764
+INFO:root:new node test loss: 0.6839
+INFO:root:new node test average_precision, 0.5295
+INFO:root:new node test roc_auc, 0.5662
+INFO:root:✅ Metrics saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed0
+INFO:root:Run 1 cost 3.71 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.5, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_lete_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed1
+INFO:root:time encoder type: lete
+INFO:root:Time encoder will be injected into GraphMixer model
+INFO:root:model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: GraphMixer, #parameters: 2575676 B, 2515.30859375 KB, 2.4563560485839844 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6946:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6946:  16%|█▌        | 3/19 [00:00<00:00, 20.83it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6817:  16%|█▌        | 3/19 [00:00<00:00, 20.83it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6817:  32%|███▏      | 6/19 [00:00<00:00, 21.79it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6817:  47%|████▋     | 9/19 [00:00<00:00, 21.71it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6694:  47%|████▋     | 9/19 [00:00<00:00, 21.71it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6694:  63%|██████▎   | 12/19 [00:00<00:00, 21.55it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6694:  79%|███████▉  | 15/19 [00:00<00:00, 21.37it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6758:  79%|███████▉  | 15/19 [00:00<00:00, 21.37it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6758:  95%|█████████▍| 18/19 [00:00<00:00, 21.62it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6649:  95%|█████████▍| 18/19 [00:00<00:00, 21.62it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.627781331539154:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6128249168395996:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6361128091812134:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6340488791465759:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6340488791465759:  80%|████████  | 4/5 [00:00<00:00, 35.34it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6508985161781311:  80%|████████  | 4/5 [00:00<00:00, 35.34it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6954841017723083:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6774
+INFO:root:train average_precision, 0.7525
+INFO:root:train roc_auc, 0.7708
+INFO:root:validate loss: 0.6323
+INFO:root:validate average_precision, 0.7654
+INFO:root:validate roc_auc, 0.7984
+INFO:root:new node validate loss: 0.6955
+INFO:root:new node validate average_precision, 0.5227
+INFO:root:new node validate roc_auc, 0.5342
+INFO:root:save model ./saved_models/GraphMixer/enron/GraphMixer_lete_seed1/GraphMixer_lete_seed1.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6660:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6660:  11%|█         | 2/19 [00:00<00:00, 19.80it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6660:  26%|██▋       | 5/19 [00:00<00:00, 21.04it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.5819:  26%|██▋       | 5/19 [00:00<00:00, 21.04it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.5819:  42%|████▏     | 8/19 [00:00<00:00, 21.04it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5405:  42%|████▏     | 8/19 [00:00<00:00, 21.04it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5405:  58%|█████▊    | 11/19 [00:00<00:00, 20.97it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.5405:  74%|███████▎  | 14/19 [00:00<00:00, 21.22it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6180:  74%|███████▎  | 14/19 [00:00<00:00, 21.22it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6180:  89%|████████▉ | 17/19 [00:00<00:00, 21.56it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.5890:  89%|████████▉ | 17/19 [00:00<00:00, 21.56it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.4816015660762787:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.4540960192680359:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5039307475090027:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5194202661514282:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5194202661514282:  80%|████████  | 4/5 [00:00<00:00, 35.24it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5752220153808594:  80%|████████  | 4/5 [00:00<00:00, 35.24it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.7899124026298523:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.5980
+INFO:root:train average_precision, 0.8161
+INFO:root:train roc_auc, 0.8428
+INFO:root:validate loss: 0.5069
+INFO:root:validate average_precision, 0.7891
+INFO:root:validate roc_auc, 0.8298
+INFO:root:new node validate loss: 0.7899
+INFO:root:new node validate average_precision, 0.5775
+INFO:root:new node validate roc_auc, 0.6198
+INFO:root:save model ./saved_models/GraphMixer/enron/GraphMixer_lete_seed1/GraphMixer_lete_seed1.pkl
+INFO:root:load model ./saved_models/GraphMixer/enron/GraphMixer_lete_seed1/GraphMixer_lete_seed1.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.4816015660762787:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.4540960192680359:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5039307475090027:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5194202661514282:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5194202661514282:  80%|████████  | 4/5 [00:00<00:00, 35.65it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5752220153808594:  80%|████████  | 4/5 [00:00<00:00, 35.65it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.7899124026298523:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.5694212317466736:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.539916455745697:   0%|          | 0/5 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.6271300911903381:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5911993980407715:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.5911993980407715:  80%|████████  | 4/5 [00:00<00:00, 31.67it/s]
+evaluate for the 5-th batch, evaluate loss: 0.5660601258277893:  80%|████████  | 4/5 [00:00<00:00, 31.67it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.8105837106704712:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:validate loss: 0.5069
+INFO:root:validate average_precision, 0.7891
+INFO:root:validate roc_auc, 0.8298
+INFO:root:new node validate loss: 0.7899
+INFO:root:new node validate average_precision, 0.5775
+INFO:root:new node validate roc_auc, 0.6198
+INFO:root:test loss: 0.5787
+INFO:root:test average_precision, 0.7668
+INFO:root:test roc_auc, 0.7734
+INFO:root:new node test loss: 0.8106
+INFO:root:new node test average_precision, 0.5993
+INFO:root:new node test roc_auc, 0.5854
+INFO:root:✅ Metrics saved to: ./saved_metrics/GraphMixer/enron/GraphMixer_lete_seed1
+INFO:root:Run 2 cost 2.55 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:validate average_precision, [np.float64(0.8086897969362387), np.float64(0.7890829607647006)]
+INFO:root:average validate average_precision, 0.7989 ± 0.0139
+INFO:root:validate roc_auc, [np.float64(0.8324663842975207), np.float64(0.829835622130395)]
+INFO:root:average validate roc_auc, 0.8312 ± 0.0019
+INFO:root:new node validate average_precision, [np.float64(0.5824836969180021), np.float64(0.5775127098060888)]
+INFO:root:average new node validate average_precision, 0.5800 ± 0.0035
+INFO:root:new node validate roc_auc, [np.float64(0.5938397502601458), np.float64(0.6198126951092611)]
+INFO:root:average new node validate roc_auc, 0.6068 ± 0.0184
+INFO:root:test average_precision, [np.float64(0.7693637196101601), np.float64(0.7668444167862736)]
+INFO:root:average test average_precision, 0.7681 ± 0.0018
+INFO:root:test roc_auc, [np.float64(0.7764156884880775), np.float64(0.7734478236090488)]
+INFO:root:average test roc_auc, 0.7749 ± 0.0021
+INFO:root:new node test average_precision, [np.float64(0.5295266833698022), np.float64(0.5992844509785192)]
+INFO:root:average new node test average_precision, 0.5644 ± 0.0493
+INFO:root:new node test roc_auc, [np.float64(0.5661538461538461), np.float64(0.5854437869822485)]
+INFO:root:average new node test roc_auc, 0.5758 ± 0.0136
+
+Return code: 0

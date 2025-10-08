@@ -12,6 +12,9 @@ Features:
 - Proper file organization to avoid conflicts
 - HPC parallel execution support
 - Organized log files by encoder type and timestamp
+- Robust failure handling with retry logic
+- Force restart capabilities for failed experiments
+- Artifact cleanup and validation
 
 Usage Examples:
   # Run experiments for a specific encoder
@@ -30,6 +33,22 @@ Usage Examples:
   # Dry run (show commands without executing)
   python experiment_unified.py --single_encoder original --dry_run --models TGAT --datasets wikipedia
 
+Failure Handling Examples:
+  # Force restart all incomplete/failed experiments from scratch
+  python experiment_unified.py --single_encoder kan_mammote --force_restart
+
+  # Force restart specific failed combinations
+  python experiment_unified.py --single_encoder original --force_restart_combinations kan_mammote_TGAT_wikipedia
+
+  # Automatically retry failed experiments (up to 2 retries)
+  python experiment_unified.py --single_encoder lete --retry_failed
+
+  # More aggressive retry (up to 3 retries)
+  python experiment_unified.py --single_encoder original --retry_failed --max_retries 3
+
+  # Clear all failed experiments and start fresh
+  python experiment_unified.py --single_encoder time2vec --clear_failed
+
 HPC Parallel Execution:
   # Submit separate jobs for each time encoder
   qsub -v TIME_ENCODER=kan_mammote job_script.sh
@@ -38,7 +57,7 @@ HPC Parallel Execution:
   # etc.
   
   # In job_script.sh:
-  python experiment_unified.py --single_encoder $TIME_ENCODER
+  python experiment_unified.py --single_encoder $TIME_ENCODER --retry_failed
 """
 
 import subprocess
@@ -52,9 +71,10 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TGAT', 'JODIE', 'TGN', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'TCL']  # 'CAWN', 'DyRep'
-datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci']
-time_encoders = ['original', 'lete', 'kan_mammote', 'kan_mammote_lite', 'mercer', 'bochner', 'time2vec']
+models = ['TGAT', 'JODIE', 'TGN', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'TCL', 'DyRep']  # 'CAWN'
+datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci', 
+            'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
+time_encoders = ['original', 'lete', 'kan_mammote_dual_kmote','mercer', 'bochner', 'time2vec']
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -79,6 +99,18 @@ def parse_arguments():
                         help='Print commands without executing them')
     parser.add_argument('--num_epochs', type=int, default=None,
                         help='Override number of training epochs; if omitted, uses best-config default')
+    
+    # Add failure handling arguments
+    parser.add_argument('--force_restart', action='store_true',
+                        help='Force restart of incomplete/failed experiments from scratch (ignores checkpoints)')
+    parser.add_argument('--force_restart_combinations', nargs='+',
+                        help='Force restart specific combinations (format: encoder_model_dataset)')
+    parser.add_argument('--clear_failed', action='store_true',
+                        help='Clear all failed experiment status and restart from scratch')
+    parser.add_argument('--retry_failed', action='store_true',
+                        help='Automatically retry failed experiments (no checkpoints, fresh start)')
+    parser.add_argument('--max_retries', type=int, default=2,
+                        help='Maximum number of retries for failed experiments (default: 2)')
     
     return parser.parse_args()
 
@@ -238,6 +270,160 @@ def mark_experiment_incomplete(combo_key, time_encoder):
             f.write(f'{combo_key}_incomplete\n')
     except OSError as e:
         print(f"Warning: Could not update legacy log file: {e}")
+
+def clear_experiment_artifacts(model_name, dataset_name, time_encoder_type, seed=None):
+    """Clear all artifacts for a specific experiment combination"""
+    import shutil
+    
+    print(f"🧹 Clearing artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
+    
+    try:
+        # Clear model files
+        if seed is not None:
+            model_pattern = f"./saved_models/{model_name}/{dataset_name}/*{time_encoder_type}*seed{seed}"
+        else:
+            model_pattern = f"./saved_models/{model_name}/{dataset_name}/*{time_encoder_type}*"
+        
+        model_dirs = glob.glob(model_pattern)
+        for model_dir in model_dirs:
+            if os.path.exists(model_dir):
+                shutil.rmtree(model_dir, ignore_errors=True)
+                print(f"   Removed: {model_dir}")
+        
+        # Clear result files
+        if seed is not None:
+            result_pattern = f"./saved_results/{model_name}/{dataset_name}/*{time_encoder_type}*seed{seed}*"
+        else:
+            result_pattern = f"./saved_results/{model_name}/{dataset_name}/*{time_encoder_type}*"
+        
+        result_files = glob.glob(result_pattern)
+        for result_file in result_files:
+            if os.path.exists(result_file):
+                os.remove(result_file)
+                print(f"   Removed: {result_file}")
+        
+        # Clear log files
+        log_pattern = f"./logs/{model_name}/{dataset_name}/*{time_encoder_type}*"
+        log_dirs = glob.glob(log_pattern)
+        for log_dir in log_dirs:
+            if os.path.exists(log_dir):
+                shutil.rmtree(log_dir, ignore_errors=True)
+                print(f"   Removed: {log_dir}")
+        
+        print(f"✅ Cleared artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error clearing artifacts: {e}")
+        return False
+
+def mark_experiment_for_fresh_restart(model_name, dataset_name, time_encoder_type, time_encoder):
+    """Mark an experiment to be restarted from scratch (remove from status tracking)"""
+    try:
+        completed, incomplete, seed_progress = get_experiment_status(time_encoder)
+        combo_key = create_experiment_key(model_name, dataset_name, time_encoder_type)
+        
+        # Remove from all tracking
+        if combo_key in completed:
+            completed.remove(combo_key)
+        if combo_key in incomplete:
+            incomplete.remove(combo_key)
+        if combo_key in seed_progress:
+            del seed_progress[combo_key]
+        
+        # Save updated status
+        save_experiment_status(completed, incomplete, time_encoder, seed_progress)
+        
+        print(f"🔄 Marked for fresh restart: {combo_key}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error updating experiment status: {e}")
+        return False
+
+def verify_training_success(model_name, dataset_name, time_encoder_type, num_runs):
+    """Verify that training actually produced valid model files for all runs"""
+    
+    for run in range(num_runs):
+        # Check for model file
+        model_pattern = f"./saved_models/{model_name}/{dataset_name}/*{time_encoder_type}*seed{run}/*.pth"
+        model_files = glob.glob(model_pattern)
+        
+        if not model_files:
+            print(f"❌ No model file found for run {run}")
+            return False
+        
+        # Verify model file can be loaded
+        try:
+            import torch
+            torch.load(model_files[0], map_location='cpu')
+        except Exception as e:
+            print(f"❌ Model file corrupted for run {run}: {e}")
+            return False
+    
+    return True
+
+def run_experiment_with_retry(model, dataset, time_encoder_name, combo_key, command, 
+                             args, time_encoder, max_retries=2):
+    """Run experiment with retry logic for failed attempts"""
+    
+    for attempt in range(max_retries + 1):  # 0, 1, 2 (total 3 attempts)
+        if attempt > 0:
+            print(f"\n🔄 Retry attempt {attempt}/{max_retries} for {combo_key}")
+            
+            # Clear artifacts from previous failed attempt
+            clear_experiment_artifacts(model, dataset, time_encoder_name)
+            
+            # Remove from status tracking to force fresh start
+            mark_experiment_for_fresh_restart(model, dataset, time_encoder_name, time_encoder)
+            
+            # Wait a bit between retries
+            time.sleep(5)
+        
+        try:
+            print(f"🚀 Running: {' '.join(command)}")
+            
+            # Run the training
+            result = subprocess.run(command, check=True, capture_output=False, text=True, 
+                                  timeout=args.timeout_hours * 3600 if args.timeout_hours else None)
+            
+            # Verify that training actually succeeded
+            if verify_training_success(model, dataset, time_encoder_name, args.num_runs):
+                print(f"✅ Training succeeded for {combo_key} (attempt {attempt + 1})")
+                return True
+            else:
+                if attempt < max_retries:
+                    print(f"⚠️  Training appeared to complete but no valid models found (attempt {attempt + 1})")
+                    continue
+                else:
+                    print(f"❌ Training failed - no valid models after {max_retries + 1} attempts")
+                    return False
+                    
+        except subprocess.CalledProcessError as e:
+            if attempt < max_retries:
+                print(f"⚠️  Training failed with exit code {e.returncode} (attempt {attempt + 1})")
+                continue
+            else:
+                print(f"❌ Training failed after {max_retries + 1} attempts with exit code {e.returncode}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            if attempt < max_retries:
+                print(f"⚠️  Training timeout (attempt {attempt + 1})")
+                continue
+            else:
+                print(f"❌ Training timeout after {max_retries + 1} attempts")
+                return False
+                
+        except Exception as e:
+            if attempt < max_retries:
+                print(f"⚠️  Unexpected error (attempt {attempt + 1}): {e}")
+                continue
+            else:
+                print(f"❌ Unexpected error after {max_retries + 1} attempts: {e}")
+                return False
+    
+    return False
 
 def mark_experiment_complete(combo_key, time_encoder):
     """Mark experiment as complete and remove incomplete marker"""
@@ -414,6 +600,38 @@ def check_training_completion(model_name, dataset_name, time_encoder_type):
 def create_experiment_key(model, dataset, time_encoder):
     """Create a unique key for the experiment combination"""
     return f'{time_encoder}_{model}_{dataset}'
+
+def build_training_command(model, dataset, time_encoder_name, args, 
+                          resume_checkpoint=None, start_seed=0):
+    """Build training command with appropriate arguments"""
+    command = [
+        'python', 'experiments/train_link_prediction.py',
+        '--model_name', model,
+        '--dataset_name', dataset,
+        '--time_encoder_type', time_encoder_name,
+        '--num_runs', str(args.num_runs),
+        '--load_best_configs', True,
+        '--save_checkpoints',
+        '--checkpoint_strategy', 'smart',
+        '--max_checkpoints_to_keep', '3',
+        '--validate_checkpoints'
+    ]
+    
+    if args.num_epochs is not None:
+        command.extend(['--num_epochs', str(args.num_epochs)])
+    
+    if resume_checkpoint:
+        command.extend(['--resume_from_checkpoint', resume_checkpoint])
+    
+    if start_seed > 0:
+        command.extend(['--start_from_seed', str(start_seed)])
+    
+    # Add encoder-specific arguments
+    encoder_args = get_time_encoder_args(time_encoder_name)
+    if encoder_args:
+        command.extend(encoder_args.split())
+    
+    return command
 
 def get_time_encoder_args(time_encoder):
     """Get encoder-specific command-line arguments"""
@@ -596,12 +814,26 @@ if __name__ == "__main__":
     for i, (model, dataset, time_encoder_name, combo_key) in enumerate(experiments_to_run, 1):
         print(f"\n[{i}/{len(experiments_to_run)}] Processing: {combo_key}")
         
+        # Check if this combination should be force restarted
+        force_restart_this = (
+            args.force_restart or 
+            args.clear_failed or
+            (args.force_restart_combinations and combo_key in args.force_restart_combinations)
+        )
+        
+        if force_restart_this:
+            print(f"🔄 Force restart requested for {combo_key}")
+            clear_experiment_artifacts(model, dataset, time_encoder_name)
+            mark_experiment_for_fresh_restart(model, dataset, time_encoder_name, time_encoder)
+            # Refresh status after clearing
+            completed, incomplete, seed_progress = get_experiment_status(time_encoder)
+        
         # Check seed-level progress for smart resuming
         checkpoint_file = None
         resume_from_checkpoint = False
         start_from_seed = 0
         
-        if combo_key in seed_progress:
+        if combo_key in seed_progress and not force_restart_this:
             progress = seed_progress[combo_key]
             completed_seeds = progress.get('completed_seeds', [])
             last_incomplete_seed = progress.get('last_incomplete_seed', None)
@@ -632,7 +864,7 @@ if __name__ == "__main__":
                 else:
                     print(f"✅ All seeds completed for {combo_key}")
                     continue
-        elif combo_key in incomplete:
+        elif combo_key in incomplete and not force_restart_this:
             # Legacy incomplete detection - try to find any checkpoint
             checkpoint_file = find_checkpoint_file(model, dataset, time_encoder_name)
             if checkpoint_file:
@@ -651,7 +883,7 @@ if __name__ == "__main__":
             '--num_runs', str(args.num_runs),
             '--load_best_configs',
             '--save_checkpoints',  # Enable checkpoint saving
-            '--can you write a script to test that the resume check point works properly? Or how can we test it? especially that it resume at correct seed', 'smart',  # Use smart checkpointing
+            '--checkpoint_strategy', 'smart',  # Use smart checkpointing
             '--max_checkpoints_to_keep', '3',  # Keep last 3 checkpoints
             '--validate_checkpoints'  # Enable checkpoint validation
         ]
@@ -693,40 +925,54 @@ if __name__ == "__main__":
         if combo_key not in incomplete:
             mark_experiment_incomplete(combo_key, time_encoder)
         
-        try:
-            # Run the command with timeout
-            start_time = time.time()
-            timeout_seconds = int(args.timeout_hours * 3600)
-            result = subprocess.run(command, text=True, check=True, timeout=timeout_seconds)
-            end_time = time.time()
-            
-            # Check if training actually completed
-            if check_training_completion(model, dataset, time_encoder_name):
-                duration = end_time - start_time
-                print("-" * 80)
+        # Run the experiment (with retry if enabled)
+        if args.retry_failed:
+            success = run_experiment_with_retry(
+                model, dataset, time_encoder_name, combo_key, command, 
+                args, time_encoder, max_retries=args.max_retries
+            )
+            if success:
                 print(f"✅ Successfully completed: {combo_key}")
-                print(f"   Duration: {duration/3600:.2f} hours")
                 mark_experiment_complete(combo_key, time_encoder)
             else:
-                print("-" * 80)
-                print(f"⚠️  Training finished but no results found: {combo_key}")
+                print(f"❌ Failed after all retry attempts: {combo_key}")
+                # Leave as incomplete for potential manual investigation
+        else:
+            # Original single-attempt logic
+            try:
+                # Run the command with timeout
+                start_time = time.time()
+                timeout_seconds = int(args.timeout_hours * 3600)
+                result = subprocess.run(command, text=True, check=True, timeout=timeout_seconds)
+                end_time = time.time()
                 
-        except subprocess.TimeoutExpired:
-            print("-" * 80)
-            print(f"⏰ Training timeout ({args.timeout_hours}h) for: {combo_key}")
-            print("   Experiment marked as incomplete for future resuming")
-            
-        except subprocess.CalledProcessError as e:
-            print("-" * 80)
-            print(f"❌ Error occurred while running: {combo_key}")
-            print(f"Return code: {e.returncode}")
-            
-        except KeyboardInterrupt:
-            print(f"\n⏹️  Interrupted by user. Last attempted: {combo_key}")
-            break
-            
-        except Exception as e:
-            print(f"❌ Unexpected error for {combo_key}: {e}")
+                # Check if training actually completed
+                if check_training_completion(model, dataset, time_encoder_name):
+                    duration = end_time - start_time
+                    print("-" * 80)
+                    print(f"✅ Successfully completed: {combo_key}")
+                    print(f"   Duration: {duration/3600:.2f} hours")
+                    mark_experiment_complete(combo_key, time_encoder)
+                else:
+                    print("-" * 80)
+                    print(f"⚠️  Training finished but no results found: {combo_key}")
+                    
+            except subprocess.TimeoutExpired:
+                print("-" * 80)
+                print(f"⏰ Training timeout ({args.timeout_hours}h) for: {combo_key}")
+                print("   Experiment marked as incomplete for future resuming")
+                
+            except subprocess.CalledProcessError as e:
+                print("-" * 80)
+                print(f"❌ Error occurred while running: {combo_key}")
+                print(f"Return code: {e.returncode}")
+                
+            except KeyboardInterrupt:
+                print(f"\n⏹️  Interrupted by user. Last attempted: {combo_key}")
+                break
+                
+            except Exception as e:
+                print(f"❌ Unexpected error for {combo_key}: {e}")
         
         # Print updated summary after each experiment
         completed, incomplete, seed_progress = get_experiment_status(time_encoder)

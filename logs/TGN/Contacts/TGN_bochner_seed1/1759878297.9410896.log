@@ -1,0 +1,85 @@
+2025-10-08 08:04:57,944 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 08:04:57,944 - root - INFO - configuration is Namespace(dataset_name='Contacts', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_bochner_seed1')
+2025-10-08 08:04:57,946 - root - INFO - Metrics will be saved to: ./saved_metrics/TGN/Contacts/TGN_bochner_seed1
+2025-10-08 08:04:57,946 - root - INFO - time encoder type: bochner
+2025-10-08 08:04:57,946 - root - INFO - Time encoder will be injected into TGN model
+2025-10-08 08:04:58,786 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 08:04:58,786 - root - INFO - model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+2025-10-08 08:05:09,572 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.4461
+2025-10-08 08:05:09,572 - root - INFO - train average_precision, 0.8003
+2025-10-08 08:05:09,572 - root - INFO - train roc_auc, 0.8592
+2025-10-08 08:05:09,573 - root - INFO - validate loss: 0.4564
+2025-10-08 08:05:09,573 - root - INFO - validate average_precision, 0.8053
+2025-10-08 08:05:09,573 - root - INFO - validate roc_auc, 0.8488
+2025-10-08 08:05:09,573 - root - INFO - new node validate loss: 0.7037
+2025-10-08 08:05:09,573 - root - INFO - new node validate average_precision, 0.5926
+2025-10-08 08:05:09,573 - root - INFO - new node validate roc_auc, 0.6569
+2025-10-08 08:05:09,584 - root - INFO - save model ./saved_models/TGN/Contacts/TGN_bochner_seed1/TGN_bochner_seed1.pkl
+2025-10-08 08:05:21,192 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.3850
+2025-10-08 08:05:21,193 - root - INFO - train average_precision, 0.8514
+2025-10-08 08:05:21,193 - root - INFO - train roc_auc, 0.8888
+2025-10-08 08:05:21,193 - root - INFO - validate loss: 0.4346
+2025-10-08 08:05:21,193 - root - INFO - validate average_precision, 0.8265
+2025-10-08 08:05:21,193 - root - INFO - validate roc_auc, 0.8691
+2025-10-08 08:05:21,193 - root - INFO - new node validate loss: 0.7296
+2025-10-08 08:05:21,193 - root - INFO - new node validate average_precision, 0.5850
+2025-10-08 08:05:21,193 - root - INFO - new node validate roc_auc, 0.6362
+2025-10-08 08:05:21,199 - root - INFO - save model ./saved_models/TGN/Contacts/TGN_bochner_seed1/TGN_bochner_seed1.pkl
+2025-10-08 08:05:21,321 - root - INFO - load model ./saved_models/TGN/Contacts/TGN_bochner_seed1/TGN_bochner_seed1.pkl
+2025-10-08 08:05:21,419 - root - INFO - get final performance on dataset Contacts...
+2025-10-08 08:05:23,082 - root - INFO - test loss: 0.5017
+2025-10-08 08:05:23,082 - root - INFO - test average_precision, 0.8147
+2025-10-08 08:05:23,082 - root - INFO - test roc_auc, 0.8493
+2025-10-08 08:05:23,082 - root - INFO - new node test loss: 0.5809
+2025-10-08 08:05:23,083 - root - INFO - new node test average_precision, 0.7348
+2025-10-08 08:05:23,083 - root - INFO - new node test roc_auc, 0.7765
+2025-10-08 08:05:23,092 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGN/Contacts/TGN_bochner_seed1
+2025-10-08 08:05:23,092 - root - INFO - Run 2 cost 25.15 seconds.
+2025-10-08 08:05:23,096 - root - INFO - metrics over 2 runs:
+2025-10-08 08:05:23,096 - root - INFO - test average_precision, [np.float64(0.7984951236099558), np.float64(0.8146764766256084)]
+2025-10-08 08:05:23,097 - root - INFO - average test average_precision, 0.8066 ± 0.0114
+2025-10-08 08:05:23,097 - root - INFO - test roc_auc, [np.float64(0.8335555315608412), np.float64(0.8492906156848965)]
+2025-10-08 08:05:23,097 - root - INFO - average test roc_auc, 0.8414 ± 0.0111
+2025-10-08 08:05:23,097 - root - INFO - new node test average_precision, [np.float64(0.7423245165132323), np.float64(0.7348084929797989)]
+2025-10-08 08:05:23,097 - root - INFO - average new node test average_precision, 0.7386 ± 0.0053
+2025-10-08 08:05:23,097 - root - INFO - new node test roc_auc, [np.float64(0.7869101791286315), np.float64(0.7765487899005756)]
+2025-10-08 08:05:23,097 - root - INFO - average new node test roc_auc, 0.7817 ± 0.0073

@@ -1,0 +1,78 @@
+2025-10-08 10:59:20,150 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 10:59:20,150 - root - INFO - configuration is Namespace(dataset_name='UNtrade', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=8, channel_embedding_dim=50, max_input_sequence_length=256, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed0')
+2025-10-08 10:59:20,152 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/UNtrade/DyGFormer_time2vec_seed0
+2025-10-08 10:59:20,152 - root - INFO - time encoder type: time2vec
+2025-10-08 10:59:20,152 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 10:59:20,497 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=1376, out_features=50, bias=True)
+      (edge): Linear(in_features=1376, out_features=50, bias=True)
+      (time): Linear(in_features=800, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=400, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 10:59:20,497 - root - INFO - model name: DyGFormer, #parameters: 5039740 B, 4921.62109375 KB, 4.806270599365234 MB.
+2025-10-08 10:59:40,705 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 25.3095
+2025-10-08 10:59:40,705 - root - INFO - train average_precision, 0.5005
+2025-10-08 10:59:40,705 - root - INFO - train roc_auc, 0.5009
+2025-10-08 10:59:40,705 - root - INFO - validate loss: 50.0000
+2025-10-08 10:59:40,706 - root - INFO - validate average_precision, 0.5000
+2025-10-08 10:59:40,706 - root - INFO - validate roc_auc, 0.5000
+2025-10-08 10:59:40,706 - root - INFO - new node validate loss: 50.0000
+2025-10-08 10:59:40,706 - root - INFO - new node validate average_precision, 0.5000
+2025-10-08 10:59:40,706 - root - INFO - new node validate roc_auc, 0.5000
+2025-10-08 10:59:40,714 - root - INFO - save model ./saved_models/DyGFormer/UNtrade/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+2025-10-08 10:59:59,922 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 25.3092
+2025-10-08 10:59:59,922 - root - INFO - train average_precision, 0.5006
+2025-10-08 10:59:59,922 - root - INFO - train roc_auc, 0.5012
+2025-10-08 10:59:59,922 - root - INFO - validate loss: 50.0000
+2025-10-08 10:59:59,923 - root - INFO - validate average_precision, 0.5000
+2025-10-08 10:59:59,923 - root - INFO - validate roc_auc, 0.5000
+2025-10-08 10:59:59,923 - root - INFO - new node validate loss: 50.0000
+2025-10-08 10:59:59,923 - root - INFO - new node validate average_precision, 0.5000
+2025-10-08 10:59:59,923 - root - INFO - new node validate roc_auc, 0.5000
+2025-10-08 10:59:59,928 - root - INFO - save model ./saved_models/DyGFormer/UNtrade/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+2025-10-08 10:59:59,978 - root - INFO - load model ./saved_models/DyGFormer/UNtrade/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+2025-10-08 10:59:59,997 - root - INFO - get final performance on dataset UNtrade...
+2025-10-08 11:00:05,959 - root - INFO - validate loss: 50.0000
+2025-10-08 11:00:05,960 - root - INFO - validate average_precision, 0.5000
+2025-10-08 11:00:05,960 - root - INFO - validate roc_auc, 0.5000
+2025-10-08 11:00:05,960 - root - INFO - new node validate loss: 50.0000
+2025-10-08 11:00:05,960 - root - INFO - new node validate average_precision, 0.5000
+2025-10-08 11:00:05,960 - root - INFO - new node validate roc_auc, 0.5000
+2025-10-08 11:00:05,960 - root - INFO - test loss: nan

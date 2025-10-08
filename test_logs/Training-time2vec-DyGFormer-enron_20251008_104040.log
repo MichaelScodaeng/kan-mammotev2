@@ -1,0 +1,519 @@
+Command: python experiments/train_link_prediction.py --model_name DyGFormer --dataset_name enron --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:41:10.736780
+Test: Training-time2vec-DyGFormer-enron
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: enron
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 125,235 interactions
+   Subsampled data size: 6,261 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 6261 interactions, involving 87 different nodes
+The training dataset has 3663 interactions, involving 63 different nodes
+The validation dataset has 965 interactions, involving 53 different nodes
+The test dataset has 907 interactions, involving 62 different nodes
+The new node validation dataset has 155 interactions, involving 23 different nodes
+The new node test dataset has 130 interactions, involving 30 different nodes
+8 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 6,261 edges
+   Train data: 3,663 edges (58.5%)
+   Val data: 965 edges (15.4%)
+   Test data: 907 edges (14.5%)
+   Expected batches: 19
+   ✅ All splits proportionally scaled with ratio 0.59:0.15:0.14
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed0
+   Train metrics: train_metrics_20251008_104045.csv
+   Val metrics: val_metrics_20251008_104045.csv
+   New node val metrics: new_node_val_metrics_20251008_104045.csv
+   Test metrics: test_metrics_20251008_104045.csv
+   New node test metrics: new_node_test_metrics_20251008_104045.csv
+   Test periodic metrics: test_periodic_metrics_20251008_104045.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_104045.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+DyGFormer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1
+   Train metrics: train_metrics_20251008_104058.csv
+   Val metrics: val_metrics_20251008_104058.csv
+   New node val metrics: new_node_val_metrics_20251008_104058.csv
+   Test metrics: test_metrics_20251008_104058.csv
+   New node test metrics: new_node_test_metrics_20251008_104058.csv
+   Test periodic metrics: test_periodic_metrics_20251008_104058.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_104058.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+DyGFormer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=4, channel_embedding_dim=50, max_input_sequence_length=256, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into DyGFormer model
+INFO:root:model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=688, out_features=50, bias=True)
+      (edge): Linear(in_features=688, out_features=50, bias=True)
+      (time): Linear(in_features=400, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=200, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: DyGFormer, #parameters: 4644540 B, 4535.68359375 KB, 4.429378509521484 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:   5%|▌         | 1/19 [00:00<00:08,  2.11it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:  11%|█         | 2/19 [00:00<00:06,  2.81it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:  16%|█▌        | 3/19 [00:00<00:04,  3.26it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:  21%|██        | 4/19 [00:01<00:04,  3.62it/s]
+Epoch: 1, Batch: 1/19, Loss: 49.5069:  26%|██▋       | 5/19 [00:01<00:03,  3.79it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  26%|██▋       | 5/19 [00:01<00:03,  3.79it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  32%|███▏      | 6/19 [00:01<00:03,  3.99it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  37%|███▋      | 7/19 [00:01<00:02,  4.15it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  42%|████▏     | 8/19 [00:02<00:02,  4.25it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  47%|████▋     | 9/19 [00:02<00:02,  4.32it/s]
+Epoch: 1, Batch: 6/19, Loss: 15.7500:  53%|█████▎    | 10/19 [00:02<00:02,  4.34it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  53%|█████▎    | 10/19 [00:02<00:02,  4.34it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  58%|█████▊    | 11/19 [00:02<00:01,  4.35it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  63%|██████▎   | 12/19 [00:03<00:01,  4.40it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  68%|██████▊   | 13/19 [00:03<00:01,  4.40it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  74%|███████▎  | 14/19 [00:03<00:01,  4.37it/s]
+Epoch: 1, Batch: 11/19, Loss: 29.5000:  79%|███████▉  | 15/19 [00:03<00:00,  4.41it/s]
+Epoch: 1, Batch: 16/19, Loss: 39.2500:  79%|███████▉  | 15/19 [00:03<00:00,  4.41it/s]
+Epoch: 1, Batch: 16/19, Loss: 39.2500:  84%|████████▍ | 16/19 [00:03<00:00,  4.41it/s]
+Epoch: 1, Batch: 16/19, Loss: 39.2500:  89%|████████▉ | 17/19 [00:04<00:00,  4.40it/s]
+Epoch: 1, Batch: 16/19, Loss: 39.2500:  95%|█████████▍| 18/19 [00:04<00:00,  4.43it/s]
+Epoch: 1, Batch: 19/19, Loss: 29.3651:  95%|█████████▍| 18/19 [00:04<00:00,  4.43it/s]
+Epoch: 1, Batch: 19/19, Loss: 29.3651: 100%|██████████| 19/19 [00:04<00:00,  5.27it/s]
+                                                                                      
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 22.25:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 22.25:  20%|██        | 1/5 [00:00<00:00,  6.67it/s]
+evaluate for the 2-th batch, evaluate loss: 25.25:  20%|██        | 1/5 [00:00<00:00,  6.67it/s]
+evaluate for the 2-th batch, evaluate loss: 25.25:  40%|████      | 2/5 [00:00<00:00,  6.80it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  40%|████      | 2/5 [00:00<00:00,  6.80it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  60%|██████    | 3/5 [00:00<00:00,  6.67it/s]
+evaluate for the 4-th batch, evaluate loss: 31.0:  60%|██████    | 3/5 [00:00<00:00,  6.67it/s] 
+evaluate for the 4-th batch, evaluate loss: 31.0:  80%|████████  | 4/5 [00:00<00:00,  6.74it/s]
+evaluate for the 5-th batch, evaluate loss: 27.878786087036133:  80%|████████  | 4/5 [00:00<00:00,  6.74it/s]
+evaluate for the 5-th batch, evaluate loss: 27.878786087036133: 100%|██████████| 5/5 [00:00<00:00,  7.16it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.709678649902344:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.709678649902344: 100%|██████████| 1/1 [00:00<00:00,  8.69it/s]
+                                                                                                             
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 31.2591
+INFO:root:train average_precision, 0.6339
+INFO:root:train roc_auc, 0.6826
+INFO:root:validate loss: 27.2258
+INFO:root:validate average_precision, 0.6510
+INFO:root:validate roc_auc, 0.7275
+INFO:root:new node validate loss: 38.7097
+INFO:root:new node validate average_precision, 0.5649
+INFO:root:new node validate roc_auc, 0.6121
+INFO:root:save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:   5%|▌         | 1/19 [00:00<00:03,  5.58it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:  11%|█         | 2/19 [00:00<00:03,  4.87it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:  16%|█▌        | 3/19 [00:00<00:03,  4.60it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:  21%|██        | 4/19 [00:00<00:03,  4.52it/s]
+Epoch: 2, Batch: 1/19, Loss: 13.5741:  26%|██▋       | 5/19 [00:01<00:03,  4.49it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  26%|██▋       | 5/19 [00:01<00:03,  4.49it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  32%|███▏      | 6/19 [00:01<00:02,  4.47it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  37%|███▋      | 7/19 [00:01<00:02,  4.47it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  42%|████▏     | 8/19 [00:01<00:02,  4.43it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  47%|████▋     | 9/19 [00:01<00:02,  4.44it/s]
+Epoch: 2, Batch: 6/19, Loss: 10.7500:  53%|█████▎    | 10/19 [00:02<00:02,  4.46it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  53%|█████▎    | 10/19 [00:02<00:02,  4.46it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  58%|█████▊    | 11/19 [00:02<00:01,  4.46it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  63%|██████▎   | 12/19 [00:02<00:01,  4.46it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  68%|██████▊   | 13/19 [00:02<00:01,  4.44it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  74%|███████▎  | 14/19 [00:03<00:01,  4.43it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.0000:  79%|███████▉  | 15/19 [00:03<00:00,  4.43it/s]
+Epoch: 2, Batch: 16/19, Loss: 32.7500:  79%|███████▉  | 15/19 [00:03<00:00,  4.43it/s]
+Epoch: 2, Batch: 16/19, Loss: 32.7500:  84%|████████▍ | 16/19 [00:03<00:00,  4.39it/s]
+Epoch: 2, Batch: 16/19, Loss: 32.7500:  89%|████████▉ | 17/19 [00:03<00:00,  4.40it/s]
+Epoch: 2, Batch: 16/19, Loss: 32.7500:  95%|█████████▍| 18/19 [00:04<00:00,  4.39it/s]
+Epoch: 2, Batch: 19/19, Loss: 26.9841:  95%|█████████▍| 18/19 [00:04<00:00,  4.39it/s]
+Epoch: 2, Batch: 19/19, Loss: 26.9841: 100%|██████████| 19/19 [00:04<00:00,  5.22it/s]
+                                                                                      
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.250038146972656:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.250038146972656:  20%|██        | 1/5 [00:00<00:00,  6.85it/s]
+evaluate for the 2-th batch, evaluate loss: 24.25:  20%|██        | 1/5 [00:00<00:00,  6.85it/s]             
+evaluate for the 2-th batch, evaluate loss: 24.25:  40%|████      | 2/5 [00:00<00:00,  6.86it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  40%|████      | 2/5 [00:00<00:00,  6.86it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  60%|██████    | 3/5 [00:00<00:00,  6.90it/s]
+evaluate for the 4-th batch, evaluate loss: 29.78985595703125:  60%|██████    | 3/5 [00:00<00:00,  6.90it/s]
+evaluate for the 4-th batch, evaluate loss: 29.78985595703125:  80%|████████  | 4/5 [00:00<00:00,  6.90it/s]
+evaluate for the 5-th batch, evaluate loss: 25.7575740814209:  80%|████████  | 4/5 [00:00<00:00,  6.90it/s] 
+evaluate for the 5-th batch, evaluate loss: 25.7575740814209: 100%|██████████| 5/5 [00:00<00:00,  7.30it/s]
+                                                                                                           
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 36.79050827026367:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 36.79050827026367: 100%|██████████| 1/1 [00:00<00:00,  8.78it/s]
+                                                                                                            
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 20.6217
+INFO:root:train average_precision, 0.7248
+INFO:root:train roc_auc, 0.7904
+INFO:root:validate loss: 26.5595
+INFO:root:validate average_precision, 0.6573
+INFO:root:validate roc_auc, 0.7342
+INFO:root:new node validate loss: 36.7905
+INFO:root:new node validate average_precision, 0.5780
+INFO:root:new node validate roc_auc, 0.6310
+INFO:root:save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+INFO:root:load model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.250038146972656:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.250038146972656:  20%|██        | 1/5 [00:00<00:00,  6.86it/s]
+evaluate for the 2-th batch, evaluate loss: 24.25:  20%|██        | 1/5 [00:00<00:00,  6.86it/s]             
+evaluate for the 2-th batch, evaluate loss: 24.25:  40%|████      | 2/5 [00:00<00:00,  6.93it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  40%|████      | 2/5 [00:00<00:00,  6.93it/s]
+evaluate for the 3-th batch, evaluate loss: 29.75:  60%|██████    | 3/5 [00:00<00:00,  6.94it/s]
+evaluate for the 4-th batch, evaluate loss: 29.78985595703125:  60%|██████    | 3/5 [00:00<00:00,  6.94it/s]
+evaluate for the 4-th batch, evaluate loss: 29.78985595703125:  80%|████████  | 4/5 [00:00<00:00,  6.92it/s]
+evaluate for the 5-th batch, evaluate loss: 25.7575740814209:  80%|████████  | 4/5 [00:00<00:00,  6.92it/s] 
+evaluate for the 5-th batch, evaluate loss: 25.7575740814209: 100%|██████████| 5/5 [00:00<00:00,  7.31it/s]
+                                                                                                           
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 36.79050827026367:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 36.79050827026367: 100%|██████████| 1/1 [00:00<00:00,  8.80it/s]
+                                                                                                            
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 30.5:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 30.5:  20%|██        | 1/5 [00:00<00:00,  6.44it/s]
+evaluate for the 2-th batch, evaluate loss: 30.5:  20%|██        | 1/5 [00:00<00:00,  6.44it/s]
+evaluate for the 2-th batch, evaluate loss: 30.5:  40%|████      | 2/5 [00:00<00:00,  6.38it/s]
+evaluate for the 3-th batch, evaluate loss: 34.78498840332031:  40%|████      | 2/5 [00:00<00:00,  6.38it/s]
+evaluate for the 3-th batch, evaluate loss: 34.78498840332031:  60%|██████    | 3/5 [00:00<00:00,  6.35it/s]
+evaluate for the 4-th batch, evaluate loss: 30.779579162597656:  60%|██████    | 3/5 [00:00<00:00,  6.35it/s]
+evaluate for the 4-th batch, evaluate loss: 30.779579162597656:  80%|████████  | 4/5 [00:00<00:00,  6.34it/s]
+evaluate for the 5-th batch, evaluate loss: 37.383174896240234:  80%|████████  | 4/5 [00:00<00:00,  6.34it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.46154022216797:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.46154022216797: 100%|██████████| 1/1 [00:00<00:00,  9.30it/s]
+                                                                                                            
+INFO:root:validate loss: 26.5595
+INFO:root:validate average_precision, 0.6573
+INFO:root:validate roc_auc, 0.7342
+INFO:root:new node validate loss: 36.7905
+INFO:root:new node validate average_precision, 0.5780
+INFO:root:new node validate roc_auc, 0.6310
+INFO:root:test loss: 32.7895
+INFO:root:test average_precision, 0.6063
+INFO:root:test roc_auc, 0.6721
+INFO:root:new node test loss: 33.4615
+INFO:root:new node test average_precision, 0.6042
+INFO:root:new node test roc_auc, 0.6646
+INFO:root:✅ Metrics saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed0
+INFO:root:Run 1 cost 13.02 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=4, channel_embedding_dim=50, max_input_sequence_length=256, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into DyGFormer model
+INFO:root:model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=688, out_features=50, bias=True)
+      (edge): Linear(in_features=688, out_features=50, bias=True)
+      (time): Linear(in_features=400, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=200, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: DyGFormer, #parameters: 4644540 B, 4535.68359375 KB, 4.429378509521484 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:   5%|▌         | 1/19 [00:00<00:03,  4.75it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:  11%|█         | 2/19 [00:00<00:04,  4.04it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:  16%|█▌        | 3/19 [00:00<00:03,  4.11it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:  21%|██        | 4/19 [00:00<00:03,  4.26it/s]
+Epoch: 1, Batch: 1/19, Loss: 48.5815:  26%|██▋       | 5/19 [00:01<00:03,  4.32it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  26%|██▋       | 5/19 [00:01<00:03,  4.32it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  32%|███▏      | 6/19 [00:01<00:02,  4.38it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  37%|███▋      | 7/19 [00:01<00:02,  4.37it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  42%|████▏     | 8/19 [00:01<00:02,  4.36it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  47%|████▋     | 9/19 [00:02<00:02,  4.40it/s]
+Epoch: 1, Batch: 6/19, Loss: 50.0000:  53%|█████▎    | 10/19 [00:02<00:02,  4.41it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  53%|█████▎    | 10/19 [00:02<00:02,  4.41it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  58%|█████▊    | 11/19 [00:02<00:01,  4.43it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  63%|██████▎   | 12/19 [00:02<00:01,  4.41it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  68%|██████▊   | 13/19 [00:02<00:01,  4.40it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  74%|███████▎  | 14/19 [00:03<00:01,  4.39it/s]
+Epoch: 1, Batch: 11/19, Loss: 50.0000:  79%|███████▉  | 15/19 [00:03<00:00,  4.41it/s]
+Epoch: 1, Batch: 16/19, Loss: 50.0000:  79%|███████▉  | 15/19 [00:03<00:00,  4.41it/s]
+Epoch: 1, Batch: 16/19, Loss: 50.0000:  84%|████████▍ | 16/19 [00:03<00:00,  4.43it/s]
+Epoch: 1, Batch: 16/19, Loss: 50.0000:  89%|████████▉ | 17/19 [00:03<00:00,  4.46it/s]
+Epoch: 1, Batch: 16/19, Loss: 50.0000:  95%|█████████▍| 18/19 [00:04<00:00,  4.48it/s]
+Epoch: 1, Batch: 19/19, Loss: 50.0000:  95%|█████████▍| 18/19 [00:04<00:00,  4.48it/s]
+Epoch: 1, Batch: 19/19, Loss: 50.0000: 100%|██████████| 19/19 [00:04<00:00,  5.36it/s]
+                                                                                      
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 49.593929290771484:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 49.593929290771484:  20%|██        | 1/5 [00:00<00:00,  6.87it/s]
+evaluate for the 2-th batch, evaluate loss: 49.61505126953125:  20%|██        | 1/5 [00:00<00:00,  6.87it/s] 
+evaluate for the 2-th batch, evaluate loss: 49.61505126953125:  40%|████      | 2/5 [00:00<00:00,  6.88it/s]
+evaluate for the 3-th batch, evaluate loss: 48.2740364074707:  40%|████      | 2/5 [00:00<00:00,  6.88it/s] 
+evaluate for the 3-th batch, evaluate loss: 48.2740364074707:  60%|██████    | 3/5 [00:00<00:00,  6.90it/s]
+evaluate for the 4-th batch, evaluate loss: 50.0:  60%|██████    | 3/5 [00:00<00:00,  6.90it/s]            
+evaluate for the 4-th batch, evaluate loss: 50.0:  80%|████████  | 4/5 [00:00<00:00,  6.89it/s]
+evaluate for the 5-th batch, evaluate loss: 50.0:  80%|████████  | 4/5 [00:00<00:00,  6.89it/s]
+evaluate for the 5-th batch, evaluate loss: 50.0: 100%|██████████| 5/5 [00:00<00:00,  7.28it/s]
+                                                                                               
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 49.207275390625:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 49.207275390625: 100%|██████████| 1/1 [00:00<00:00,  8.77it/s]
+                                                                                                          
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 48.9133
+INFO:root:train average_precision, 0.5063
+INFO:root:train roc_auc, 0.5061
+INFO:root:validate loss: 49.4966
+INFO:root:validate average_precision, 0.5139
+INFO:root:validate roc_auc, 0.5155
+INFO:root:new node validate loss: 49.2073
+INFO:root:new node validate average_precision, 0.5097
+INFO:root:new node validate roc_auc, 0.5127
+INFO:root:save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:   5%|▌         | 1/19 [00:00<00:03,  5.15it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:  11%|█         | 2/19 [00:00<00:03,  4.74it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:  16%|█▌        | 3/19 [00:00<00:03,  4.69it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:  21%|██        | 4/19 [00:00<00:03,  4.62it/s]
+Epoch: 2, Batch: 1/19, Loss: 47.3701:  26%|██▋       | 5/19 [00:01<00:03,  4.58it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  26%|██▋       | 5/19 [00:01<00:03,  4.58it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  32%|███▏      | 6/19 [00:01<00:02,  4.57it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  37%|███▋      | 7/19 [00:01<00:02,  4.56it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  42%|████▏     | 8/19 [00:01<00:02,  4.54it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  47%|████▋     | 9/19 [00:01<00:02,  4.51it/s]
+Epoch: 2, Batch: 6/19, Loss: 44.4308:  53%|█████▎    | 10/19 [00:02<00:01,  4.51it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  53%|█████▎    | 10/19 [00:02<00:01,  4.51it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  58%|█████▊    | 11/19 [00:02<00:01,  4.52it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  63%|██████▎   | 12/19 [00:02<00:01,  4.52it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  68%|██████▊   | 13/19 [00:02<00:01,  4.51it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  74%|███████▎  | 14/19 [00:03<00:01,  4.50it/s]
+Epoch: 2, Batch: 11/19, Loss: 16.2500:  79%|███████▉  | 15/19 [00:03<00:00,  4.50it/s]
+Epoch: 2, Batch: 16/19, Loss: 34.6101:  79%|███████▉  | 15/19 [00:03<00:00,  4.50it/s]
+Epoch: 2, Batch: 16/19, Loss: 34.6101:  84%|████████▍ | 16/19 [00:03<00:00,  4.49it/s]
+Epoch: 2, Batch: 16/19, Loss: 34.6101:  89%|████████▉ | 17/19 [00:03<00:00,  4.50it/s]
+Epoch: 2, Batch: 16/19, Loss: 34.6101:  95%|█████████▍| 18/19 [00:03<00:00,  4.51it/s]
+Epoch: 2, Batch: 19/19, Loss: 31.7460:  95%|█████████▍| 18/19 [00:04<00:00,  4.51it/s]
+Epoch: 2, Batch: 19/19, Loss: 31.7460: 100%|██████████| 19/19 [00:04<00:00,  5.39it/s]
+                                                                                      
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 24.50003433227539:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 24.50003433227539:  20%|██        | 1/5 [00:00<00:00,  6.90it/s]
+evaluate for the 2-th batch, evaluate loss: 26.50000762939453:  20%|██        | 1/5 [00:00<00:00,  6.90it/s]
+evaluate for the 2-th batch, evaluate loss: 26.50000762939453:  40%|████      | 2/5 [00:00<00:00,  6.94it/s]
+evaluate for the 3-th batch, evaluate loss: 31.04029655456543:  40%|████      | 2/5 [00:00<00:00,  6.94it/s]
+evaluate for the 3-th batch, evaluate loss: 31.04029655456543:  60%|██████    | 3/5 [00:00<00:00,  6.95it/s]
+evaluate for the 4-th batch, evaluate loss: 31.75:  60%|██████    | 3/5 [00:00<00:00,  6.95it/s]            
+evaluate for the 4-th batch, evaluate loss: 31.75:  80%|████████  | 4/5 [00:00<00:00,  6.93it/s]
+evaluate for the 5-th batch, evaluate loss: 29.09090805053711:  80%|████████  | 4/5 [00:00<00:00,  6.93it/s]
+evaluate for the 5-th batch, evaluate loss: 29.09090805053711: 100%|██████████| 5/5 [00:00<00:00,  7.32it/s]
+                                                                                                            
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.410091400146484:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.410091400146484: 100%|██████████| 1/1 [00:00<00:00,  8.76it/s]
+                                                                                                             
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 32.3783
+INFO:root:train average_precision, 0.6238
+INFO:root:train roc_auc, 0.6695
+INFO:root:validate loss: 28.5762
+INFO:root:validate average_precision, 0.6391
+INFO:root:validate roc_auc, 0.7140
+INFO:root:new node validate loss: 38.4101
+INFO:root:new node validate average_precision, 0.5670
+INFO:root:new node validate roc_auc, 0.6149
+INFO:root:save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+INFO:root:load model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 24.50003433227539:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 24.50003433227539:  20%|██        | 1/5 [00:00<00:00,  6.87it/s]
+evaluate for the 2-th batch, evaluate loss: 26.50000762939453:  20%|██        | 1/5 [00:00<00:00,  6.87it/s]
+evaluate for the 2-th batch, evaluate loss: 26.50000762939453:  40%|████      | 2/5 [00:00<00:00,  6.90it/s]
+evaluate for the 3-th batch, evaluate loss: 31.04029655456543:  40%|████      | 2/5 [00:00<00:00,  6.90it/s]
+evaluate for the 3-th batch, evaluate loss: 31.04029655456543:  60%|██████    | 3/5 [00:00<00:00,  6.93it/s]
+evaluate for the 4-th batch, evaluate loss: 31.75:  60%|██████    | 3/5 [00:00<00:00,  6.93it/s]            
+evaluate for the 4-th batch, evaluate loss: 31.75:  80%|████████  | 4/5 [00:00<00:00,  6.92it/s]
+evaluate for the 5-th batch, evaluate loss: 29.09090805053711:  80%|████████  | 4/5 [00:00<00:00,  6.92it/s]
+evaluate for the 5-th batch, evaluate loss: 29.09090805053711: 100%|██████████| 5/5 [00:00<00:00,  7.31it/s]
+                                                                                                            
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.410091400146484:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.410091400146484: 100%|██████████| 1/1 [00:00<00:00,  8.77it/s]
+                                                                                                             
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 32.828826904296875:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 32.828826904296875:  20%|██        | 1/5 [00:00<00:00,  6.85it/s]
+evaluate for the 2-th batch, evaluate loss: 32.25016784667969:  20%|██        | 1/5 [00:00<00:00,  6.85it/s] 
+evaluate for the 2-th batch, evaluate loss: 32.25016784667969:  40%|████      | 2/5 [00:00<00:00,  6.52it/s]
+evaluate for the 3-th batch, evaluate loss: 36.202693939208984:  40%|████      | 2/5 [00:00<00:00,  6.52it/s]
+evaluate for the 3-th batch, evaluate loss: 36.202693939208984:  60%|██████    | 3/5 [00:00<00:00,  6.40it/s]
+evaluate for the 4-th batch, evaluate loss: 33.76795959472656:  60%|██████    | 3/5 [00:00<00:00,  6.40it/s] 
+evaluate for the 4-th batch, evaluate loss: 33.76795959472656:  80%|████████  | 4/5 [00:00<00:00,  6.34it/s]
+evaluate for the 5-th batch, evaluate loss: 40.654205322265625:  80%|████████  | 4/5 [00:00<00:00,  6.34it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.31184005737305:   0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.31184005737305: 100%|██████████| 1/1 [00:00<00:00,  9.25it/s]
+                                                                                                            
+INFO:root:validate loss: 28.5762
+INFO:root:validate average_precision, 0.6391
+INFO:root:validate roc_auc, 0.7140
+INFO:root:new node validate loss: 38.4101
+INFO:root:new node validate average_precision, 0.5670
+INFO:root:new node validate roc_auc, 0.6149
+INFO:root:test loss: 35.1408
+INFO:root:test average_precision, 0.5872
+INFO:root:test roc_auc, 0.6458
+INFO:root:new node test loss: 35.3118
+INFO:root:new node test average_precision, 0.5826
+INFO:root:new node test roc_auc, 0.6351
+INFO:root:✅ Metrics saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1
+INFO:root:Run 2 cost 11.73 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:validate average_precision, [np.float64(0.6572821442272087), np.float64(0.6390821862110624)]
+INFO:root:average validate average_precision, 0.6482 ± 0.0129
+INFO:root:validate roc_auc, [np.float64(0.7342023484848484), np.float64(0.7139756818181819)]
+INFO:root:average validate roc_auc, 0.7241 ± 0.0143
+INFO:root:new node validate average_precision, [np.float64(0.5779687279898578), np.float64(0.5669975186104217)]
+INFO:root:average new node validate average_precision, 0.5725 ± 0.0078
+INFO:root:new node validate roc_auc, [np.float64(0.631009365244537), np.float64(0.6148803329864725)]
+INFO:root:average new node validate roc_auc, 0.6229 ± 0.0114
+INFO:root:test average_precision, [np.float64(0.6062890052797364), np.float64(0.5871808582436966)]
+INFO:root:average test average_precision, 0.5967 ± 0.0135
+INFO:root:test roc_auc, [np.float64(0.6720525978251376), np.float64(0.6457730417503712)]
+INFO:root:average test roc_auc, 0.6589 ± 0.0186
+INFO:root:new node test average_precision, [np.float64(0.6042424242424242), np.float64(0.5825979318033291)]
+INFO:root:average new node test average_precision, 0.5934 ± 0.0153
+INFO:root:new node test roc_auc, [np.float64(0.6646153846153846), np.float64(0.6351183431952664)]
+INFO:root:average new node test roc_auc, 0.6499 ± 0.0209
+
+Return code: 0

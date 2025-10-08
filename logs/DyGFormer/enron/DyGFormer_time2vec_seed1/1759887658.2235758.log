@@ -1,0 +1,102 @@
+2025-10-08 10:40:58,227 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 10:40:58,227 - root - INFO - configuration is Namespace(dataset_name='enron', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=4, channel_embedding_dim=50, max_input_sequence_length=256, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed1')
+2025-10-08 10:40:58,228 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1
+2025-10-08 10:40:58,229 - root - INFO - time encoder type: time2vec
+2025-10-08 10:40:58,229 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 10:40:58,278 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=688, out_features=50, bias=True)
+      (edge): Linear(in_features=688, out_features=50, bias=True)
+      (time): Linear(in_features=400, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=200, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 10:40:58,278 - root - INFO - model name: DyGFormer, #parameters: 4644540 B, 4535.68359375 KB, 4.429378509521484 MB.
+2025-10-08 10:41:03,303 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 48.9133
+2025-10-08 10:41:03,304 - root - INFO - train average_precision, 0.5063
+2025-10-08 10:41:03,304 - root - INFO - train roc_auc, 0.5061
+2025-10-08 10:41:03,304 - root - INFO - validate loss: 49.4966
+2025-10-08 10:41:03,304 - root - INFO - validate average_precision, 0.5139
+2025-10-08 10:41:03,304 - root - INFO - validate roc_auc, 0.5155
+2025-10-08 10:41:03,304 - root - INFO - new node validate loss: 49.2073
+2025-10-08 10:41:03,304 - root - INFO - new node validate average_precision, 0.5097
+2025-10-08 10:41:03,304 - root - INFO - new node validate roc_auc, 0.5127
+2025-10-08 10:41:03,313 - root - INFO - save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+2025-10-08 10:41:08,237 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 32.3783
+2025-10-08 10:41:08,238 - root - INFO - train average_precision, 0.6238
+2025-10-08 10:41:08,238 - root - INFO - train roc_auc, 0.6695
+2025-10-08 10:41:08,238 - root - INFO - validate loss: 28.5762
+2025-10-08 10:41:08,238 - root - INFO - validate average_precision, 0.6391
+2025-10-08 10:41:08,238 - root - INFO - validate roc_auc, 0.7140
+2025-10-08 10:41:08,238 - root - INFO - new node validate loss: 38.4101
+2025-10-08 10:41:08,238 - root - INFO - new node validate average_precision, 0.5670
+2025-10-08 10:41:08,238 - root - INFO - new node validate roc_auc, 0.6149
+2025-10-08 10:41:08,242 - root - INFO - save model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+2025-10-08 10:41:08,290 - root - INFO - load model ./saved_models/DyGFormer/enron/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+2025-10-08 10:41:08,308 - root - INFO - get final performance on dataset enron...
+2025-10-08 10:41:09,950 - root - INFO - validate loss: 28.5762
+2025-10-08 10:41:09,950 - root - INFO - validate average_precision, 0.6391
+2025-10-08 10:41:09,950 - root - INFO - validate roc_auc, 0.7140
+2025-10-08 10:41:09,950 - root - INFO - new node validate loss: 38.4101
+2025-10-08 10:41:09,950 - root - INFO - new node validate average_precision, 0.5670
+2025-10-08 10:41:09,950 - root - INFO - new node validate roc_auc, 0.6149
+2025-10-08 10:41:09,950 - root - INFO - test loss: 35.1408
+2025-10-08 10:41:09,950 - root - INFO - test average_precision, 0.5872
+2025-10-08 10:41:09,950 - root - INFO - test roc_auc, 0.6458
+2025-10-08 10:41:09,950 - root - INFO - new node test loss: 35.3118
+2025-10-08 10:41:09,951 - root - INFO - new node test average_precision, 0.5826
+2025-10-08 10:41:09,951 - root - INFO - new node test roc_auc, 0.6351
+2025-10-08 10:41:09,958 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGFormer/enron/DyGFormer_time2vec_seed1
+2025-10-08 10:41:09,958 - root - INFO - Run 2 cost 11.73 seconds.
+2025-10-08 10:41:09,961 - root - INFO - metrics over 2 runs:
+2025-10-08 10:41:09,961 - root - INFO - validate average_precision, [np.float64(0.6572821442272087), np.float64(0.6390821862110624)]
+2025-10-08 10:41:09,961 - root - INFO - average validate average_precision, 0.6482 ± 0.0129
+2025-10-08 10:41:09,961 - root - INFO - validate roc_auc, [np.float64(0.7342023484848484), np.float64(0.7139756818181819)]
+2025-10-08 10:41:09,962 - root - INFO - average validate roc_auc, 0.7241 ± 0.0143
+2025-10-08 10:41:09,962 - root - INFO - new node validate average_precision, [np.float64(0.5779687279898578), np.float64(0.5669975186104217)]
+2025-10-08 10:41:09,962 - root - INFO - average new node validate average_precision, 0.5725 ± 0.0078
+2025-10-08 10:41:09,962 - root - INFO - new node validate roc_auc, [np.float64(0.631009365244537), np.float64(0.6148803329864725)]
+2025-10-08 10:41:09,962 - root - INFO - average new node validate roc_auc, 0.6229 ± 0.0114
+2025-10-08 10:41:09,962 - root - INFO - test average_precision, [np.float64(0.6062890052797364), np.float64(0.5871808582436966)]
+2025-10-08 10:41:09,962 - root - INFO - average test average_precision, 0.5967 ± 0.0135
+2025-10-08 10:41:09,962 - root - INFO - test roc_auc, [np.float64(0.6720525978251376), np.float64(0.6457730417503712)]
+2025-10-08 10:41:09,962 - root - INFO - average test roc_auc, 0.6589 ± 0.0186
+2025-10-08 10:41:09,962 - root - INFO - new node test average_precision, [np.float64(0.6042424242424242), np.float64(0.5825979318033291)]
+2025-10-08 10:41:09,962 - root - INFO - average new node test average_precision, 0.5934 ± 0.0153
+2025-10-08 10:41:09,963 - root - INFO - new node test roc_auc, [np.float64(0.6646153846153846), np.float64(0.6351183431952664)]
+2025-10-08 10:41:09,963 - root - INFO - average new node test roc_auc, 0.6499 ± 0.0209

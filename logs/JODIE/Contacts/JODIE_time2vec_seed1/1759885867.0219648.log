@@ -1,0 +1,66 @@
+2025-10-08 10:11:07,025 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 10:11:07,025 - root - INFO - configuration is Namespace(dataset_name='Contacts', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='JODIE_time2vec_seed1')
+2025-10-08 10:11:07,026 - root - INFO - Metrics will be saved to: ./saved_metrics/JODIE/Contacts/JODIE_time2vec_seed1
+2025-10-08 10:11:07,027 - root - INFO - time encoder type: time2vec
+2025-10-08 10:11:07,027 - root - INFO - Time encoder will be injected into JODIE model
+2025-10-08 10:11:07,852 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 10:11:07,853 - root - INFO - model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+2025-10-08 10:11:13,421 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.4896
+2025-10-08 10:11:13,422 - root - INFO - train average_precision, 0.7599
+2025-10-08 10:11:13,422 - root - INFO - train roc_auc, 0.8251
+2025-10-08 10:11:13,422 - root - INFO - validate loss: 0.5218
+2025-10-08 10:11:13,422 - root - INFO - validate average_precision, 0.7353
+2025-10-08 10:11:13,423 - root - INFO - validate roc_auc, 0.8163
+2025-10-08 10:11:13,423 - root - INFO - new node validate loss: 1.0235
+2025-10-08 10:11:13,423 - root - INFO - new node validate average_precision, 0.4821
+2025-10-08 10:11:13,423 - root - INFO - new node validate roc_auc, 0.5139
+2025-10-08 10:11:13,431 - root - INFO - save model ./saved_models/JODIE/Contacts/JODIE_time2vec_seed1/JODIE_time2vec_seed1.pkl
+2025-10-08 10:11:19,234 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.4585
+2025-10-08 10:11:19,234 - root - INFO - train average_precision, 0.7680
+2025-10-08 10:11:19,234 - root - INFO - train roc_auc, 0.8371
+2025-10-08 10:11:19,234 - root - INFO - validate loss: 0.4993
+2025-10-08 10:11:19,234 - root - INFO - validate average_precision, 0.7299
+2025-10-08 10:11:19,234 - root - INFO - validate roc_auc, 0.8171
+2025-10-08 10:11:19,234 - root - INFO - new node validate loss: 0.8994
+2025-10-08 10:11:19,234 - root - INFO - new node validate average_precision, 0.5119
+2025-10-08 10:11:19,234 - root - INFO - new node validate roc_auc, 0.5521
+2025-10-08 10:11:19,239 - root - INFO - load model ./saved_models/JODIE/Contacts/JODIE_time2vec_seed1/JODIE_time2vec_seed1.pkl
+2025-10-08 10:11:19,340 - root - INFO - get final performance on dataset Contacts...
+2025-10-08 10:11:20,321 - root - INFO - test loss: 0.8870
+2025-10-08 10:11:20,321 - root - INFO - test average_precision, 0.7477
+2025-10-08 10:11:20,321 - root - INFO - test roc_auc, 0.8286
+2025-10-08 10:11:20,322 - root - INFO - new node test loss: 1.1434
+2025-10-08 10:11:20,322 - root - INFO - new node test average_precision, 0.6426
+2025-10-08 10:11:20,322 - root - INFO - new node test roc_auc, 0.7143
+2025-10-08 10:11:20,330 - root - INFO - ✅ Metrics saved to: ./saved_metrics/JODIE/Contacts/JODIE_time2vec_seed1
+2025-10-08 10:11:20,330 - root - INFO - Run 2 cost 13.30 seconds.
+2025-10-08 10:11:20,334 - root - INFO - metrics over 2 runs:
+2025-10-08 10:11:20,334 - root - INFO - test average_precision, [np.float64(0.7540588031324056), np.float64(0.7477424467803451)]
+2025-10-08 10:11:20,334 - root - INFO - average test average_precision, 0.7509 ± 0.0045
+2025-10-08 10:11:20,335 - root - INFO - test roc_auc, [np.float64(0.833884062529362), np.float64(0.8285867730338726)]
+2025-10-08 10:11:20,335 - root - INFO - average test roc_auc, 0.8312 ± 0.0037
+2025-10-08 10:11:20,335 - root - INFO - new node test average_precision, [np.float64(0.6606720250277095), np.float64(0.6425812222045549)]
+2025-10-08 10:11:20,335 - root - INFO - average new node test average_precision, 0.6516 ± 0.0128
+2025-10-08 10:11:20,335 - root - INFO - new node test roc_auc, [np.float64(0.7351398024594454), np.float64(0.7142865269540865)]
+2025-10-08 10:11:20,335 - root - INFO - average new node test roc_auc, 0.7247 ± 0.0147

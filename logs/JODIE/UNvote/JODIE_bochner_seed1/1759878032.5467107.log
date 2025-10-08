@@ -1,0 +1,66 @@
+2025-10-08 08:00:32,550 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 08:00:32,550 - root - INFO - configuration is Namespace(dataset_name='UNvote', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='JODIE_bochner_seed1')
+2025-10-08 08:00:32,551 - root - INFO - Metrics will be saved to: ./saved_metrics/JODIE/UNvote/JODIE_bochner_seed1
+2025-10-08 08:00:32,552 - root - INFO - time encoder type: bochner
+2025-10-08 08:00:32,552 - root - INFO - Time encoder will be injected into JODIE model
+2025-10-08 08:00:32,895 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=202, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=202, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 08:00:32,896 - root - INFO - model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+2025-10-08 08:00:35,323 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6580
+2025-10-08 08:00:35,323 - root - INFO - train average_precision, 0.5631
+2025-10-08 08:00:35,323 - root - INFO - train roc_auc, 0.5945
+2025-10-08 08:00:35,323 - root - INFO - validate loss: 0.6771
+2025-10-08 08:00:35,323 - root - INFO - validate average_precision, 0.5286
+2025-10-08 08:00:35,323 - root - INFO - validate roc_auc, 0.5559
+2025-10-08 08:00:35,323 - root - INFO - new node validate loss: 0.7155
+2025-10-08 08:00:35,324 - root - INFO - new node validate average_precision, 0.5182
+2025-10-08 08:00:35,324 - root - INFO - new node validate roc_auc, 0.5115
+2025-10-08 08:00:35,333 - root - INFO - save model ./saved_models/JODIE/UNvote/JODIE_bochner_seed1/JODIE_bochner_seed1.pkl
+2025-10-08 08:00:37,855 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6431
+2025-10-08 08:00:37,856 - root - INFO - train average_precision, 0.5719
+2025-10-08 08:00:37,856 - root - INFO - train roc_auc, 0.6052
+2025-10-08 08:00:37,856 - root - INFO - validate loss: 0.6742
+2025-10-08 08:00:37,856 - root - INFO - validate average_precision, 0.5207
+2025-10-08 08:00:37,856 - root - INFO - validate roc_auc, 0.5446
+2025-10-08 08:00:37,856 - root - INFO - new node validate loss: 0.7252
+2025-10-08 08:00:37,856 - root - INFO - new node validate average_precision, 0.5107
+2025-10-08 08:00:37,856 - root - INFO - new node validate roc_auc, 0.5053
+2025-10-08 08:00:37,861 - root - INFO - load model ./saved_models/JODIE/UNvote/JODIE_bochner_seed1/JODIE_bochner_seed1.pkl
+2025-10-08 08:00:37,904 - root - INFO - get final performance on dataset UNvote...
+2025-10-08 08:00:38,142 - root - INFO - test loss: 0.6736
+2025-10-08 08:00:38,143 - root - INFO - test average_precision, 0.5377
+2025-10-08 08:00:38,143 - root - INFO - test roc_auc, 0.5565
+2025-10-08 08:00:38,143 - root - INFO - new node test loss: 0.7021
+2025-10-08 08:00:38,143 - root - INFO - new node test average_precision, 0.5214
+2025-10-08 08:00:38,143 - root - INFO - new node test roc_auc, 0.5196
+2025-10-08 08:00:38,151 - root - INFO - ✅ Metrics saved to: ./saved_metrics/JODIE/UNvote/JODIE_bochner_seed1
+2025-10-08 08:00:38,151 - root - INFO - Run 2 cost 5.60 seconds.
+2025-10-08 08:00:38,154 - root - INFO - metrics over 2 runs:
+2025-10-08 08:00:38,154 - root - INFO - test average_precision, [np.float64(0.5506081916650932), np.float64(0.5377324169469756)]
+2025-10-08 08:00:38,154 - root - INFO - average test average_precision, 0.5442 ± 0.0091
+2025-10-08 08:00:38,154 - root - INFO - test roc_auc, [np.float64(0.5725387286798778), np.float64(0.5565076727792567)]
+2025-10-08 08:00:38,154 - root - INFO - average test roc_auc, 0.5645 ± 0.0113
+2025-10-08 08:00:38,154 - root - INFO - new node test average_precision, [np.float64(0.5269577057782913), np.float64(0.521375598837938)]
+2025-10-08 08:00:38,154 - root - INFO - average new node test average_precision, 0.5242 ± 0.0039
+2025-10-08 08:00:38,154 - root - INFO - new node test roc_auc, [np.float64(0.521089243285124), np.float64(0.5196101575413224)]
+2025-10-08 08:00:38,155 - root - INFO - average new node test roc_auc, 0.5203 ± 0.0010

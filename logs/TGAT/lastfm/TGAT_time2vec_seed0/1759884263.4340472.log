@@ -1,0 +1,73 @@
+2025-10-08 09:44:23,437 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 09:44:23,437 - root - INFO - configuration is Namespace(dataset_name='lastfm', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGAT_time2vec_seed0')
+2025-10-08 09:44:23,441 - root - INFO - Metrics will be saved to: ./saved_metrics/TGAT/lastfm/TGAT_time2vec_seed0
+2025-10-08 09:44:23,442 - root - INFO - time encoder type: time2vec
+2025-10-08 09:44:23,442 - root - INFO - Time encoder will be injected into TGAT model
+2025-10-08 09:44:24,059 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 09:44:24,059 - root - INFO - model name: TGAT, #parameters: 4211780 B, 4113.06640625 KB, 4.016666412353516 MB.
+2025-10-08 09:44:59,266 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6483
+2025-10-08 09:44:59,266 - root - INFO - train average_precision, 0.6295
+2025-10-08 09:44:59,266 - root - INFO - train roc_auc, 0.6145
+2025-10-08 09:44:59,266 - root - INFO - validate loss: 0.6446
+2025-10-08 09:44:59,267 - root - INFO - validate average_precision, 0.7230
+2025-10-08 09:44:59,267 - root - INFO - validate roc_auc, 0.7131
+2025-10-08 09:44:59,267 - root - INFO - new node validate loss: 0.7301
+2025-10-08 09:44:59,267 - root - INFO - new node validate average_precision, 0.6346
+2025-10-08 09:44:59,267 - root - INFO - new node validate roc_auc, 0.6144
+2025-10-08 09:44:59,277 - root - INFO - save model ./saved_models/TGAT/lastfm/TGAT_time2vec_seed0/TGAT_time2vec_seed0.pkl
+2025-10-08 09:45:33,330 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5827
+2025-10-08 09:45:33,330 - root - INFO - train average_precision, 0.7686
+2025-10-08 09:45:33,331 - root - INFO - train roc_auc, 0.7510
+2025-10-08 09:45:33,331 - root - INFO - validate loss: 0.6290
+2025-10-08 09:45:33,331 - root - INFO - validate average_precision, 0.7310
+2025-10-08 09:45:33,331 - root - INFO - validate roc_auc, 0.7151
+2025-10-08 09:45:33,331 - root - INFO - new node validate loss: 0.7097
+2025-10-08 09:45:33,331 - root - INFO - new node validate average_precision, 0.6380
+2025-10-08 09:45:33,331 - root - INFO - new node validate roc_auc, 0.6154
+2025-10-08 09:45:33,338 - root - INFO - save model ./saved_models/TGAT/lastfm/TGAT_time2vec_seed0/TGAT_time2vec_seed0.pkl
+2025-10-08 09:45:33,381 - root - INFO - load model ./saved_models/TGAT/lastfm/TGAT_time2vec_seed0/TGAT_time2vec_seed0.pkl
+2025-10-08 09:45:33,403 - root - INFO - get final performance on dataset lastfm...
+2025-10-08 09:45:49,398 - root - INFO - validate loss: 0.6290
+2025-10-08 09:45:49,398 - root - INFO - validate average_precision, 0.7310
+2025-10-08 09:45:49,398 - root - INFO - validate roc_auc, 0.7151
+2025-10-08 09:45:49,398 - root - INFO - new node validate loss: 0.7097
+2025-10-08 09:45:49,398 - root - INFO - new node validate average_precision, 0.6380
+2025-10-08 09:45:49,398 - root - INFO - new node validate roc_auc, 0.6154
+2025-10-08 09:45:49,398 - root - INFO - test loss: 0.6641
+2025-10-08 09:45:49,399 - root - INFO - test average_precision, 0.6942
+2025-10-08 09:45:49,399 - root - INFO - test roc_auc, 0.6770
+2025-10-08 09:45:49,399 - root - INFO - new node test loss: 0.7112
+2025-10-08 09:45:49,399 - root - INFO - new node test average_precision, 0.6400
+2025-10-08 09:45:49,399 - root - INFO - new node test roc_auc, 0.6229
+2025-10-08 09:45:49,408 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGAT/lastfm/TGAT_time2vec_seed0
+2025-10-08 09:45:49,408 - root - INFO - Run 1 cost 85.97 seconds.

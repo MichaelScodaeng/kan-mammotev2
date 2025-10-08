@@ -1,0 +1,86 @@
+2025-10-08 12:06:16,700 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 12:06:16,700 - root - INFO - configuration is Namespace(dataset_name='uci', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_lete_seed0')
+2025-10-08 12:06:16,702 - root - INFO - Metrics will be saved to: ./saved_metrics/GraphMixer/uci/GraphMixer_lete_seed0
+2025-10-08 12:06:16,705 - root - INFO - time encoder type: lete
+2025-10-08 12:06:16,705 - root - INFO - Time encoder will be injected into GraphMixer model
+2025-10-08 12:06:16,919 - root - INFO - model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 12:06:16,919 - root - INFO - model name: GraphMixer, #parameters: 2575676 B, 2515.30859375 KB, 2.4563560485839844 MB.
+2025-10-08 12:06:18,511 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6832
+2025-10-08 12:06:18,511 - root - INFO - train average_precision, 0.7654
+2025-10-08 12:06:18,511 - root - INFO - train roc_auc, 0.7505
+2025-10-08 12:06:18,512 - root - INFO - validate loss: 0.6499
+2025-10-08 12:06:18,512 - root - INFO - validate average_precision, 0.9122
+2025-10-08 12:06:18,512 - root - INFO - validate roc_auc, 0.9074
+2025-10-08 12:06:18,512 - root - INFO - new node validate loss: 0.6831
+2025-10-08 12:06:18,512 - root - INFO - new node validate average_precision, 0.6990
+2025-10-08 12:06:18,512 - root - INFO - new node validate roc_auc, 0.6424
+2025-10-08 12:06:18,521 - root - INFO - save model ./saved_models/GraphMixer/uci/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:06:19,252 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6525
+2025-10-08 12:06:19,252 - root - INFO - train average_precision, 0.8450
+2025-10-08 12:06:19,252 - root - INFO - train roc_auc, 0.8357
+2025-10-08 12:06:19,252 - root - INFO - validate loss: 0.5680
+2025-10-08 12:06:19,252 - root - INFO - validate average_precision, 0.9186
+2025-10-08 12:06:19,253 - root - INFO - validate roc_auc, 0.9124
+2025-10-08 12:06:19,253 - root - INFO - new node validate loss: 0.6751
+2025-10-08 12:06:19,253 - root - INFO - new node validate average_precision, 0.6964
+2025-10-08 12:06:19,253 - root - INFO - new node validate roc_auc, 0.6465
+2025-10-08 12:06:19,257 - root - INFO - save model ./saved_models/GraphMixer/uci/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:06:19,286 - root - INFO - load model ./saved_models/GraphMixer/uci/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:06:19,303 - root - INFO - get final performance on dataset uci...
+2025-10-08 12:06:19,646 - root - INFO - validate loss: 0.5680
+2025-10-08 12:06:19,646 - root - INFO - validate average_precision, 0.9186
+2025-10-08 12:06:19,646 - root - INFO - validate roc_auc, 0.9124
+2025-10-08 12:06:19,646 - root - INFO - new node validate loss: 0.6751
+2025-10-08 12:06:19,646 - root - INFO - new node validate average_precision, 0.6964
+2025-10-08 12:06:19,646 - root - INFO - new node validate roc_auc, 0.6465
+2025-10-08 12:06:19,646 - root - INFO - test loss: 0.6232
+2025-10-08 12:06:19,646 - root - INFO - test average_precision, 0.8018
+2025-10-08 12:06:19,646 - root - INFO - test roc_auc, 0.7950
+2025-10-08 12:06:19,647 - root - INFO - new node test loss: 0.6778
+2025-10-08 12:06:19,647 - root - INFO - new node test average_precision, 0.6146
+2025-10-08 12:06:19,647 - root - INFO - new node test roc_auc, 0.5997
+2025-10-08 12:06:19,654 - root - INFO - ✅ Metrics saved to: ./saved_metrics/GraphMixer/uci/GraphMixer_lete_seed0
+2025-10-08 12:06:19,654 - root - INFO - Run 1 cost 2.95 seconds.

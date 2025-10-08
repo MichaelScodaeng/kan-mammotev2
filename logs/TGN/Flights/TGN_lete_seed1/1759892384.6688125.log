@@ -1,0 +1,84 @@
+2025-10-08 11:59:44,672 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 11:59:44,672 - root - INFO - configuration is Namespace(dataset_name='Flights', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_lete_seed1')
+2025-10-08 11:59:44,673 - root - INFO - Metrics will be saved to: ./saved_metrics/TGN/Flights/TGN_lete_seed1
+2025-10-08 11:59:44,674 - root - INFO - time encoder type: lete
+2025-10-08 11:59:44,675 - root - INFO - Time encoder will be injected into TGN model
+2025-10-08 11:59:45,353 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=13170, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=13170, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 11:59:45,354 - root - INFO - model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+2025-10-08 12:00:06,132 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.4792
+2025-10-08 12:00:06,133 - root - INFO - train average_precision, 0.8505
+2025-10-08 12:00:06,133 - root - INFO - train roc_auc, 0.8473
+2025-10-08 12:00:06,133 - root - INFO - validate loss: 0.4806
+2025-10-08 12:00:06,133 - root - INFO - validate average_precision, 0.8432
+2025-10-08 12:00:06,133 - root - INFO - validate roc_auc, 0.8495
+2025-10-08 12:00:06,133 - root - INFO - new node validate loss: 0.7919
+2025-10-08 12:00:06,133 - root - INFO - new node validate average_precision, 0.5493
+2025-10-08 12:00:06,133 - root - INFO - new node validate roc_auc, 0.5537
+2025-10-08 12:00:06,143 - root - INFO - save model ./saved_models/TGN/Flights/TGN_lete_seed1/TGN_lete_seed1.pkl
+2025-10-08 12:00:27,938 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.4648
+2025-10-08 12:00:27,939 - root - INFO - train average_precision, 0.8515
+2025-10-08 12:00:27,939 - root - INFO - train roc_auc, 0.8435
+2025-10-08 12:00:27,939 - root - INFO - validate loss: 0.5402
+2025-10-08 12:00:27,939 - root - INFO - validate average_precision, 0.8059
+2025-10-08 12:00:27,939 - root - INFO - validate roc_auc, 0.8298
+2025-10-08 12:00:27,939 - root - INFO - new node validate loss: 0.7557
+2025-10-08 12:00:27,939 - root - INFO - new node validate average_precision, 0.5639
+2025-10-08 12:00:27,939 - root - INFO - new node validate roc_auc, 0.5672
+2025-10-08 12:00:27,946 - root - INFO - load model ./saved_models/TGN/Flights/TGN_lete_seed1/TGN_lete_seed1.pkl
+2025-10-08 12:00:29,195 - root - INFO - get final performance on dataset Flights...
+2025-10-08 12:00:30,550 - root - INFO - test loss: 0.5324
+2025-10-08 12:00:30,551 - root - INFO - test average_precision, 0.7891
+2025-10-08 12:00:30,551 - root - INFO - test roc_auc, 0.8146
+2025-10-08 12:00:30,551 - root - INFO - new node test loss: 0.7042
+2025-10-08 12:00:30,551 - root - INFO - new node test average_precision, 0.5534
+2025-10-08 12:00:30,551 - root - INFO - new node test roc_auc, 0.5783
+2025-10-08 12:00:30,560 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGN/Flights/TGN_lete_seed1
+2025-10-08 12:00:30,560 - root - INFO - Run 2 cost 45.89 seconds.
+2025-10-08 12:00:30,564 - root - INFO - metrics over 2 runs:
+2025-10-08 12:00:30,564 - root - INFO - test average_precision, [np.float64(0.7803909348721938), np.float64(0.7890826667718946)]
+2025-10-08 12:00:30,564 - root - INFO - average test average_precision, 0.7847 ± 0.0061
+2025-10-08 12:00:30,564 - root - INFO - test roc_auc, [np.float64(0.804683125), np.float64(0.8146468749999999)]
+2025-10-08 12:00:30,564 - root - INFO - average test roc_auc, 0.8097 ± 0.0070
+2025-10-08 12:00:30,564 - root - INFO - new node test average_precision, [np.float64(0.5385959780136315), np.float64(0.553351607381926)]
+2025-10-08 12:00:30,564 - root - INFO - average new node test average_precision, 0.5460 ± 0.0104
+2025-10-08 12:00:30,565 - root - INFO - new node test roc_auc, [np.float64(0.5498388475288074), np.float64(0.57825476797862)]
+2025-10-08 12:00:30,565 - root - INFO - average new node test roc_auc, 0.5640 ± 0.0201

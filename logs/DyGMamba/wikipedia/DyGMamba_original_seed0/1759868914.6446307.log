@@ -1,0 +1,482 @@
+2025-10-08 05:28:34,646 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 05:28:34,647 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='DyGMamba', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='original', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=1, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=5, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, device='cuda:0', save_model_name='DyGMamba_original_seed0')
+2025-10-08 05:28:34,648 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGMamba/wikipedia/DyGMamba_original_seed0
+2025-10-08 05:28:34,649 - root - INFO - time encoder type: original
+2025-10-08 05:28:34,649 - root - INFO - Time encoder will be injected into DyGMamba model
+2025-10-08 05:28:35,755 - root - INFO - model -> Sequential(
+  (0): DyGMamba(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+    )
+    (neighbor_co_occurrence_encoder): NIFEncoder(
+      (nif_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (output_layer): Linear(in_features=100, out_features=172, bias=True)
+    (output_layer_t_diff): Linear(in_features=25, out_features=172, bias=True)
+    (mamba): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=100, out_features=200, bias=False)
+        (conv1d): Conv1d(100, 100, kernel_size=(4,), stride=(1,), padding=(3,), groups=100)
+        (act): SiLU()
+        (x_proj): Linear(in_features=100, out_features=39, bias=False)
+        (dt_proj): Linear(in_features=7, out_features=100, bias=True)
+        (out_proj): Linear(in_features=100, out_features=100, bias=False)
+      )
+    )
+    (mamba_t_diff): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=25, out_features=50, bias=False)
+        (conv1d): Conv1d(25, 25, kernel_size=(4,), stride=(1,), padding=(3,), groups=25)
+        (act): SiLU()
+        (x_proj): Linear(in_features=25, out_features=34, bias=False)
+        (dt_proj): Linear(in_features=2, out_features=25, bias=True)
+        (out_proj): Linear(in_features=25, out_features=25, bias=False)
+      )
+    )
+    (projection_layer_t_diff): Linear(in_features=100, out_features=25, bias=True)
+    (projection_layer_t_diff_up): Linear(in_features=25, out_features=100, bias=True)
+    (weightagg): Linear(in_features=100, out_features=1, bias=True)
+    (reduce_layer): Linear(in_features=200, out_features=100, bias=True)
+    (channel_norm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+    (channel_feedforward): FeedForwardNet(
+      (ffn): Sequential(
+        (0): Linear(in_features=100, out_features=400, bias=True)
+        (1): GELU(approximate='none')
+        (2): Dropout(p=0.1, inplace=False)
+        (3): Linear(in_features=400, out_features=100, bias=True)
+        (4): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (neighbor_selection_layer): Linear(in_features=100, out_features=100, bias=True)
+  )
+  (1): MergeLayerTD(
+    (fc1): Linear(in_features=516, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 05:28:35,756 - root - INFO - model name: DyGMamba, #parameters: 1341268 B, 1309.83203125 KB, 1.2791328430175781 MB.
+2025-10-08 05:30:02,290 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.2834
+2025-10-08 05:30:02,291 - root - INFO - train average_precision, 0.9557
+2025-10-08 05:30:02,291 - root - INFO - train roc_auc, 0.9355
+2025-10-08 05:30:02,291 - root - INFO - validate loss: 0.1818
+2025-10-08 05:30:02,291 - root - INFO - validate average_precision, 0.9786
+2025-10-08 05:30:02,292 - root - INFO - validate roc_auc, 0.9704
+2025-10-08 05:30:02,292 - root - INFO - new node validate loss: 0.2130
+2025-10-08 05:30:02,292 - root - INFO - new node validate average_precision, 0.9657
+2025-10-08 05:30:02,292 - root - INFO - new node validate roc_auc, 0.9498
+2025-10-08 05:30:02,302 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:31:28,622 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.2007
+2025-10-08 05:31:28,623 - root - INFO - train average_precision, 0.9733
+2025-10-08 05:31:28,623 - root - INFO - train roc_auc, 0.9642
+2025-10-08 05:31:28,623 - root - INFO - validate loss: 0.1611
+2025-10-08 05:31:28,623 - root - INFO - validate average_precision, 0.9843
+2025-10-08 05:31:28,623 - root - INFO - validate roc_auc, 0.9801
+2025-10-08 05:31:28,623 - root - INFO - new node validate loss: 0.1933
+2025-10-08 05:31:28,623 - root - INFO - new node validate average_precision, 0.9791
+2025-10-08 05:31:28,623 - root - INFO - new node validate roc_auc, 0.9729
+2025-10-08 05:31:28,630 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:32:54,808 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.1691
+2025-10-08 05:32:54,809 - root - INFO - train average_precision, 0.9825
+2025-10-08 05:32:54,809 - root - INFO - train roc_auc, 0.9793
+2025-10-08 05:32:54,809 - root - INFO - validate loss: 0.1305
+2025-10-08 05:32:54,810 - root - INFO - validate average_precision, 0.9887
+2025-10-08 05:32:54,810 - root - INFO - validate roc_auc, 0.9869
+2025-10-08 05:32:54,810 - root - INFO - new node validate loss: 0.1530
+2025-10-08 05:32:54,810 - root - INFO - new node validate average_precision, 0.9856
+2025-10-08 05:32:54,810 - root - INFO - new node validate roc_auc, 0.9831
+2025-10-08 05:32:54,815 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:34:21,129 - root - INFO - Epoch: 4, learning rate: 0.0001, train loss: 0.1380
+2025-10-08 05:34:21,130 - root - INFO - train average_precision, 0.9875
+2025-10-08 05:34:21,130 - root - INFO - train roc_auc, 0.9859
+2025-10-08 05:34:21,130 - root - INFO - validate loss: 0.1133
+2025-10-08 05:34:21,130 - root - INFO - validate average_precision, 0.9913
+2025-10-08 05:34:21,130 - root - INFO - validate roc_auc, 0.9902
+2025-10-08 05:34:21,131 - root - INFO - new node validate loss: 0.1347
+2025-10-08 05:34:21,131 - root - INFO - new node validate average_precision, 0.9880
+2025-10-08 05:34:21,131 - root - INFO - new node validate roc_auc, 0.9868
+2025-10-08 05:34:21,136 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:35:47,247 - root - INFO - Epoch: 5, learning rate: 0.0001, train loss: 0.1292
+2025-10-08 05:35:47,248 - root - INFO - train average_precision, 0.9886
+2025-10-08 05:35:47,248 - root - INFO - train roc_auc, 0.9877
+2025-10-08 05:35:47,249 - root - INFO - validate loss: 0.1121
+2025-10-08 05:35:47,249 - root - INFO - validate average_precision, 0.9912
+2025-10-08 05:35:47,249 - root - INFO - validate roc_auc, 0.9905
+2025-10-08 05:35:47,249 - root - INFO - new node validate loss: 0.1317
+2025-10-08 05:35:47,249 - root - INFO - new node validate average_precision, 0.9885
+2025-10-08 05:35:47,249 - root - INFO - new node validate roc_auc, 0.9876
+2025-10-08 05:35:47,350 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_5.pth.tmp validation passed (epoch 5)
+2025-10-08 05:35:47,352 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_5.pth
+2025-10-08 05:37:13,317 - root - INFO - Epoch: 6, learning rate: 0.0001, train loss: 0.1257
+2025-10-08 05:37:13,317 - root - INFO - train average_precision, 0.9895
+2025-10-08 05:37:13,317 - root - INFO - train roc_auc, 0.9885
+2025-10-08 05:37:13,317 - root - INFO - validate loss: 0.1082
+2025-10-08 05:37:13,318 - root - INFO - validate average_precision, 0.9921
+2025-10-08 05:37:13,318 - root - INFO - validate roc_auc, 0.9914
+2025-10-08 05:37:13,318 - root - INFO - new node validate loss: 0.1300
+2025-10-08 05:37:13,318 - root - INFO - new node validate average_precision, 0.9893
+2025-10-08 05:37:13,318 - root - INFO - new node validate roc_auc, 0.9885
+2025-10-08 05:37:13,325 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:38:39,313 - root - INFO - Epoch: 7, learning rate: 0.0001, train loss: 0.1259
+2025-10-08 05:38:39,314 - root - INFO - train average_precision, 0.9895
+2025-10-08 05:38:39,314 - root - INFO - train roc_auc, 0.9886
+2025-10-08 05:38:39,314 - root - INFO - validate loss: 0.1054
+2025-10-08 05:38:39,314 - root - INFO - validate average_precision, 0.9923
+2025-10-08 05:38:39,314 - root - INFO - validate roc_auc, 0.9917
+2025-10-08 05:38:39,314 - root - INFO - new node validate loss: 0.1259
+2025-10-08 05:38:39,314 - root - INFO - new node validate average_precision, 0.9895
+2025-10-08 05:38:39,314 - root - INFO - new node validate roc_auc, 0.9887
+2025-10-08 05:38:39,320 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:40:05,429 - root - INFO - Epoch: 8, learning rate: 0.0001, train loss: 0.1210
+2025-10-08 05:40:05,430 - root - INFO - train average_precision, 0.9899
+2025-10-08 05:40:05,430 - root - INFO - train roc_auc, 0.9893
+2025-10-08 05:40:05,430 - root - INFO - validate loss: 0.1040
+2025-10-08 05:40:05,430 - root - INFO - validate average_precision, 0.9925
+2025-10-08 05:40:05,430 - root - INFO - validate roc_auc, 0.9920
+2025-10-08 05:40:05,431 - root - INFO - new node validate loss: 0.1248
+2025-10-08 05:40:05,431 - root - INFO - new node validate average_precision, 0.9898
+2025-10-08 05:40:05,431 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 05:40:05,436 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:41:31,494 - root - INFO - Epoch: 9, learning rate: 0.0001, train loss: 0.1182
+2025-10-08 05:41:31,495 - root - INFO - train average_precision, 0.9904
+2025-10-08 05:41:31,495 - root - INFO - train roc_auc, 0.9899
+2025-10-08 05:41:31,495 - root - INFO - validate loss: 0.1014
+2025-10-08 05:41:31,495 - root - INFO - validate average_precision, 0.9927
+2025-10-08 05:41:31,495 - root - INFO - validate roc_auc, 0.9923
+2025-10-08 05:41:31,495 - root - INFO - new node validate loss: 0.1220
+2025-10-08 05:41:31,495 - root - INFO - new node validate average_precision, 0.9900
+2025-10-08 05:41:31,495 - root - INFO - new node validate roc_auc, 0.9894
+2025-10-08 05:41:31,501 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:42:57,313 - root - INFO - Epoch: 10, learning rate: 0.0001, train loss: 0.1183
+2025-10-08 05:42:57,314 - root - INFO - train average_precision, 0.9904
+2025-10-08 05:42:57,314 - root - INFO - train roc_auc, 0.9898
+2025-10-08 05:42:57,314 - root - INFO - validate loss: 0.1016
+2025-10-08 05:42:57,314 - root - INFO - validate average_precision, 0.9931
+2025-10-08 05:42:57,314 - root - INFO - validate roc_auc, 0.9925
+2025-10-08 05:42:57,314 - root - INFO - new node validate loss: 0.1234
+2025-10-08 05:42:57,314 - root - INFO - new node validate average_precision, 0.9900
+2025-10-08 05:42:57,314 - root - INFO - new node validate roc_auc, 0.9895
+2025-10-08 05:42:57,390 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_10.pth.tmp validation passed (epoch 10)
+2025-10-08 05:42:57,391 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_10.pth
+2025-10-08 05:42:57,392 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:44:23,198 - root - INFO - Epoch: 11, learning rate: 0.0001, train loss: 0.1208
+2025-10-08 05:44:23,199 - root - INFO - train average_precision, 0.9902
+2025-10-08 05:44:23,199 - root - INFO - train roc_auc, 0.9895
+2025-10-08 05:44:23,199 - root - INFO - validate loss: 0.1034
+2025-10-08 05:44:23,199 - root - INFO - validate average_precision, 0.9925
+2025-10-08 05:44:23,199 - root - INFO - validate roc_auc, 0.9920
+2025-10-08 05:44:23,199 - root - INFO - new node validate loss: 0.1246
+2025-10-08 05:44:23,199 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 05:44:23,199 - root - INFO - new node validate roc_auc, 0.9891
+2025-10-08 05:45:48,899 - root - INFO - Epoch: 12, learning rate: 0.0001, train loss: 0.1201
+2025-10-08 05:45:48,900 - root - INFO - train average_precision, 0.9899
+2025-10-08 05:45:48,900 - root - INFO - train roc_auc, 0.9895
+2025-10-08 05:45:48,900 - root - INFO - validate loss: 0.1030
+2025-10-08 05:45:48,900 - root - INFO - validate average_precision, 0.9927
+2025-10-08 05:45:48,900 - root - INFO - validate roc_auc, 0.9921
+2025-10-08 05:45:48,900 - root - INFO - new node validate loss: 0.1239
+2025-10-08 05:45:48,900 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 05:45:48,901 - root - INFO - new node validate roc_auc, 0.9891
+2025-10-08 05:47:15,081 - root - INFO - Epoch: 13, learning rate: 0.0001, train loss: 0.1205
+2025-10-08 05:47:15,082 - root - INFO - train average_precision, 0.9902
+2025-10-08 05:47:15,082 - root - INFO - train roc_auc, 0.9894
+2025-10-08 05:47:15,082 - root - INFO - validate loss: 0.1037
+2025-10-08 05:47:15,082 - root - INFO - validate average_precision, 0.9926
+2025-10-08 05:47:15,082 - root - INFO - validate roc_auc, 0.9920
+2025-10-08 05:47:15,082 - root - INFO - new node validate loss: 0.1259
+2025-10-08 05:47:15,082 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 05:47:15,082 - root - INFO - new node validate roc_auc, 0.9887
+2025-10-08 05:48:41,190 - root - INFO - Epoch: 14, learning rate: 0.0001, train loss: 0.1180
+2025-10-08 05:48:41,191 - root - INFO - train average_precision, 0.9905
+2025-10-08 05:48:41,191 - root - INFO - train roc_auc, 0.9899
+2025-10-08 05:48:41,191 - root - INFO - validate loss: 0.1025
+2025-10-08 05:48:41,191 - root - INFO - validate average_precision, 0.9928
+2025-10-08 05:48:41,192 - root - INFO - validate roc_auc, 0.9922
+2025-10-08 05:48:41,192 - root - INFO - new node validate loss: 0.1259
+2025-10-08 05:48:41,192 - root - INFO - new node validate average_precision, 0.9901
+2025-10-08 05:48:41,192 - root - INFO - new node validate roc_auc, 0.9891
+2025-10-08 05:50:07,534 - root - INFO - Epoch: 15, learning rate: 0.0001, train loss: 0.1173
+2025-10-08 05:50:07,534 - root - INFO - train average_precision, 0.9905
+2025-10-08 05:50:07,535 - root - INFO - train roc_auc, 0.9900
+2025-10-08 05:50:07,535 - root - INFO - validate loss: 0.1057
+2025-10-08 05:50:07,535 - root - INFO - validate average_precision, 0.9924
+2025-10-08 05:50:07,535 - root - INFO - validate roc_auc, 0.9918
+2025-10-08 05:50:07,535 - root - INFO - new node validate loss: 0.1285
+2025-10-08 05:50:07,535 - root - INFO - new node validate average_precision, 0.9895
+2025-10-08 05:50:07,535 - root - INFO - new node validate roc_auc, 0.9884
+2025-10-08 05:50:07,612 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_15.pth.tmp validation passed (epoch 15)
+2025-10-08 05:50:07,614 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_15.pth
+2025-10-08 05:51:33,804 - root - INFO - Epoch: 16, learning rate: 0.0001, train loss: 0.1220
+2025-10-08 05:51:33,805 - root - INFO - train average_precision, 0.9897
+2025-10-08 05:51:33,805 - root - INFO - train roc_auc, 0.9891
+2025-10-08 05:51:33,805 - root - INFO - validate loss: 0.1033
+2025-10-08 05:51:33,805 - root - INFO - validate average_precision, 0.9928
+2025-10-08 05:51:33,805 - root - INFO - validate roc_auc, 0.9921
+2025-10-08 05:51:33,805 - root - INFO - new node validate loss: 0.1259
+2025-10-08 05:51:33,805 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 05:51:33,805 - root - INFO - new node validate roc_auc, 0.9888
+2025-10-08 05:52:59,751 - root - INFO - Epoch: 17, learning rate: 0.0001, train loss: 0.1183
+2025-10-08 05:52:59,752 - root - INFO - train average_precision, 0.9904
+2025-10-08 05:52:59,752 - root - INFO - train roc_auc, 0.9898
+2025-10-08 05:52:59,752 - root - INFO - validate loss: 0.1025
+2025-10-08 05:52:59,752 - root - INFO - validate average_precision, 0.9929
+2025-10-08 05:52:59,753 - root - INFO - validate roc_auc, 0.9922
+2025-10-08 05:52:59,753 - root - INFO - new node validate loss: 0.1242
+2025-10-08 05:52:59,753 - root - INFO - new node validate average_precision, 0.9899
+2025-10-08 05:52:59,753 - root - INFO - new node validate roc_auc, 0.9891
+2025-10-08 05:54:25,776 - root - INFO - Epoch: 18, learning rate: 0.0001, train loss: 0.1181
+2025-10-08 05:54:25,777 - root - INFO - train average_precision, 0.9905
+2025-10-08 05:54:25,777 - root - INFO - train roc_auc, 0.9900
+2025-10-08 05:54:25,777 - root - INFO - validate loss: 0.1020
+2025-10-08 05:54:25,777 - root - INFO - validate average_precision, 0.9929
+2025-10-08 05:54:25,777 - root - INFO - validate roc_auc, 0.9923
+2025-10-08 05:54:25,777 - root - INFO - new node validate loss: 0.1233
+2025-10-08 05:54:25,777 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 05:54:25,777 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 05:55:52,002 - root - INFO - Epoch: 19, learning rate: 0.0001, train loss: 0.1164
+2025-10-08 05:55:52,002 - root - INFO - train average_precision, 0.9910
+2025-10-08 05:55:52,002 - root - INFO - train roc_auc, 0.9903
+2025-10-08 05:55:52,003 - root - INFO - validate loss: 0.0988
+2025-10-08 05:55:52,003 - root - INFO - validate average_precision, 0.9933
+2025-10-08 05:55:52,003 - root - INFO - validate roc_auc, 0.9928
+2025-10-08 05:55:52,003 - root - INFO - new node validate loss: 0.1207
+2025-10-08 05:55:52,003 - root - INFO - new node validate average_precision, 0.9902
+2025-10-08 05:55:52,003 - root - INFO - new node validate roc_auc, 0.9898
+2025-10-08 05:55:52,008 - root - INFO - save model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 05:57:18,267 - root - INFO - Epoch: 20, learning rate: 0.0001, train loss: 0.1424
+2025-10-08 05:57:18,268 - root - INFO - train average_precision, 0.9874
+2025-10-08 05:57:18,268 - root - INFO - train roc_auc, 0.9853
+2025-10-08 05:57:18,268 - root - INFO - validate loss: 0.1150
+2025-10-08 05:57:18,269 - root - INFO - validate average_precision, 0.9906
+2025-10-08 05:57:18,269 - root - INFO - validate roc_auc, 0.9896
+2025-10-08 05:57:18,269 - root - INFO - new node validate loss: 0.1363
+2025-10-08 05:57:18,269 - root - INFO - new node validate average_precision, 0.9877
+2025-10-08 05:57:18,269 - root - INFO - new node validate roc_auc, 0.9862
+2025-10-08 05:57:18,348 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_20.pth.tmp validation passed (epoch 20)
+2025-10-08 05:57:18,349 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_20.pth
+2025-10-08 05:57:18,354 - root - INFO - Removed old checkpoint: epoch 5
+2025-10-08 05:58:44,523 - root - INFO - Epoch: 21, learning rate: 0.0001, train loss: 0.1234
+2025-10-08 05:58:44,524 - root - INFO - train average_precision, 0.9896
+2025-10-08 05:58:44,524 - root - INFO - train roc_auc, 0.9889
+2025-10-08 05:58:44,524 - root - INFO - validate loss: 0.1070
+2025-10-08 05:58:44,524 - root - INFO - validate average_precision, 0.9918
+2025-10-08 05:58:44,524 - root - INFO - validate roc_auc, 0.9913
+2025-10-08 05:58:44,525 - root - INFO - new node validate loss: 0.1285
+2025-10-08 05:58:44,525 - root - INFO - new node validate average_precision, 0.9890
+2025-10-08 05:58:44,525 - root - INFO - new node validate roc_auc, 0.9881
+2025-10-08 06:00:10,639 - root - INFO - Epoch: 22, learning rate: 0.0001, train loss: 0.1199
+2025-10-08 06:00:10,640 - root - INFO - train average_precision, 0.9901
+2025-10-08 06:00:10,640 - root - INFO - train roc_auc, 0.9896
+2025-10-08 06:00:10,640 - root - INFO - validate loss: 0.1044
+2025-10-08 06:00:10,640 - root - INFO - validate average_precision, 0.9922
+2025-10-08 06:00:10,640 - root - INFO - validate roc_auc, 0.9918
+2025-10-08 06:00:10,640 - root - INFO - new node validate loss: 0.1260
+2025-10-08 06:00:10,640 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 06:00:10,640 - root - INFO - new node validate roc_auc, 0.9888
+2025-10-08 06:01:36,598 - root - INFO - Epoch: 23, learning rate: 0.0001, train loss: 0.1185
+2025-10-08 06:01:36,599 - root - INFO - train average_precision, 0.9901
+2025-10-08 06:01:36,599 - root - INFO - train roc_auc, 0.9898
+2025-10-08 06:01:36,599 - root - INFO - validate loss: 0.1043
+2025-10-08 06:01:36,599 - root - INFO - validate average_precision, 0.9923
+2025-10-08 06:01:36,599 - root - INFO - validate roc_auc, 0.9919
+2025-10-08 06:01:36,599 - root - INFO - new node validate loss: 0.1266
+2025-10-08 06:01:36,600 - root - INFO - new node validate average_precision, 0.9895
+2025-10-08 06:01:36,600 - root - INFO - new node validate roc_auc, 0.9887
+2025-10-08 06:03:02,595 - root - INFO - Epoch: 24, learning rate: 0.0001, train loss: 0.1166
+2025-10-08 06:03:02,596 - root - INFO - train average_precision, 0.9906
+2025-10-08 06:03:02,597 - root - INFO - train roc_auc, 0.9901
+2025-10-08 06:03:02,597 - root - INFO - validate loss: 0.1024
+2025-10-08 06:03:02,597 - root - INFO - validate average_precision, 0.9926
+2025-10-08 06:03:02,597 - root - INFO - validate roc_auc, 0.9921
+2025-10-08 06:03:02,597 - root - INFO - new node validate loss: 0.1260
+2025-10-08 06:03:02,597 - root - INFO - new node validate average_precision, 0.9898
+2025-10-08 06:03:02,597 - root - INFO - new node validate roc_auc, 0.9889
+2025-10-08 06:04:28,830 - root - INFO - Epoch: 25, learning rate: 0.0001, train loss: 0.1169
+2025-10-08 06:04:28,831 - root - INFO - train average_precision, 0.9906
+2025-10-08 06:04:28,831 - root - INFO - train roc_auc, 0.9901
+2025-10-08 06:04:28,831 - root - INFO - validate loss: 0.1029
+2025-10-08 06:04:28,831 - root - INFO - validate average_precision, 0.9926
+2025-10-08 06:04:28,831 - root - INFO - validate roc_auc, 0.9921
+2025-10-08 06:04:28,831 - root - INFO - new node validate loss: 0.1253
+2025-10-08 06:04:28,831 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 06:04:28,831 - root - INFO - new node validate roc_auc, 0.9889
+2025-10-08 06:04:28,911 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_25.pth.tmp validation passed (epoch 25)
+2025-10-08 06:04:28,913 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_25.pth
+2025-10-08 06:04:28,917 - root - INFO - Removed old checkpoint: epoch 10
+2025-10-08 06:05:54,945 - root - INFO - Epoch: 26, learning rate: 0.0001, train loss: 0.1168
+2025-10-08 06:05:54,946 - root - INFO - train average_precision, 0.9906
+2025-10-08 06:05:54,946 - root - INFO - train roc_auc, 0.9902
+2025-10-08 06:05:54,946 - root - INFO - validate loss: 0.1030
+2025-10-08 06:05:54,946 - root - INFO - validate average_precision, 0.9927
+2025-10-08 06:05:54,946 - root - INFO - validate roc_auc, 0.9922
+2025-10-08 06:05:54,946 - root - INFO - new node validate loss: 0.1245
+2025-10-08 06:05:54,946 - root - INFO - new node validate average_precision, 0.9899
+2025-10-08 06:05:54,946 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:07:20,569 - root - INFO - Epoch: 27, learning rate: 0.0001, train loss: 0.1169
+2025-10-08 06:07:20,570 - root - INFO - train average_precision, 0.9908
+2025-10-08 06:07:20,570 - root - INFO - train roc_auc, 0.9902
+2025-10-08 06:07:20,570 - root - INFO - validate loss: 0.1025
+2025-10-08 06:07:20,570 - root - INFO - validate average_precision, 0.9927
+2025-10-08 06:07:20,570 - root - INFO - validate roc_auc, 0.9922
+2025-10-08 06:07:20,570 - root - INFO - new node validate loss: 0.1238
+2025-10-08 06:07:20,570 - root - INFO - new node validate average_precision, 0.9898
+2025-10-08 06:07:20,570 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:08:46,664 - root - INFO - Epoch: 28, learning rate: 0.0001, train loss: 0.1156
+2025-10-08 06:08:46,664 - root - INFO - train average_precision, 0.9909
+2025-10-08 06:08:46,665 - root - INFO - train roc_auc, 0.9903
+2025-10-08 06:08:46,665 - root - INFO - validate loss: 0.1019
+2025-10-08 06:08:46,665 - root - INFO - validate average_precision, 0.9928
+2025-10-08 06:08:46,665 - root - INFO - validate roc_auc, 0.9923
+2025-10-08 06:08:46,665 - root - INFO - new node validate loss: 0.1254
+2025-10-08 06:08:46,665 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 06:08:46,665 - root - INFO - new node validate roc_auc, 0.9891
+2025-10-08 06:10:12,782 - root - INFO - Epoch: 29, learning rate: 0.0001, train loss: 0.1165
+2025-10-08 06:10:12,783 - root - INFO - train average_precision, 0.9907
+2025-10-08 06:10:12,783 - root - INFO - train roc_auc, 0.9902
+2025-10-08 06:10:12,783 - root - INFO - validate loss: 0.1030
+2025-10-08 06:10:12,783 - root - INFO - validate average_precision, 0.9927
+2025-10-08 06:10:12,783 - root - INFO - validate roc_auc, 0.9922
+2025-10-08 06:10:12,783 - root - INFO - new node validate loss: 0.1259
+2025-10-08 06:10:12,783 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 06:10:12,783 - root - INFO - new node validate roc_auc, 0.9888
+2025-10-08 06:11:38,586 - root - INFO - Epoch: 30, learning rate: 0.0001, train loss: 0.1157
+2025-10-08 06:11:38,587 - root - INFO - train average_precision, 0.9910
+2025-10-08 06:11:38,587 - root - INFO - train roc_auc, 0.9904
+2025-10-08 06:11:38,587 - root - INFO - validate loss: 0.1027
+2025-10-08 06:11:38,587 - root - INFO - validate average_precision, 0.9929
+2025-10-08 06:11:38,587 - root - INFO - validate roc_auc, 0.9923
+2025-10-08 06:11:38,587 - root - INFO - new node validate loss: 0.1259
+2025-10-08 06:11:38,588 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 06:11:38,588 - root - INFO - new node validate roc_auc, 0.9890
+2025-10-08 06:11:38,671 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_30.pth.tmp validation passed (epoch 30)
+2025-10-08 06:11:38,672 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_30.pth
+2025-10-08 06:11:38,677 - root - INFO - Removed old checkpoint: epoch 15
+2025-10-08 06:13:04,472 - root - INFO - Epoch: 31, learning rate: 0.0001, train loss: 0.1159
+2025-10-08 06:13:04,473 - root - INFO - train average_precision, 0.9908
+2025-10-08 06:13:04,473 - root - INFO - train roc_auc, 0.9903
+2025-10-08 06:13:04,473 - root - INFO - validate loss: 0.1017
+2025-10-08 06:13:04,473 - root - INFO - validate average_precision, 0.9930
+2025-10-08 06:13:04,473 - root - INFO - validate roc_auc, 0.9924
+2025-10-08 06:13:04,473 - root - INFO - new node validate loss: 0.1242
+2025-10-08 06:13:04,473 - root - INFO - new node validate average_precision, 0.9895
+2025-10-08 06:13:04,473 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:14:30,126 - root - INFO - Epoch: 32, learning rate: 0.0001, train loss: 0.1157
+2025-10-08 06:14:30,127 - root - INFO - train average_precision, 0.9908
+2025-10-08 06:14:30,127 - root - INFO - train roc_auc, 0.9904
+2025-10-08 06:14:30,127 - root - INFO - validate loss: 0.1014
+2025-10-08 06:14:30,127 - root - INFO - validate average_precision, 0.9932
+2025-10-08 06:14:30,127 - root - INFO - validate roc_auc, 0.9925
+2025-10-08 06:14:30,127 - root - INFO - new node validate loss: 0.1252
+2025-10-08 06:14:30,127 - root - INFO - new node validate average_precision, 0.9896
+2025-10-08 06:14:30,127 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:15:56,019 - root - INFO - Epoch: 33, learning rate: 0.0001, train loss: 0.1188
+2025-10-08 06:15:56,020 - root - INFO - train average_precision, 0.9905
+2025-10-08 06:15:56,020 - root - INFO - train roc_auc, 0.9899
+2025-10-08 06:15:56,020 - root - INFO - validate loss: 0.1040
+2025-10-08 06:15:56,020 - root - INFO - validate average_precision, 0.9927
+2025-10-08 06:15:56,020 - root - INFO - validate roc_auc, 0.9921
+2025-10-08 06:15:56,020 - root - INFO - new node validate loss: 0.1282
+2025-10-08 06:15:56,020 - root - INFO - new node validate average_precision, 0.9894
+2025-10-08 06:15:56,020 - root - INFO - new node validate roc_auc, 0.9888
+2025-10-08 06:17:22,093 - root - INFO - Epoch: 34, learning rate: 0.0001, train loss: 0.1170
+2025-10-08 06:17:22,093 - root - INFO - train average_precision, 0.9909
+2025-10-08 06:17:22,093 - root - INFO - train roc_auc, 0.9901
+2025-10-08 06:17:22,093 - root - INFO - validate loss: 0.1050
+2025-10-08 06:17:22,094 - root - INFO - validate average_precision, 0.9928
+2025-10-08 06:17:22,094 - root - INFO - validate roc_auc, 0.9920
+2025-10-08 06:17:22,094 - root - INFO - new node validate loss: 0.1281
+2025-10-08 06:17:22,094 - root - INFO - new node validate average_precision, 0.9895
+2025-10-08 06:17:22,094 - root - INFO - new node validate roc_auc, 0.9889
+2025-10-08 06:18:48,068 - root - INFO - Epoch: 35, learning rate: 0.0001, train loss: 0.1171
+2025-10-08 06:18:48,068 - root - INFO - train average_precision, 0.9908
+2025-10-08 06:18:48,069 - root - INFO - train roc_auc, 0.9902
+2025-10-08 06:18:48,069 - root - INFO - validate loss: 0.1028
+2025-10-08 06:18:48,069 - root - INFO - validate average_precision, 0.9929
+2025-10-08 06:18:48,069 - root - INFO - validate roc_auc, 0.9923
+2025-10-08 06:18:48,069 - root - INFO - new node validate loss: 0.1259
+2025-10-08 06:18:48,069 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 06:18:48,069 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:18:48,149 - root - INFO - Checkpoint ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_35.pth.tmp validation passed (epoch 35)
+2025-10-08 06:18:48,151 - root - INFO - ✅ Checkpoint saved and validated: ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/checkpoint_epoch_35.pth
+2025-10-08 06:18:48,155 - root - INFO - Removed old checkpoint: epoch 20
+2025-10-08 06:20:13,926 - root - INFO - Epoch: 36, learning rate: 0.0001, train loss: 0.1161
+2025-10-08 06:20:13,927 - root - INFO - train average_precision, 0.9908
+2025-10-08 06:20:13,927 - root - INFO - train roc_auc, 0.9903
+2025-10-08 06:20:13,927 - root - INFO - validate loss: 0.1042
+2025-10-08 06:20:13,927 - root - INFO - validate average_precision, 0.9926
+2025-10-08 06:20:13,927 - root - INFO - validate roc_auc, 0.9920
+2025-10-08 06:20:13,927 - root - INFO - new node validate loss: 0.1274
+2025-10-08 06:20:13,927 - root - INFO - new node validate average_precision, 0.9892
+2025-10-08 06:20:13,927 - root - INFO - new node validate roc_auc, 0.9887
+2025-10-08 06:21:39,440 - root - INFO - Epoch: 37, learning rate: 0.0001, train loss: 0.1149
+2025-10-08 06:21:39,441 - root - INFO - train average_precision, 0.9909
+2025-10-08 06:21:39,441 - root - INFO - train roc_auc, 0.9905
+2025-10-08 06:21:39,441 - root - INFO - validate loss: 0.1009
+2025-10-08 06:21:39,442 - root - INFO - validate average_precision, 0.9932
+2025-10-08 06:21:39,442 - root - INFO - validate roc_auc, 0.9925
+2025-10-08 06:21:39,442 - root - INFO - new node validate loss: 0.1250
+2025-10-08 06:21:39,442 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 06:21:39,442 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:23:05,222 - root - INFO - Epoch: 38, learning rate: 0.0001, train loss: 0.1140
+2025-10-08 06:23:05,223 - root - INFO - train average_precision, 0.9911
+2025-10-08 06:23:05,223 - root - INFO - train roc_auc, 0.9906
+2025-10-08 06:23:05,223 - root - INFO - validate loss: 0.1009
+2025-10-08 06:23:05,223 - root - INFO - validate average_precision, 0.9932
+2025-10-08 06:23:05,223 - root - INFO - validate roc_auc, 0.9925
+2025-10-08 06:23:05,223 - root - INFO - new node validate loss: 0.1237
+2025-10-08 06:23:05,223 - root - INFO - new node validate average_precision, 0.9897
+2025-10-08 06:23:05,223 - root - INFO - new node validate roc_auc, 0.9892
+2025-10-08 06:24:31,162 - root - INFO - Epoch: 39, learning rate: 0.0001, train loss: 0.1142
+2025-10-08 06:24:31,163 - root - INFO - train average_precision, 0.9912
+2025-10-08 06:24:31,163 - root - INFO - train roc_auc, 0.9907
+2025-10-08 06:24:31,163 - root - INFO - validate loss: 0.1020
+2025-10-08 06:24:31,164 - root - INFO - validate average_precision, 0.9931
+2025-10-08 06:24:31,164 - root - INFO - validate roc_auc, 0.9924
+2025-10-08 06:24:31,164 - root - INFO - new node validate loss: 0.1259
+2025-10-08 06:24:31,164 - root - INFO - new node validate average_precision, 0.9894
+2025-10-08 06:24:31,164 - root - INFO - new node validate roc_auc, 0.9890
+2025-10-08 06:24:31,169 - root - INFO - load model ./saved_models/DyGMamba/wikipedia/DyGMamba_original_seed0/DyGMamba_original_seed0.pkl
+2025-10-08 06:24:31,185 - root - INFO - get final performance on dataset wikipedia...
+2025-10-08 06:25:16,178 - root - INFO - validate loss: 0.0988
+2025-10-08 06:25:16,179 - root - INFO - validate average_precision, 0.9933
+2025-10-08 06:25:16,179 - root - INFO - validate roc_auc, 0.9928
+2025-10-08 06:25:16,179 - root - INFO - new node validate loss: 0.1207
+2025-10-08 06:25:16,179 - root - INFO - new node validate average_precision, 0.9902
+2025-10-08 06:25:16,179 - root - INFO - new node validate roc_auc, 0.9898
+2025-10-08 06:25:16,179 - root - INFO - test loss: 0.1130
+2025-10-08 06:25:16,179 - root - INFO - test average_precision, 0.9916
+2025-10-08 06:25:16,179 - root - INFO - test roc_auc, 0.9908
+2025-10-08 06:25:16,179 - root - INFO - new node test loss: 0.1322
+2025-10-08 06:25:16,179 - root - INFO - new node test average_precision, 0.9892
+2025-10-08 06:25:16,179 - root - INFO - new node test roc_auc, 0.9880
+2025-10-08 06:25:16,191 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGMamba/wikipedia/DyGMamba_original_seed0
+2025-10-08 06:25:16,191 - root - INFO - Run 1 cost 3401.54 seconds.
+2025-10-08 06:25:16,197 - root - INFO - metrics over 1 runs:
+2025-10-08 06:25:16,198 - root - INFO - validate average_precision, [np.float64(0.9932665137037369)]
+2025-10-08 06:25:16,198 - root - INFO - average validate average_precision, 0.9933 ± nan
+2025-10-08 06:25:16,198 - root - INFO - validate roc_auc, [np.float64(0.9928058397168391)]
+2025-10-08 06:25:16,198 - root - INFO - average validate roc_auc, 0.9928 ± nan
+2025-10-08 06:25:16,198 - root - INFO - new node validate average_precision, [np.float64(0.9902016450986013)]
+2025-10-08 06:25:16,198 - root - INFO - average new node validate average_precision, 0.9902 ± nan
+2025-10-08 06:25:16,199 - root - INFO - new node validate roc_auc, [np.float64(0.9897615266393441)]
+2025-10-08 06:25:16,199 - root - INFO - average new node validate roc_auc, 0.9898 ± nan
+2025-10-08 06:25:16,199 - root - INFO - test average_precision, [np.float64(0.9916024007429041)]
+2025-10-08 06:25:16,199 - root - INFO - average test average_precision, 0.9916 ± nan
+2025-10-08 06:25:16,199 - root - INFO - test roc_auc, [np.float64(0.9907547892966708)]
+2025-10-08 06:25:16,199 - root - INFO - average test roc_auc, 0.9908 ± nan
+2025-10-08 06:25:16,200 - root - INFO - new node test average_precision, [np.float64(0.9891823724452453)]
+2025-10-08 06:25:16,200 - root - INFO - average new node test average_precision, 0.9892 ± nan
+2025-10-08 06:25:16,200 - root - INFO - new node test roc_auc, [np.float64(0.988010305276012)]
+2025-10-08 06:25:16,200 - root - INFO - average new node test roc_auc, 0.9880 ± nan

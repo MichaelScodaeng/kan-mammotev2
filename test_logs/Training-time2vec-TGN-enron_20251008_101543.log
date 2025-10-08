@@ -1,0 +1,362 @@
+Command: python experiments/train_link_prediction.py --model_name TGN --dataset_name enron --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:15:52.532942
+Test: Training-time2vec-TGN-enron
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: enron
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 125,235 interactions
+   Subsampled data size: 6,261 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 6261 interactions, involving 87 different nodes
+The training dataset has 3663 interactions, involving 63 different nodes
+The validation dataset has 965 interactions, involving 53 different nodes
+The test dataset has 907 interactions, involving 62 different nodes
+The new node validation dataset has 155 interactions, involving 23 different nodes
+The new node test dataset has 130 interactions, involving 30 different nodes
+8 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 6,261 edges
+   Train data: 3,663 edges (58.5%)
+   Val data: 965 edges (15.4%)
+   Test data: 907 edges (14.5%)
+   Expected batches: 19
+   ✅ All splits proportionally scaled with ratio 0.59:0.15:0.14
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/enron/TGN_time2vec_seed0
+   Train metrics: train_metrics_20251008_101547.csv
+   Val metrics: val_metrics_20251008_101547.csv
+   New node val metrics: new_node_val_metrics_20251008_101547.csv
+   Test metrics: test_metrics_20251008_101547.csv
+   New node test metrics: new_node_test_metrics_20251008_101547.csv
+   Test periodic metrics: test_periodic_metrics_20251008_101547.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_101547.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/enron/TGN_time2vec_seed1
+   Train metrics: train_metrics_20251008_101550.csv
+   Val metrics: val_metrics_20251008_101550.csv
+   New node val metrics: new_node_val_metrics_20251008_101550.csv
+   Test metrics: test_metrics_20251008_101550.csv
+   New node test metrics: new_node_test_metrics_20251008_101550.csv
+   Test periodic metrics: test_periodic_metrics_20251008_101550.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_101550.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  19
+num training interactions:  3663
+batch size:  200
+num batches:  19
+num training interactions:  3663
+📄 Metrics summary saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6934:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6934:   5%|▌         | 1/19 [00:00<00:04,  3.94it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6934:  21%|██        | 4/19 [00:00<00:01, 12.07it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6940:  21%|██        | 4/19 [00:00<00:01, 12.07it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6940:  42%|████▏     | 8/19 [00:00<00:00, 20.25it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6911:  42%|████▏     | 8/19 [00:00<00:00, 20.25it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6911:  63%|██████▎   | 12/19 [00:00<00:00, 25.97it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6892:  63%|██████▎   | 12/19 [00:00<00:00, 25.97it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6892:  84%|████████▍ | 16/19 [00:00<00:00, 29.71it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6926:  84%|████████▍ | 16/19 [00:00<00:00, 29.71it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.690312922000885:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6870959401130676:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6886366605758667:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6897596716880798:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6881575584411621:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6935920119285583:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6923
+INFO:root:train average_precision, 0.5777
+INFO:root:train roc_auc, 0.5415
+INFO:root:validate loss: 0.6888
+INFO:root:validate average_precision, 0.6846
+INFO:root:validate roc_auc, 0.6482
+INFO:root:new node validate loss: 0.6936
+INFO:root:new node validate average_precision, 0.5151
+INFO:root:new node validate roc_auc, 0.4870
+INFO:root:save model ./saved_models/TGN/enron/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6917:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6917:  21%|██        | 4/19 [00:00<00:00, 37.87it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6849:  21%|██        | 4/19 [00:00<00:00, 37.87it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6849:  42%|████▏     | 8/19 [00:00<00:00, 38.03it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6876:  42%|████▏     | 8/19 [00:00<00:00, 38.03it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6876:  63%|██████▎   | 12/19 [00:00<00:00, 38.07it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6801:  63%|██████▎   | 12/19 [00:00<00:00, 38.07it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6801:  89%|████████▉ | 17/19 [00:00<00:00, 38.93it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.6828:  89%|████████▉ | 17/19 [00:00<00:00, 38.93it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6760910749435425:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6648823618888855:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6840395927429199:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.675005316734314:   0%|          | 0/5 [00:00<?, ?it/s] 
+evaluate for the 5-th batch, evaluate loss: 0.6665485501289368:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6950454115867615:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6851
+INFO:root:train average_precision, 0.7342
+INFO:root:train roc_auc, 0.7340
+INFO:root:validate loss: 0.6733
+INFO:root:validate average_precision, 0.7599
+INFO:root:validate roc_auc, 0.7489
+INFO:root:new node validate loss: 0.6950
+INFO:root:new node validate average_precision, 0.5012
+INFO:root:new node validate roc_auc, 0.4974
+INFO:root:save model ./saved_models/TGN/enron/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+INFO:root:load model ./saved_models/TGN/enron/TGN_time2vec_seed0/TGN_time2vec_seed0.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6742172837257385:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6794256567955017:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6815185546875:   0%|          | 0/5 [00:00<?, ?it/s]   
+evaluate for the 4-th batch, evaluate loss: 0.67992103099823:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6756119728088379:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6917422413825989:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6781
+INFO:root:test average_precision, 0.7275
+INFO:root:test roc_auc, 0.7335
+INFO:root:new node test loss: 0.6917
+INFO:root:new node test average_precision, 0.5563
+INFO:root:new node test roc_auc, 0.5636
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed0
+INFO:root:Run 1 cost 2.68 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_time2vec_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed1
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6943:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6943:  21%|██        | 4/19 [00:00<00:00, 38.75it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6899:  21%|██        | 4/19 [00:00<00:00, 38.75it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6899:  42%|████▏     | 8/19 [00:00<00:00, 38.42it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6877:  42%|████▏     | 8/19 [00:00<00:00, 38.42it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6877:  63%|██████▎   | 12/19 [00:00<00:00, 37.51it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6884:  63%|██████▎   | 12/19 [00:00<00:00, 37.51it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6884:  84%|████████▍ | 16/19 [00:00<00:00, 38.16it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6945:  84%|████████▍ | 16/19 [00:00<00:00, 38.16it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6900640726089478:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6878131628036499:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6886041164398193:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6890763640403748:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6857693791389465:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6925299763679504:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6908
+INFO:root:train average_precision, 0.6404
+INFO:root:train roc_auc, 0.6328
+INFO:root:validate loss: 0.6883
+INFO:root:validate average_precision, 0.6819
+INFO:root:validate roc_auc, 0.6894
+INFO:root:new node validate loss: 0.6925
+INFO:root:new node validate average_precision, 0.5456
+INFO:root:new node validate roc_auc, 0.5499
+INFO:root:save model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6929:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6929:  26%|██▋       | 5/19 [00:00<00:00, 40.72it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6847:  26%|██▋       | 5/19 [00:00<00:00, 40.72it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6847:  53%|█████▎    | 10/19 [00:00<00:00, 39.66it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6753:  53%|█████▎    | 10/19 [00:00<00:00, 39.66it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6753:  74%|███████▎  | 14/19 [00:00<00:00, 38.05it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6740:  74%|███████▎  | 14/19 [00:00<00:00, 38.05it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6740:  95%|█████████▍| 18/19 [00:00<00:00, 38.60it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.6789:  95%|█████████▍| 18/19 [00:00<00:00, 38.60it/s]
+                                                                                     
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6753710508346558:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.661498486995697:   0%|          | 0/5 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.6791412234306335:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6768301129341125:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6630443334579468:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6988851428031921:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6818
+INFO:root:train average_precision, 0.7352
+INFO:root:train roc_auc, 0.7419
+INFO:root:validate loss: 0.6712
+INFO:root:validate average_precision, 0.7564
+INFO:root:validate roc_auc, 0.7459
+INFO:root:new node validate loss: 0.6989
+INFO:root:new node validate average_precision, 0.4871
+INFO:root:new node validate roc_auc, 0.4644
+INFO:root:save model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+INFO:root:load model ./saved_models/TGN/enron/TGN_time2vec_seed1/TGN_time2vec_seed1.pkl
+INFO:root:get final performance on dataset enron...
+
+  0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6697409749031067:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6740931272506714:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6783114671707153:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6822959184646606:   0%|          | 0/5 [00:00<?, ?it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6731187105178833:   0%|          | 0/5 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6895700097084045:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6755
+INFO:root:test average_precision, 0.7079
+INFO:root:test roc_auc, 0.7319
+INFO:root:new node test loss: 0.6896
+INFO:root:new node test average_precision, 0.6090
+INFO:root:new node test roc_auc, 0.5920
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/enron/TGN_time2vec_seed1
+INFO:root:Run 2 cost 1.59 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:test average_precision, [np.float64(0.7274920467793567), np.float64(0.7079302819750112)]
+INFO:root:average test average_precision, 0.7177 ± 0.0138
+INFO:root:test roc_auc, [np.float64(0.7334869940606166), np.float64(0.7318945897021573)]
+INFO:root:average test roc_auc, 0.7327 ± 0.0011
+INFO:root:new node test average_precision, [np.float64(0.5563260605423552), np.float64(0.6090451715731788)]
+INFO:root:average new node test average_precision, 0.5827 ± 0.0373
+INFO:root:new node test roc_auc, [np.float64(0.5636094674556212), np.float64(0.5920118343195266)]
+INFO:root:average new node test roc_auc, 0.5778 ± 0.0201
+
+Return code: 0

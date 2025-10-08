@@ -1,0 +1,545 @@
+Command: python experiments/train_link_prediction.py --model_name TGAT --dataset_name wikipedia --time_encoder_type bochner --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T07:27:16.286840
+Test: Training-bochner-TGAT-wikipedia
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: bochner
+   Dataset: wikipedia
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 157,474 interactions
+   Subsampled data size: 7,873 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 7873 interactions, involving 1625 different nodes
+The training dataset has 4538 interactions, involving 1118 different nodes
+The validation dataset has 1181 interactions, involving 487 different nodes
+The test dataset has 1181 interactions, involving 479 different nodes
+The new node validation dataset has 633 interactions, involving 341 different nodes
+The new node test dataset has 746 interactions, involving 335 different nodes
+162 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 7,873 edges
+   Train data: 4,538 edges (57.6%)
+   Val data: 1,181 edges (15.0%)
+   Test data: 1,181 edges (15.0%)
+   Expected batches: 23
+   ✅ All splits proportionally scaled with ratio 0.58:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed0
+   Train metrics: train_metrics_20251008_072655.csv
+   Val metrics: val_metrics_20251008_072655.csv
+   New node val metrics: new_node_val_metrics_20251008_072655.csv
+   Test metrics: test_metrics_20251008_072655.csv
+   New node test metrics: new_node_test_metrics_20251008_072655.csv
+   Test periodic metrics: test_periodic_metrics_20251008_072655.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_072655.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: bochner
+INFO: Creating Bochner Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  23
+num training interactions:  4538
+batch size:  200
+num batches:  23
+num training interactions:  4538
+📄 Metrics summary saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed1
+   Train metrics: train_metrics_20251008_072705.csv
+   Val metrics: val_metrics_20251008_072705.csv
+   New node val metrics: new_node_val_metrics_20251008_072705.csv
+   Test metrics: test_metrics_20251008_072705.csv
+   New node test metrics: new_node_test_metrics_20251008_072705.csv
+   Test periodic metrics: test_periodic_metrics_20251008_072705.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_072705.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: bochner
+INFO: Creating Bochner Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  23
+num training interactions:  4538
+batch size:  200
+num batches:  23
+num training interactions:  4538
+📄 Metrics summary saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGAT_bochner_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed0
+INFO:root:time encoder type: bochner
+INFO:root:Time encoder will be injected into TGAT model
+INFO:root:model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGAT, #parameters: 4211380 B, 4112.67578125 KB, 4.016284942626953 MB.
+
+  0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:   0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:   4%|▍         | 1/23 [00:00<00:08,  2.45it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:   9%|▊         | 2/23 [00:00<00:04,  4.22it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:  13%|█▎        | 3/23 [00:00<00:03,  5.20it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:  17%|█▋        | 4/23 [00:00<00:03,  5.91it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6925:  22%|██▏       | 5/23 [00:00<00:02,  6.56it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  22%|██▏       | 5/23 [00:01<00:02,  6.56it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  26%|██▌       | 6/23 [00:01<00:02,  6.80it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  30%|███       | 7/23 [00:01<00:02,  7.47it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  35%|███▍      | 8/23 [00:01<00:01,  7.76it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  39%|███▉      | 9/23 [00:01<00:01,  7.87it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6863:  43%|████▎     | 10/23 [00:01<00:01,  8.08it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  43%|████▎     | 10/23 [00:01<00:01,  8.08it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  48%|████▊     | 11/23 [00:01<00:01,  7.99it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  52%|█████▏    | 12/23 [00:01<00:01,  8.28it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  57%|█████▋    | 13/23 [00:01<00:01,  8.32it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  61%|██████    | 14/23 [00:02<00:01,  8.22it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6765:  65%|██████▌   | 15/23 [00:02<00:00,  8.24it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  65%|██████▌   | 15/23 [00:02<00:00,  8.24it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  70%|██████▉   | 16/23 [00:02<00:00,  8.05it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  74%|███████▍  | 17/23 [00:02<00:00,  8.35it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  78%|███████▊  | 18/23 [00:02<00:00,  8.33it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  83%|████████▎ | 19/23 [00:02<00:00,  8.23it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6718:  87%|████████▋ | 20/23 [00:02<00:00,  8.34it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6862:  87%|████████▋ | 20/23 [00:02<00:00,  8.34it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6862:  91%|█████████▏| 21/23 [00:02<00:00,  8.06it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6862:  96%|█████████▌| 22/23 [00:02<00:00,  8.33it/s]
+Epoch: 1, Batch: 23/23, Loss: 0.6908:  96%|█████████▌| 22/23 [00:03<00:00,  8.33it/s]
+Epoch: 1, Batch: 23/23, Loss: 0.6908: 100%|██████████| 23/23 [00:03<00:00,  8.74it/s]
+                                                                                     
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6748365163803101:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6748365163803101:  17%|█▋        | 1/6 [00:00<00:00,  9.98it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6719381809234619:  17%|█▋        | 1/6 [00:00<00:00,  9.98it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6550673246383667:  17%|█▋        | 1/6 [00:00<00:00,  9.98it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6550673246383667:  50%|█████     | 3/6 [00:00<00:00, 10.12it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6817542314529419:  50%|█████     | 3/6 [00:00<00:00, 10.12it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6815065741539001:  50%|█████     | 3/6 [00:00<00:00, 10.12it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6815065741539001:  83%|████████▎ | 5/6 [00:00<00:00, 10.27it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6644750237464905:  83%|████████▎ | 5/6 [00:00<00:00, 10.27it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6574690341949463:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6711413264274597:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6711413264274597:  50%|█████     | 2/4 [00:00<00:00, 10.59it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6741417646408081:  50%|█████     | 2/4 [00:00<00:00, 10.59it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6702982783317566:  50%|█████     | 2/4 [00:00<00:00, 10.59it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6702982783317566: 100%|██████████| 4/4 [00:00<00:00, 13.22it/s]
+                                                                                                             
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6828
+INFO:root:train average_precision, 0.6295
+INFO:root:train roc_auc, 0.6233
+INFO:root:validate loss: 0.6716
+INFO:root:validate average_precision, 0.6570
+INFO:root:validate roc_auc, 0.6422
+INFO:root:new node validate loss: 0.6683
+INFO:root:new node validate average_precision, 0.6769
+INFO:root:new node validate roc_auc, 0.6591
+INFO:root:save model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed0/TGAT_bochner_seed0.pkl
+
+  0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:   0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:   4%|▍         | 1/23 [00:00<00:02,  8.02it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:   9%|▊         | 2/23 [00:00<00:02,  8.87it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:  13%|█▎        | 3/23 [00:00<00:02,  8.64it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:  17%|█▋        | 4/23 [00:00<00:02,  8.42it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6011:  22%|██▏       | 5/23 [00:00<00:02,  8.63it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  22%|██▏       | 5/23 [00:00<00:02,  8.63it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  26%|██▌       | 6/23 [00:00<00:02,  8.36it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  30%|███       | 7/23 [00:00<00:01,  8.79it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  35%|███▍      | 8/23 [00:00<00:01,  8.70it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  39%|███▉      | 9/23 [00:01<00:01,  8.42it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5948:  43%|████▎     | 10/23 [00:01<00:01,  8.45it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  43%|████▎     | 10/23 [00:01<00:01,  8.45it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  48%|████▊     | 11/23 [00:01<00:01,  8.22it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  52%|█████▏    | 12/23 [00:01<00:01,  8.56it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  57%|█████▋    | 13/23 [00:01<00:01,  8.50it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  61%|██████    | 14/23 [00:01<00:01,  8.50it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6261:  65%|██████▌   | 15/23 [00:01<00:00,  8.40it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  65%|██████▌   | 15/23 [00:01<00:00,  8.40it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  70%|██████▉   | 16/23 [00:01<00:00,  8.18it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  74%|███████▍  | 17/23 [00:02<00:00,  8.47it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  78%|███████▊  | 18/23 [00:02<00:00,  8.42it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  83%|████████▎ | 19/23 [00:02<00:00,  8.41it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5775:  87%|████████▋ | 20/23 [00:02<00:00,  8.42it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6149:  87%|████████▋ | 20/23 [00:02<00:00,  8.42it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6149:  91%|█████████▏| 21/23 [00:02<00:00,  8.17it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6149:  96%|█████████▌| 22/23 [00:02<00:00,  8.42it/s]
+Epoch: 2, Batch: 23/23, Loss: 0.6649:  96%|█████████▌| 22/23 [00:02<00:00,  8.42it/s]
+Epoch: 2, Batch: 23/23, Loss: 0.6649: 100%|██████████| 23/23 [00:02<00:00,  8.74it/s]
+                                                                                     
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6150731444358826:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6220909953117371:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6220909953117371:  33%|███▎      | 2/6 [00:00<00:00, 10.18it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5776156783103943:  33%|███▎      | 2/6 [00:00<00:00, 10.18it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6608067154884338:  33%|███▎      | 2/6 [00:00<00:00, 10.18it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6608067154884338:  67%|██████▋   | 4/6 [00:00<00:00, 10.31it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6419907212257385:  67%|██████▋   | 4/6 [00:00<00:00, 10.31it/s]
+evaluate for the 6-th batch, evaluate loss: 0.619348406791687:  67%|██████▋   | 4/6 [00:00<00:00, 10.31it/s] 
+evaluate for the 6-th batch, evaluate loss: 0.619348406791687: 100%|██████████| 6/6 [00:00<00:00, 10.44it/s]
+                                                                                                            
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6051668524742126:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6368820071220398:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6368820071220398:  50%|█████     | 2/4 [00:00<00:00, 10.18it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6391611099243164:  50%|█████     | 2/4 [00:00<00:00, 10.18it/s]
+evaluate for the 4-th batch, evaluate loss: 0.632193386554718:  50%|█████     | 2/4 [00:00<00:00, 10.18it/s] 
+evaluate for the 4-th batch, evaluate loss: 0.632193386554718: 100%|██████████| 4/4 [00:00<00:00, 12.83it/s]
+                                                                                                            
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6161
+INFO:root:train average_precision, 0.7468
+INFO:root:train roc_auc, 0.7630
+INFO:root:validate loss: 0.6228
+INFO:root:validate average_precision, 0.6782
+INFO:root:validate roc_auc, 0.7072
+INFO:root:new node validate loss: 0.6284
+INFO:root:new node validate average_precision, 0.7142
+INFO:root:new node validate roc_auc, 0.7071
+INFO:root:save model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed0/TGAT_bochner_seed0.pkl
+INFO:root:load model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed0/TGAT_bochner_seed0.pkl
+INFO:root:get final performance on dataset wikipedia...
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6150731444358826:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6150731444358826:  17%|█▋        | 1/6 [00:00<00:00,  9.65it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6220909953117371:  17%|█▋        | 1/6 [00:00<00:00,  9.65it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6220909953117371:  33%|███▎      | 2/6 [00:00<00:00,  9.70it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5776156783103943:  33%|███▎      | 2/6 [00:00<00:00,  9.70it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5776156783103943:  50%|█████     | 3/6 [00:00<00:00,  9.71it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6608067154884338:  50%|█████     | 3/6 [00:00<00:00,  9.71it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6608067154884338:  67%|██████▋   | 4/6 [00:00<00:00,  9.82it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6419907212257385:  67%|██████▋   | 4/6 [00:00<00:00,  9.82it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6419907212257385:  83%|████████▎ | 5/6 [00:00<00:00,  9.78it/s]
+evaluate for the 6-th batch, evaluate loss: 0.619348406791687:  83%|████████▎ | 5/6 [00:00<00:00,  9.78it/s] 
+                                                                                                            
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6051668524742126:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6051668524742126:  25%|██▌       | 1/4 [00:00<00:00,  9.81it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6368820071220398:  25%|██▌       | 1/4 [00:00<00:00,  9.81it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6391611099243164:  25%|██▌       | 1/4 [00:00<00:00,  9.81it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6391611099243164:  75%|███████▌  | 3/4 [00:00<00:00,  9.88it/s]
+evaluate for the 4-th batch, evaluate loss: 0.632193386554718:  75%|███████▌  | 3/4 [00:00<00:00,  9.88it/s] 
+                                                                                                            
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6481778025627136:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6481778025627136:  17%|█▋        | 1/6 [00:00<00:00,  9.69it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6471795439720154:  17%|█▋        | 1/6 [00:00<00:00,  9.69it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6471795439720154:  33%|███▎      | 2/6 [00:00<00:00,  9.67it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6636491417884827:  33%|███▎      | 2/6 [00:00<00:00,  9.67it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6636491417884827:  50%|█████     | 3/6 [00:00<00:00,  9.56it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6206347942352295:  50%|█████     | 3/6 [00:00<00:00,  9.56it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6206347942352295:  67%|██████▋   | 4/6 [00:00<00:00,  9.55it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6207922101020813:  67%|██████▋   | 4/6 [00:00<00:00,  9.55it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6207922101020813:  83%|████████▎ | 5/6 [00:00<00:00,  9.46it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6487742066383362:  83%|████████▎ | 5/6 [00:00<00:00,  9.46it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6220158934593201:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6220158934593201:  25%|██▌       | 1/4 [00:00<00:00,  9.72it/s]
+evaluate for the 2-th batch, evaluate loss: 0.689451277256012:  25%|██▌       | 1/4 [00:00<00:00,  9.72it/s] 
+evaluate for the 2-th batch, evaluate loss: 0.689451277256012:  50%|█████     | 2/4 [00:00<00:00,  9.59it/s]
+evaluate for the 3-th batch, evaluate loss: 0.619029700756073:  50%|█████     | 2/4 [00:00<00:00,  9.59it/s]
+evaluate for the 3-th batch, evaluate loss: 0.619029700756073:  75%|███████▌  | 3/4 [00:00<00:00,  9.51it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6592082977294922:  75%|███████▌  | 3/4 [00:00<00:00,  9.51it/s]
+                                                                                                             
+INFO:root:validate loss: 0.6228
+INFO:root:validate average_precision, 0.6782
+INFO:root:validate roc_auc, 0.7072
+INFO:root:new node validate loss: 0.6284
+INFO:root:new node validate average_precision, 0.7142
+INFO:root:new node validate roc_auc, 0.7071
+INFO:root:test loss: 0.6415
+INFO:root:test average_precision, 0.6656
+INFO:root:test roc_auc, 0.6789
+INFO:root:new node test loss: 0.6474
+INFO:root:new node test average_precision, 0.6645
+INFO:root:new node test roc_auc, 0.6676
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed0
+INFO:root:Run 1 cost 10.57 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGAT_bochner_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed1
+INFO:root:time encoder type: bochner
+INFO:root:Time encoder will be injected into TGAT model
+INFO:root:model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGAT, #parameters: 4211380 B, 4112.67578125 KB, 4.016284942626953 MB.
+
+  0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:   0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:   4%|▍         | 1/23 [00:00<00:03,  7.16it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:   9%|▊         | 2/23 [00:00<00:02,  8.05it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:  13%|█▎        | 3/23 [00:00<00:02,  7.82it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:  17%|█▋        | 4/23 [00:00<00:02,  7.85it/s]
+Epoch: 1, Batch: 1/23, Loss: 0.6937:  22%|██▏       | 5/23 [00:00<00:02,  8.08it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  22%|██▏       | 5/23 [00:00<00:02,  8.08it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  26%|██▌       | 6/23 [00:00<00:02,  7.76it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  30%|███       | 7/23 [00:00<00:01,  8.29it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  35%|███▍      | 8/23 [00:00<00:01,  8.29it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  39%|███▉      | 9/23 [00:01<00:01,  8.27it/s]
+Epoch: 1, Batch: 6/23, Loss: 0.6847:  43%|████▎     | 10/23 [00:01<00:01,  8.36it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  43%|████▎     | 10/23 [00:01<00:01,  8.36it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  48%|████▊     | 11/23 [00:01<00:01,  8.18it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  52%|█████▏    | 12/23 [00:01<00:01,  8.52it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  57%|█████▋    | 13/23 [00:01<00:01,  8.28it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  61%|██████    | 14/23 [00:01<00:01,  8.35it/s]
+Epoch: 1, Batch: 11/23, Loss: 0.6795:  65%|██████▌   | 15/23 [00:01<00:00,  8.26it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  65%|██████▌   | 15/23 [00:01<00:00,  8.26it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  70%|██████▉   | 16/23 [00:01<00:00,  7.97it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  74%|███████▍  | 17/23 [00:02<00:00,  8.29it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  78%|███████▊  | 18/23 [00:02<00:00,  8.29it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  83%|████████▎ | 19/23 [00:02<00:00,  8.28it/s]
+Epoch: 1, Batch: 16/23, Loss: 0.6723:  87%|████████▋ | 20/23 [00:02<00:00,  8.24it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6866:  87%|████████▋ | 20/23 [00:02<00:00,  8.24it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6866:  91%|█████████▏| 21/23 [00:02<00:00,  7.97it/s]
+Epoch: 1, Batch: 21/23, Loss: 0.6866:  96%|█████████▌| 22/23 [00:02<00:00,  8.26it/s]
+Epoch: 1, Batch: 23/23, Loss: 0.6882:  96%|█████████▌| 22/23 [00:02<00:00,  8.26it/s]
+Epoch: 1, Batch: 23/23, Loss: 0.6882: 100%|██████████| 23/23 [00:02<00:00,  8.67it/s]
+                                                                                     
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6807846426963806:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6807846426963806:  17%|█▋        | 1/6 [00:00<00:00,  9.92it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6760958433151245:  17%|█▋        | 1/6 [00:00<00:00,  9.92it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6603214144706726:  17%|█▋        | 1/6 [00:00<00:00,  9.92it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6603214144706726:  50%|█████     | 3/6 [00:00<00:00, 10.06it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6851533651351929:  50%|█████     | 3/6 [00:00<00:00, 10.06it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6844447255134583:  50%|█████     | 3/6 [00:00<00:00, 10.06it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6844447255134583:  83%|████████▎ | 5/6 [00:00<00:00, 10.13it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6801719665527344:  83%|████████▎ | 5/6 [00:00<00:00, 10.13it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6704603433609009:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6774113178253174:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6774113178253174:  50%|█████     | 2/4 [00:00<00:00, 10.31it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6831496953964233:  50%|█████     | 2/4 [00:00<00:00, 10.31it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6836180686950684:  50%|█████     | 2/4 [00:00<00:00, 10.31it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6836180686950684: 100%|██████████| 4/4 [00:00<00:00, 12.88it/s]
+                                                                                                             
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6827
+INFO:root:train average_precision, 0.5971
+INFO:root:train roc_auc, 0.6341
+INFO:root:validate loss: 0.6778
+INFO:root:validate average_precision, 0.5536
+INFO:root:validate roc_auc, 0.6010
+INFO:root:new node validate loss: 0.6787
+INFO:root:new node validate average_precision, 0.6002
+INFO:root:new node validate roc_auc, 0.6119
+INFO:root:save model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed1/TGAT_bochner_seed1.pkl
+
+  0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:   0%|          | 0/23 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:   4%|▍         | 1/23 [00:00<00:02,  7.55it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:   9%|▊         | 2/23 [00:00<00:02,  8.39it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:  13%|█▎        | 3/23 [00:00<00:02,  8.22it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:  17%|█▋        | 4/23 [00:00<00:02,  8.24it/s]
+Epoch: 2, Batch: 1/23, Loss: 0.6021:  22%|██▏       | 5/23 [00:00<00:02,  8.36it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  22%|██▏       | 5/23 [00:00<00:02,  8.36it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  26%|██▌       | 6/23 [00:00<00:02,  8.04it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  30%|███       | 7/23 [00:00<00:01,  8.52it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  35%|███▍      | 8/23 [00:00<00:01,  8.51it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  39%|███▉      | 9/23 [00:01<00:01,  8.33it/s]
+Epoch: 2, Batch: 6/23, Loss: 0.5947:  43%|████▎     | 10/23 [00:01<00:01,  8.52it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  43%|████▎     | 10/23 [00:01<00:01,  8.52it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  48%|████▊     | 11/23 [00:01<00:01,  8.32it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  52%|█████▏    | 12/23 [00:01<00:01,  8.61it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  57%|█████▋    | 13/23 [00:01<00:01,  8.55it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  61%|██████    | 14/23 [00:01<00:01,  8.50it/s]
+Epoch: 2, Batch: 11/23, Loss: 0.6105:  65%|██████▌   | 15/23 [00:01<00:00,  8.24it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  65%|██████▌   | 15/23 [00:01<00:00,  8.24it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  70%|██████▉   | 16/23 [00:01<00:00,  8.11it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  74%|███████▍  | 17/23 [00:02<00:00,  8.25it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  78%|███████▊  | 18/23 [00:02<00:00,  8.20it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  83%|████████▎ | 19/23 [00:02<00:00,  8.21it/s]
+Epoch: 2, Batch: 16/23, Loss: 0.5890:  87%|████████▋ | 20/23 [00:02<00:00,  8.19it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6141:  87%|████████▋ | 20/23 [00:02<00:00,  8.19it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6141:  91%|█████████▏| 21/23 [00:02<00:00,  8.05it/s]
+Epoch: 2, Batch: 21/23, Loss: 0.6141:  96%|█████████▌| 22/23 [00:02<00:00,  8.18it/s]
+Epoch: 2, Batch: 23/23, Loss: 0.6583:  96%|█████████▌| 22/23 [00:02<00:00,  8.18it/s]
+                                                                                     
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6386569738388062:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6386569738388062:  17%|█▋        | 1/6 [00:00<00:00,  9.85it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6333484053611755:  17%|█▋        | 1/6 [00:00<00:00,  9.85it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5764907598495483:  17%|█▋        | 1/6 [00:00<00:00,  9.85it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5764907598495483:  50%|█████     | 3/6 [00:00<00:00, 10.03it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6694070100784302:  50%|█████     | 3/6 [00:00<00:00, 10.03it/s]
+evaluate for the 5-th batch, evaluate loss: 0.647223949432373:  50%|█████     | 3/6 [00:00<00:00, 10.03it/s] 
+evaluate for the 5-th batch, evaluate loss: 0.647223949432373:  83%|████████▎ | 5/6 [00:00<00:00, 10.12it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6531962156295776:  83%|████████▎ | 5/6 [00:00<00:00, 10.12it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6220964193344116:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6561193466186523:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6561193466186523:  50%|█████     | 2/4 [00:00<00:00, 10.29it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6666268110275269:  50%|█████     | 2/4 [00:00<00:00, 10.29it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6791884899139404:  50%|█████     | 2/4 [00:00<00:00, 10.29it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6791884899139404: 100%|██████████| 4/4 [00:00<00:00, 12.87it/s]
+                                                                                                             
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6135
+INFO:root:train average_precision, 0.7236
+INFO:root:train roc_auc, 0.7600
+INFO:root:validate loss: 0.6364
+INFO:root:validate average_precision, 0.6280
+INFO:root:validate roc_auc, 0.6718
+INFO:root:new node validate loss: 0.6560
+INFO:root:new node validate average_precision, 0.6487
+INFO:root:new node validate roc_auc, 0.6572
+INFO:root:save model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed1/TGAT_bochner_seed1.pkl
+INFO:root:load model ./saved_models/TGAT/wikipedia/TGAT_bochner_seed1/TGAT_bochner_seed1.pkl
+INFO:root:get final performance on dataset wikipedia...
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6386569738388062:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6386569738388062:  17%|█▋        | 1/6 [00:00<00:00,  9.67it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6333484053611755:  17%|█▋        | 1/6 [00:00<00:00,  9.67it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6333484053611755:  33%|███▎      | 2/6 [00:00<00:00,  9.66it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5764907598495483:  33%|███▎      | 2/6 [00:00<00:00,  9.66it/s]
+evaluate for the 3-th batch, evaluate loss: 0.5764907598495483:  50%|█████     | 3/6 [00:00<00:00,  9.69it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6694070100784302:  50%|█████     | 3/6 [00:00<00:00,  9.69it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6694070100784302:  67%|██████▋   | 4/6 [00:00<00:00,  9.77it/s]
+evaluate for the 5-th batch, evaluate loss: 0.647223949432373:  67%|██████▋   | 4/6 [00:00<00:00,  9.77it/s] 
+evaluate for the 5-th batch, evaluate loss: 0.647223949432373:  83%|████████▎ | 5/6 [00:00<00:00,  9.76it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6531962156295776:  83%|████████▎ | 5/6 [00:00<00:00,  9.76it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6220964193344116:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6220964193344116:  25%|██▌       | 1/4 [00:00<00:00,  9.81it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6561193466186523:  25%|██▌       | 1/4 [00:00<00:00,  9.81it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6561193466186523:  50%|█████     | 2/4 [00:00<00:00,  9.91it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6666268110275269:  50%|█████     | 2/4 [00:00<00:00,  9.91it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6666268110275269:  75%|███████▌  | 3/4 [00:00<00:00,  9.85it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6791884899139404:  75%|███████▌  | 3/4 [00:00<00:00,  9.85it/s]
+                                                                                                             
+
+  0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6745164394378662:   0%|          | 0/6 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6745164394378662:  17%|█▋        | 1/6 [00:00<00:00,  9.70it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6660665273666382:  17%|█▋        | 1/6 [00:00<00:00,  9.70it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6660665273666382:  33%|███▎      | 2/6 [00:00<00:00,  9.66it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6754493713378906:  33%|███▎      | 2/6 [00:00<00:00,  9.66it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6754493713378906:  50%|█████     | 3/6 [00:00<00:00,  9.54it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6134535670280457:  50%|█████     | 3/6 [00:00<00:00,  9.54it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6134535670280457:  67%|██████▋   | 4/6 [00:00<00:00,  9.52it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6308198571205139:  67%|██████▋   | 4/6 [00:00<00:00,  9.52it/s]
+evaluate for the 5-th batch, evaluate loss: 0.6308198571205139:  83%|████████▎ | 5/6 [00:00<00:00,  9.45it/s]
+evaluate for the 6-th batch, evaluate loss: 0.6652296781539917:  83%|████████▎ | 5/6 [00:00<00:00,  9.45it/s]
+                                                                                                             
+
+  0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6367053985595703:   0%|          | 0/4 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6367053985595703:  25%|██▌       | 1/4 [00:00<00:00,  9.67it/s]
+evaluate for the 2-th batch, evaluate loss: 0.713571310043335:  25%|██▌       | 1/4 [00:00<00:00,  9.67it/s] 
+evaluate for the 2-th batch, evaluate loss: 0.713571310043335:  50%|█████     | 2/4 [00:00<00:00,  9.50it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6180721521377563:  50%|█████     | 2/4 [00:00<00:00,  9.50it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6180721521377563:  75%|███████▌  | 3/4 [00:00<00:00,  9.48it/s]
+evaluate for the 4-th batch, evaluate loss: 0.6862451434135437:  75%|███████▌  | 3/4 [00:00<00:00,  9.48it/s]
+                                                                                                             
+INFO:root:validate loss: 0.6364
+INFO:root:validate average_precision, 0.6280
+INFO:root:validate roc_auc, 0.6718
+INFO:root:new node validate loss: 0.6560
+INFO:root:new node validate average_precision, 0.6487
+INFO:root:new node validate roc_auc, 0.6572
+INFO:root:test loss: 0.6543
+INFO:root:test average_precision, 0.6281
+INFO:root:test roc_auc, 0.6499
+INFO:root:new node test loss: 0.6636
+INFO:root:new node test average_precision, 0.6307
+INFO:root:new node test roc_auc, 0.6331
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGAT/wikipedia/TGAT_bochner_seed1
+INFO:root:Run 2 cost 9.54 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:validate average_precision, [np.float64(0.6782183528856592), np.float64(0.6279586794633895)]
+INFO:root:average validate average_precision, 0.6531 ± 0.0355
+INFO:root:validate roc_auc, [np.float64(0.7071730756463478), np.float64(0.6718092332219205)]
+INFO:root:average validate roc_auc, 0.6895 ± 0.0250
+INFO:root:new node validate average_precision, [np.float64(0.7142057779155349), np.float64(0.648721700879227)]
+INFO:root:average new node validate average_precision, 0.6815 ± 0.0463
+INFO:root:new node validate roc_auc, [np.float64(0.7070576015840221), np.float64(0.6571991075528008)]
+INFO:root:average new node validate roc_auc, 0.6821 ± 0.0353
+INFO:root:test average_precision, [np.float64(0.66561190153155), np.float64(0.6280994195361412)]
+INFO:root:average test average_precision, 0.6469 ± 0.0265
+INFO:root:test roc_auc, [np.float64(0.6788547978160008), np.float64(0.6499323302987292)]
+INFO:root:average test roc_auc, 0.6644 ± 0.0205
+INFO:root:new node test average_precision, [np.float64(0.6644820779878606), np.float64(0.6307430232774919)]
+INFO:root:average new node test average_precision, 0.6476 ± 0.0239
+INFO:root:new node test roc_auc, [np.float64(0.6676235527303435), np.float64(0.6331235691499344)]
+INFO:root:average new node test roc_auc, 0.6504 ± 0.0244
+
+Return code: 0

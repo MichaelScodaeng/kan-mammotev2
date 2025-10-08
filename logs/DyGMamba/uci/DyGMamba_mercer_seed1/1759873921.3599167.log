@@ -1,0 +1,121 @@
+2025-10-08 06:52:01,363 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 06:52:01,363 - root - INFO - configuration is Namespace(dataset_name='uci', batch_size=200, model_name='DyGMamba', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=5, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGMamba_mercer_seed1')
+2025-10-08 06:52:01,364 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGMamba/uci/DyGMamba_mercer_seed1
+2025-10-08 06:52:01,365 - root - INFO - time encoder type: mercer
+2025-10-08 06:52:01,365 - root - INFO - Time encoder will be injected into DyGMamba model
+2025-10-08 06:52:01,392 - root - INFO - model -> Sequential(
+  (0): DyGMamba(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): MercerTimeEncoder()
+    )
+    (neighbor_co_occurrence_encoder): NIFEncoder(
+      (nif_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (output_layer): Linear(in_features=100, out_features=172, bias=True)
+    (output_layer_t_diff): Linear(in_features=25, out_features=172, bias=True)
+    (mamba): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=100, out_features=200, bias=False)
+        (conv1d): Conv1d(100, 100, kernel_size=(4,), stride=(1,), padding=(3,), groups=100)
+        (act): SiLU()
+        (x_proj): Linear(in_features=100, out_features=39, bias=False)
+        (dt_proj): Linear(in_features=7, out_features=100, bias=True)
+        (out_proj): Linear(in_features=100, out_features=100, bias=False)
+      )
+    )
+    (mamba_t_diff): ModuleList(
+      (0-1): 2 x Mamba(
+        (in_proj): Linear(in_features=25, out_features=50, bias=False)
+        (conv1d): Conv1d(25, 25, kernel_size=(4,), stride=(1,), padding=(3,), groups=25)
+        (act): SiLU()
+        (x_proj): Linear(in_features=25, out_features=34, bias=False)
+        (dt_proj): Linear(in_features=2, out_features=25, bias=True)
+        (out_proj): Linear(in_features=25, out_features=25, bias=False)
+      )
+    )
+    (projection_layer_t_diff): Linear(in_features=100, out_features=25, bias=True)
+    (projection_layer_t_diff_up): Linear(in_features=25, out_features=100, bias=True)
+    (weightagg): Linear(in_features=100, out_features=1, bias=True)
+    (reduce_layer): Linear(in_features=200, out_features=100, bias=True)
+    (channel_norm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+    (channel_feedforward): FeedForwardNet(
+      (ffn): Sequential(
+        (0): Linear(in_features=100, out_features=400, bias=True)
+        (1): GELU(approximate='none')
+        (2): Dropout(p=0.1, inplace=False)
+        (3): Linear(in_features=400, out_features=100, bias=True)
+        (4): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (neighbor_selection_layer): Linear(in_features=100, out_features=100, bias=True)
+  )
+  (1): MergeLayerTD(
+    (fc1): Linear(in_features=516, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 06:52:01,392 - root - INFO - model name: DyGMamba, #parameters: 1347668 B, 1316.08203125 KB, 1.2852363586425781 MB.
+2025-10-08 06:52:03,287 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6768
+2025-10-08 06:52:03,287 - root - INFO - train average_precision, 0.7078
+2025-10-08 06:52:03,287 - root - INFO - train roc_auc, 0.6861
+2025-10-08 06:52:03,287 - root - INFO - validate loss: 0.6198
+2025-10-08 06:52:03,287 - root - INFO - validate average_precision, 0.9022
+2025-10-08 06:52:03,287 - root - INFO - validate roc_auc, 0.8720
+2025-10-08 06:52:03,287 - root - INFO - new node validate loss: 0.6464
+2025-10-08 06:52:03,287 - root - INFO - new node validate average_precision, 0.8120
+2025-10-08 06:52:03,287 - root - INFO - new node validate roc_auc, 0.7544
+2025-10-08 06:52:03,297 - root - INFO - save model ./saved_models/DyGMamba/uci/DyGMamba_mercer_seed1/DyGMamba_mercer_seed1.pkl
+2025-10-08 06:52:05,195 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6035
+2025-10-08 06:52:05,195 - root - INFO - train average_precision, 0.8448
+2025-10-08 06:52:05,195 - root - INFO - train roc_auc, 0.8021
+2025-10-08 06:52:05,195 - root - INFO - validate loss: 0.5229
+2025-10-08 06:52:05,195 - root - INFO - validate average_precision, 0.9188
+2025-10-08 06:52:05,195 - root - INFO - validate roc_auc, 0.8861
+2025-10-08 06:52:05,195 - root - INFO - new node validate loss: 0.6016
+2025-10-08 06:52:05,196 - root - INFO - new node validate average_precision, 0.8196
+2025-10-08 06:52:05,196 - root - INFO - new node validate roc_auc, 0.7468
+2025-10-08 06:52:05,201 - root - INFO - save model ./saved_models/DyGMamba/uci/DyGMamba_mercer_seed1/DyGMamba_mercer_seed1.pkl
+2025-10-08 06:52:05,221 - root - INFO - load model ./saved_models/DyGMamba/uci/DyGMamba_mercer_seed1/DyGMamba_mercer_seed1.pkl
+2025-10-08 06:52:05,233 - root - INFO - get final performance on dataset uci...
+2025-10-08 06:52:06,135 - root - INFO - validate loss: 0.5229
+2025-10-08 06:52:06,135 - root - INFO - validate average_precision, 0.9188
+2025-10-08 06:52:06,135 - root - INFO - validate roc_auc, 0.8861
+2025-10-08 06:52:06,135 - root - INFO - new node validate loss: 0.6016
+2025-10-08 06:52:06,135 - root - INFO - new node validate average_precision, 0.8196
+2025-10-08 06:52:06,135 - root - INFO - new node validate roc_auc, 0.7468
+2025-10-08 06:52:06,135 - root - INFO - test loss: 0.5661
+2025-10-08 06:52:06,135 - root - INFO - test average_precision, 0.8547
+2025-10-08 06:52:06,135 - root - INFO - test roc_auc, 0.8054
+2025-10-08 06:52:06,135 - root - INFO - new node test loss: 0.5896
+2025-10-08 06:52:06,135 - root - INFO - new node test average_precision, 0.8327
+2025-10-08 06:52:06,136 - root - INFO - new node test roc_auc, 0.7826
+2025-10-08 06:52:06,146 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGMamba/uci/DyGMamba_mercer_seed1
+2025-10-08 06:52:06,146 - root - INFO - Run 2 cost 4.78 seconds.
+2025-10-08 06:52:06,149 - root - INFO - metrics over 2 runs:
+2025-10-08 06:52:06,149 - root - INFO - validate average_precision, [np.float64(0.9211427066990575), np.float64(0.9188355576957914)]
+2025-10-08 06:52:06,149 - root - INFO - average validate average_precision, 0.9200 ± 0.0016
+2025-10-08 06:52:06,149 - root - INFO - validate roc_auc, [np.float64(0.8927756944444445), np.float64(0.8861462962962962)]
+2025-10-08 06:52:06,149 - root - INFO - average validate roc_auc, 0.8895 ± 0.0047
+2025-10-08 06:52:06,150 - root - INFO - new node validate average_precision, [np.float64(0.8096013169118166), np.float64(0.8196083895052844)]
+2025-10-08 06:52:06,150 - root - INFO - average new node validate average_precision, 0.8146 ± 0.0071
+2025-10-08 06:52:06,150 - root - INFO - new node validate roc_auc, [np.float64(0.7495777777777778), np.float64(0.7467777777777778)]
+2025-10-08 06:52:06,150 - root - INFO - average new node validate roc_auc, 0.7482 ± 0.0020
+2025-10-08 06:52:06,150 - root - INFO - test average_precision, [np.float64(0.875712724068123), np.float64(0.8546967027564518)]
+2025-10-08 06:52:06,150 - root - INFO - average test average_precision, 0.8652 ± 0.0149
+2025-10-08 06:52:06,150 - root - INFO - test roc_auc, [np.float64(0.8366770737886992), np.float64(0.805408262182424)]
+2025-10-08 06:52:06,150 - root - INFO - average test roc_auc, 0.8210 ± 0.0221
+2025-10-08 06:52:06,150 - root - INFO - new node test average_precision, [np.float64(0.8149130774905464), np.float64(0.8326881698507689)]
+2025-10-08 06:52:06,151 - root - INFO - average new node test average_precision, 0.8238 ± 0.0126
+2025-10-08 06:52:06,151 - root - INFO - new node test roc_auc, [np.float64(0.7770402777777778), np.float64(0.7826041666666668)]
+2025-10-08 06:52:06,151 - root - INFO - average new node test roc_auc, 0.7798 ± 0.0039

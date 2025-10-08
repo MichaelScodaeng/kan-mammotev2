@@ -1,0 +1,336 @@
+Command: python experiments/train_link_prediction.py --model_name TGN --dataset_name uci --time_encoder_type mercer --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T05:44:36.345396
+Test: Training-mercer-TGN-uci
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: mercer
+   Dataset: uci
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 59,835 interactions
+   Subsampled data size: 2,991 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 2991 interactions, involving 396 different nodes
+The training dataset has 1720 interactions, involving 298 different nodes
+The validation dataset has 448 interactions, involving 132 different nodes
+The test dataset has 449 interactions, involving 150 different nodes
+The new node validation dataset has 150 interactions, involving 80 different nodes
+The new node test dataset has 320 interactions, involving 124 different nodes
+39 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 2,991 edges
+   Train data: 1,720 edges (57.5%)
+   Val data: 448 edges (15.0%)
+   Test data: 449 edges (15.0%)
+   Expected batches: 9
+   ✅ All splits proportionally scaled with ratio 0.58:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/uci/TGN_mercer_seed0
+   Train metrics: train_metrics_20251008_054431.csv
+   Val metrics: val_metrics_20251008_054431.csv
+   New node val metrics: new_node_val_metrics_20251008_054431.csv
+   Test metrics: test_metrics_20251008_054431.csv
+   New node test metrics: new_node_test_metrics_20251008_054431.csv
+   Test periodic metrics: test_periodic_metrics_20251008_054431.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_054431.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: mercer
+INFO: Creating Mercer Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/TGN/uci/TGN_mercer_seed1
+   Train metrics: train_metrics_20251008_054434.csv
+   Val metrics: val_metrics_20251008_054434.csv
+   New node val metrics: new_node_val_metrics_20251008_054434.csv
+   Test metrics: test_metrics_20251008_054434.csv
+   New node test metrics: new_node_test_metrics_20251008_054434.csv
+   Test periodic metrics: test_periodic_metrics_20251008_054434.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_054434.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: mercer
+INFO: Creating Mercer Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_mercer_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed0
+INFO:root:time encoder type: mercer
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6943:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6943:  11%|█         | 1/9 [00:00<00:02,  2.87it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6943:  22%|██▏       | 2/9 [00:00<00:01,  4.70it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6886:  22%|██▏       | 2/9 [00:00<00:01,  4.70it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6886:  67%|██████▋   | 6/9 [00:00<00:00, 14.00it/s]
+Epoch: 1, Batch: 9/9, Loss: 0.6808:  67%|██████▋   | 6/9 [00:00<00:00, 14.00it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6828488111495972:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6850414872169495:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6779200434684753:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6858226656913757:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6890
+INFO:root:train average_precision, 0.7306
+INFO:root:train roc_auc, 0.7146
+INFO:root:validate loss: 0.6819
+INFO:root:validate average_precision, 0.8654
+INFO:root:validate roc_auc, 0.8307
+INFO:root:new node validate loss: 0.6858
+INFO:root:new node validate average_precision, 0.7259
+INFO:root:new node validate roc_auc, 0.7072
+INFO:root:save model ./saved_models/TGN/uci/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6866:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6866:  44%|████▍     | 4/9 [00:00<00:00, 32.92it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6751:  44%|████▍     | 4/9 [00:00<00:00, 32.92it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6751:  89%|████████▉ | 8/9 [00:00<00:00, 32.15it/s]
+Epoch: 2, Batch: 9/9, Loss: 0.6529:  89%|████████▉ | 8/9 [00:00<00:00, 32.15it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6620851159095764:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.670396089553833:   0%|          | 0/3 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.6477320790290833:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6715115308761597:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6747
+INFO:root:train average_precision, 0.8221
+INFO:root:train roc_auc, 0.7931
+INFO:root:validate loss: 0.6601
+INFO:root:validate average_precision, 0.8861
+INFO:root:validate roc_auc, 0.8505
+INFO:root:new node validate loss: 0.6715
+INFO:root:new node validate average_precision, 0.7609
+INFO:root:new node validate roc_auc, 0.7395
+INFO:root:save model ./saved_models/TGN/uci/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+INFO:root:load model ./saved_models/TGN/uci/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6581194400787354:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.675005316734314:   0%|          | 0/3 [00:00<?, ?it/s] 
+evaluate for the 3-th batch, evaluate loss: 0.6732257604598999:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6639943718910217:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6755713224411011:   0%|          | 0/2 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6688
+INFO:root:test average_precision, 0.8230
+INFO:root:test roc_auc, 0.7696
+INFO:root:new node test loss: 0.6698
+INFO:root:new node test average_precision, 0.7733
+INFO:root:new node test roc_auc, 0.7566
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed0
+INFO:root:Run 1 cost 2.50 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_mercer_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed1
+INFO:root:time encoder type: mercer
+INFO:root:Time encoder will be injected into TGN model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6930:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6930:  44%|████▍     | 4/9 [00:00<00:00, 34.31it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6900:  44%|████▍     | 4/9 [00:00<00:00, 34.31it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6900:  89%|████████▉ | 8/9 [00:00<00:00, 33.04it/s]
+Epoch: 1, Batch: 9/9, Loss: 0.6831:  89%|████████▉ | 8/9 [00:00<00:00, 33.04it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6834840178489685:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6862733960151672:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6792850494384766:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6869620680809021:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6897
+INFO:root:train average_precision, 0.6997
+INFO:root:train roc_auc, 0.6814
+INFO:root:validate loss: 0.6830
+INFO:root:validate average_precision, 0.8485
+INFO:root:validate roc_auc, 0.7998
+INFO:root:new node validate loss: 0.6870
+INFO:root:new node validate average_precision, 0.7246
+INFO:root:new node validate roc_auc, 0.7050
+INFO:root:save model ./saved_models/TGN/uci/TGN_mercer_seed1/TGN_mercer_seed1.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6878:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6878:  44%|████▍     | 4/9 [00:00<00:00, 32.62it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6764:  44%|████▍     | 4/9 [00:00<00:00, 32.62it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6764:  89%|████████▉ | 8/9 [00:00<00:00, 31.75it/s]
+Epoch: 2, Batch: 9/9, Loss: 0.6577:  89%|████████▉ | 8/9 [00:00<00:00, 31.75it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6625697016716003:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6728788614273071:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6512002944946289:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.672597348690033:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                    
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6777
+INFO:root:train average_precision, 0.8083
+INFO:root:train roc_auc, 0.7753
+INFO:root:validate loss: 0.6622
+INFO:root:validate average_precision, 0.8833
+INFO:root:validate roc_auc, 0.8483
+INFO:root:new node validate loss: 0.6726
+INFO:root:new node validate average_precision, 0.7664
+INFO:root:new node validate roc_auc, 0.7620
+INFO:root:save model ./saved_models/TGN/uci/TGN_mercer_seed1/TGN_mercer_seed1.pkl
+INFO:root:load model ./saved_models/TGN/uci/TGN_mercer_seed1/TGN_mercer_seed1.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6619209051132202:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6758962869644165:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.671741247177124:   0%|          | 0/3 [00:00<?, ?it/s] 
+                                                                                                    
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6677884459495544:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6770132780075073:   0%|          | 0/2 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6699
+INFO:root:test average_precision, 0.8372
+INFO:root:test roc_auc, 0.7907
+INFO:root:new node test loss: 0.6724
+INFO:root:new node test average_precision, 0.7817
+INFO:root:new node test roc_auc, 0.7548
+INFO:root:✅ Metrics saved to: ./saved_metrics/TGN/uci/TGN_mercer_seed1
+INFO:root:Run 2 cost 1.35 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:test average_precision, [np.float64(0.8229834889271409), np.float64(0.8371713985934427)]
+INFO:root:average test average_precision, 0.8301 ± 0.0100
+INFO:root:test roc_auc, [np.float64(0.7695623125780924), np.float64(0.790682686033597)]
+INFO:root:average test roc_auc, 0.7801 ± 0.0149
+INFO:root:new node test average_precision, [np.float64(0.7733189722362661), np.float64(0.7816994540336415)]
+INFO:root:average new node test average_precision, 0.7775 ± 0.0059
+INFO:root:new node test roc_auc, [np.float64(0.7566118055555555), np.float64(0.7548020833333333)]
+INFO:root:average new node test roc_auc, 0.7557 ± 0.0013
+
+Return code: 0

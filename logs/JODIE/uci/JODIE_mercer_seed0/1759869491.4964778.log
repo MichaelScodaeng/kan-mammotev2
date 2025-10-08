@@ -1,0 +1,58 @@
+2025-10-08 05:38:11,498 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 05:38:11,498 - root - INFO - configuration is Namespace(dataset_name='uci', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='JODIE_mercer_seed0')
+2025-10-08 05:38:11,502 - root - INFO - Metrics will be saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0
+2025-10-08 05:38:11,503 - root - INFO - time encoder type: mercer
+2025-10-08 05:38:11,503 - root - INFO - Time encoder will be injected into JODIE model
+2025-10-08 05:38:11,745 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.4, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 05:38:11,746 - root - INFO - model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+2025-10-08 05:38:13,035 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6968
+2025-10-08 05:38:13,036 - root - INFO - train average_precision, 0.4969
+2025-10-08 05:38:13,036 - root - INFO - train roc_auc, 0.4872
+2025-10-08 05:38:13,036 - root - INFO - validate loss: 0.6788
+2025-10-08 05:38:13,036 - root - INFO - validate average_precision, 0.6811
+2025-10-08 05:38:13,036 - root - INFO - validate roc_auc, 0.7053
+2025-10-08 05:38:13,036 - root - INFO - new node validate loss: 0.6974
+2025-10-08 05:38:13,036 - root - INFO - new node validate average_precision, 0.4515
+2025-10-08 05:38:13,036 - root - INFO - new node validate roc_auc, 0.4217
+2025-10-08 05:38:13,045 - root - INFO - save model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+2025-10-08 05:38:13,342 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6854
+2025-10-08 05:38:13,342 - root - INFO - train average_precision, 0.5662
+2025-10-08 05:38:13,342 - root - INFO - train roc_auc, 0.5891
+2025-10-08 05:38:13,342 - root - INFO - validate loss: 0.6620
+2025-10-08 05:38:13,343 - root - INFO - validate average_precision, 0.7658
+2025-10-08 05:38:13,343 - root - INFO - validate roc_auc, 0.7929
+2025-10-08 05:38:13,343 - root - INFO - new node validate loss: 0.6946
+2025-10-08 05:38:13,343 - root - INFO - new node validate average_precision, 0.4777
+2025-10-08 05:38:13,343 - root - INFO - new node validate roc_auc, 0.5322
+2025-10-08 05:38:13,347 - root - INFO - save model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+2025-10-08 05:38:13,442 - root - INFO - load model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+2025-10-08 05:38:13,537 - root - INFO - get final performance on dataset uci...
+2025-10-08 05:38:13,600 - root - INFO - test loss: 0.6781
+2025-10-08 05:38:13,600 - root - INFO - test average_precision, 0.6193
+2025-10-08 05:38:13,600 - root - INFO - test roc_auc, 0.6512
+2025-10-08 05:38:13,600 - root - INFO - new node test loss: 0.6960
+2025-10-08 05:38:13,600 - root - INFO - new node test average_precision, 0.5087
+2025-10-08 05:38:13,601 - root - INFO - new node test roc_auc, 0.4899
+2025-10-08 05:38:13,608 - root - INFO - ✅ Metrics saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0
+2025-10-08 05:38:13,608 - root - INFO - Run 1 cost 2.11 seconds.

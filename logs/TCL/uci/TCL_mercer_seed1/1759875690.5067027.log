@@ -1,0 +1,93 @@
+2025-10-08 07:21:30,510 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 07:21:30,510 - root - INFO - configuration is Namespace(dataset_name='uci', batch_size=200, model_name='TCL', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TCL_mercer_seed1')
+2025-10-08 07:21:30,511 - root - INFO - Metrics will be saved to: ./saved_metrics/TCL/uci/TCL_mercer_seed1
+2025-10-08 07:21:30,512 - root - INFO - time encoder type: mercer
+2025-10-08 07:21:30,512 - root - INFO - Time encoder will be injected into TCL model
+2025-10-08 07:21:30,629 - root - INFO - model -> Sequential(
+  (0): TCL(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): MercerTimeEncoder()
+    )
+    (depth_embedding): Embedding(21, 172)
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=172, bias=True)
+      (edge): Linear(in_features=172, out_features=172, bias=True)
+      (time): Linear(in_features=100, out_features=172, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=172, out_features=172, bias=True)
+        )
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=172, out_features=688, bias=True)
+          (1): Linear(in_features=688, out_features=172, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=172, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 07:21:30,629 - root - INFO - model name: TCL, #parameters: 3544212 B, 3461.14453125 KB, 3.380023956298828 MB.
+2025-10-08 07:21:31,093 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6540
+2025-10-08 07:21:31,093 - root - INFO - train average_precision, 0.7269
+2025-10-08 07:21:31,093 - root - INFO - train roc_auc, 0.7429
+2025-10-08 07:21:31,093 - root - INFO - validate loss: 0.5856
+2025-10-08 07:21:31,093 - root - INFO - validate average_precision, 0.8483
+2025-10-08 07:21:31,093 - root - INFO - validate roc_auc, 0.8387
+2025-10-08 07:21:31,093 - root - INFO - new node validate loss: 0.7094
+2025-10-08 07:21:31,093 - root - INFO - new node validate average_precision, 0.5629
+2025-10-08 07:21:31,093 - root - INFO - new node validate roc_auc, 0.5480
+2025-10-08 07:21:31,103 - root - INFO - save model ./saved_models/TCL/uci/TCL_mercer_seed1/TCL_mercer_seed1.pkl
+2025-10-08 07:21:31,604 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6183
+2025-10-08 07:21:31,604 - root - INFO - train average_precision, 0.7825
+2025-10-08 07:21:31,604 - root - INFO - train roc_auc, 0.7736
+2025-10-08 07:21:31,604 - root - INFO - validate loss: 0.5441
+2025-10-08 07:21:31,604 - root - INFO - validate average_precision, 0.8697
+2025-10-08 07:21:31,604 - root - INFO - validate roc_auc, 0.8526
+2025-10-08 07:21:31,604 - root - INFO - new node validate loss: 0.7385
+2025-10-08 07:21:31,604 - root - INFO - new node validate average_precision, 0.6145
+2025-10-08 07:21:31,604 - root - INFO - new node validate roc_auc, 0.5674
+2025-10-08 07:21:31,610 - root - INFO - save model ./saved_models/TCL/uci/TCL_mercer_seed1/TCL_mercer_seed1.pkl
+2025-10-08 07:21:31,653 - root - INFO - load model ./saved_models/TCL/uci/TCL_mercer_seed1/TCL_mercer_seed1.pkl
+2025-10-08 07:21:31,669 - root - INFO - get final performance on dataset uci...
+2025-10-08 07:21:31,837 - root - INFO - validate loss: 0.5441
+2025-10-08 07:21:31,837 - root - INFO - validate average_precision, 0.8697
+2025-10-08 07:21:31,837 - root - INFO - validate roc_auc, 0.8526
+2025-10-08 07:21:31,838 - root - INFO - new node validate loss: 0.7385
+2025-10-08 07:21:31,838 - root - INFO - new node validate average_precision, 0.6145
+2025-10-08 07:21:31,838 - root - INFO - new node validate roc_auc, 0.5674
+2025-10-08 07:21:31,838 - root - INFO - test loss: 0.6379
+2025-10-08 07:21:31,838 - root - INFO - test average_precision, 0.7235
+2025-10-08 07:21:31,838 - root - INFO - test roc_auc, 0.7024
+2025-10-08 07:21:31,838 - root - INFO - new node test loss: 0.7275
+2025-10-08 07:21:31,838 - root - INFO - new node test average_precision, 0.5820
+2025-10-08 07:21:31,838 - root - INFO - new node test roc_auc, 0.5594
+2025-10-08 07:21:31,846 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TCL/uci/TCL_mercer_seed1
+2025-10-08 07:21:31,846 - root - INFO - Run 2 cost 1.34 seconds.
+2025-10-08 07:21:31,850 - root - INFO - metrics over 2 runs:
+2025-10-08 07:21:31,850 - root - INFO - validate average_precision, [np.float64(0.8597410760591426), np.float64(0.8696982580460401)]
+2025-10-08 07:21:31,850 - root - INFO - average validate average_precision, 0.8647 ± 0.0070
+2025-10-08 07:21:31,850 - root - INFO - validate roc_auc, [np.float64(0.8493537037037037), np.float64(0.8525854166666665)]
+2025-10-08 07:21:31,850 - root - INFO - average validate roc_auc, 0.8510 ± 0.0023
+2025-10-08 07:21:31,850 - root - INFO - new node validate average_precision, [np.float64(0.5875815584049866), np.float64(0.614478319920982)]
+2025-10-08 07:21:31,850 - root - INFO - average new node validate average_precision, 0.6010 ± 0.0190
+2025-10-08 07:21:31,850 - root - INFO - new node validate roc_auc, [np.float64(0.5506444444444445), np.float64(0.5674444444444444)]
+2025-10-08 07:21:31,850 - root - INFO - average new node validate roc_auc, 0.5590 ± 0.0119
+2025-10-08 07:21:31,851 - root - INFO - test average_precision, [np.float64(0.7000604362826621), np.float64(0.7234641590698146)]
+2025-10-08 07:21:31,851 - root - INFO - average test average_precision, 0.7118 ± 0.0165
+2025-10-08 07:21:31,851 - root - INFO - test roc_auc, [np.float64(0.6948112644037208), np.float64(0.702440894418992)]
+2025-10-08 07:21:31,851 - root - INFO - average test roc_auc, 0.6986 ± 0.0054
+2025-10-08 07:21:31,851 - root - INFO - new node test average_precision, [np.float64(0.5488712581119722), np.float64(0.5820457769661287)]
+2025-10-08 07:21:31,851 - root - INFO - average new node test average_precision, 0.5655 ± 0.0235
+2025-10-08 07:21:31,851 - root - INFO - new node test roc_auc, [np.float64(0.5474493055555555), np.float64(0.5593722222222222)]
+2025-10-08 07:21:31,851 - root - INFO - average new node test roc_auc, 0.5534 ± 0.0084

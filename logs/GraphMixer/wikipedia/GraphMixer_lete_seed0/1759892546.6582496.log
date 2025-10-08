@@ -1,0 +1,86 @@
+2025-10-08 12:02:26,660 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 12:02:26,660 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=30, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.5, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_lete_seed0')
+2025-10-08 12:02:26,663 - root - INFO - Metrics will be saved to: ./saved_metrics/GraphMixer/wikipedia/GraphMixer_lete_seed0
+2025-10-08 12:02:26,665 - root - INFO - time encoder type: lete
+2025-10-08 12:02:26,665 - root - INFO - Time encoder will be injected into GraphMixer model
+2025-10-08 12:02:26,902 - root - INFO - model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((30,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=30, out_features=15, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=15, out_features=30, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.5, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.5, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 12:02:26,903 - root - INFO - model name: GraphMixer, #parameters: 2579956 B, 2519.48828125 KB, 2.460437774658203 MB.
+2025-10-08 12:02:29,213 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6614
+2025-10-08 12:02:29,213 - root - INFO - train average_precision, 0.7767
+2025-10-08 12:02:29,213 - root - INFO - train roc_auc, 0.7799
+2025-10-08 12:02:29,213 - root - INFO - validate loss: 0.5637
+2025-10-08 12:02:29,213 - root - INFO - validate average_precision, 0.8177
+2025-10-08 12:02:29,213 - root - INFO - validate roc_auc, 0.8284
+2025-10-08 12:02:29,213 - root - INFO - new node validate loss: 0.6313
+2025-10-08 12:02:29,213 - root - INFO - new node validate average_precision, 0.7204
+2025-10-08 12:02:29,213 - root - INFO - new node validate roc_auc, 0.7035
+2025-10-08 12:02:29,222 - root - INFO - save model ./saved_models/GraphMixer/wikipedia/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:02:30,609 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5122
+2025-10-08 12:02:30,610 - root - INFO - train average_precision, 0.8517
+2025-10-08 12:02:30,610 - root - INFO - train roc_auc, 0.8656
+2025-10-08 12:02:30,610 - root - INFO - validate loss: 0.4475
+2025-10-08 12:02:30,610 - root - INFO - validate average_precision, 0.8558
+2025-10-08 12:02:30,610 - root - INFO - validate roc_auc, 0.8757
+2025-10-08 12:02:30,610 - root - INFO - new node validate loss: 0.6916
+2025-10-08 12:02:30,610 - root - INFO - new node validate average_precision, 0.7405
+2025-10-08 12:02:30,610 - root - INFO - new node validate roc_auc, 0.7460
+2025-10-08 12:02:30,614 - root - INFO - save model ./saved_models/GraphMixer/wikipedia/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:02:30,644 - root - INFO - load model ./saved_models/GraphMixer/wikipedia/GraphMixer_lete_seed0/GraphMixer_lete_seed0.pkl
+2025-10-08 12:02:30,660 - root - INFO - get final performance on dataset wikipedia...
+2025-10-08 12:02:31,181 - root - INFO - validate loss: 0.4475
+2025-10-08 12:02:31,181 - root - INFO - validate average_precision, 0.8558
+2025-10-08 12:02:31,181 - root - INFO - validate roc_auc, 0.8757
+2025-10-08 12:02:31,182 - root - INFO - new node validate loss: 0.6916
+2025-10-08 12:02:31,182 - root - INFO - new node validate average_precision, 0.7405
+2025-10-08 12:02:31,182 - root - INFO - new node validate roc_auc, 0.7460
+2025-10-08 12:02:31,182 - root - INFO - test loss: 0.5095
+2025-10-08 12:02:31,182 - root - INFO - test average_precision, 0.8004
+2025-10-08 12:02:31,182 - root - INFO - test roc_auc, 0.8359
+2025-10-08 12:02:31,182 - root - INFO - new node test loss: 0.6399
+2025-10-08 12:02:31,182 - root - INFO - new node test average_precision, 0.7284
+2025-10-08 12:02:31,182 - root - INFO - new node test roc_auc, 0.7621
+2025-10-08 12:02:31,190 - root - INFO - ✅ Metrics saved to: ./saved_metrics/GraphMixer/wikipedia/GraphMixer_lete_seed0
+2025-10-08 12:02:31,190 - root - INFO - Run 1 cost 4.53 seconds.

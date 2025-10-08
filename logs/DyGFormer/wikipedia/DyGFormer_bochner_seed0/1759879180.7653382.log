@@ -1,0 +1,83 @@
+2025-10-08 08:19:40,768 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 08:19:40,768 - root - INFO - configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_bochner_seed0')
+2025-10-08 08:19:40,773 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/wikipedia/DyGFormer_bochner_seed0
+2025-10-08 08:19:40,774 - root - INFO - time encoder type: bochner
+2025-10-08 08:19:40,774 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 08:19:41,038 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 08:19:41,039 - root - INFO - model name: DyGFormer, #parameters: 4347740 B, 4245.83984375 KB, 4.146327972412109 MB.
+2025-10-08 08:19:46,069 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6115
+2025-10-08 08:19:46,070 - root - INFO - train average_precision, 0.7631
+2025-10-08 08:19:46,070 - root - INFO - train roc_auc, 0.7681
+2025-10-08 08:19:46,070 - root - INFO - validate loss: 0.5219
+2025-10-08 08:19:46,070 - root - INFO - validate average_precision, 0.8390
+2025-10-08 08:19:46,070 - root - INFO - validate roc_auc, 0.8495
+2025-10-08 08:19:46,070 - root - INFO - new node validate loss: 0.5921
+2025-10-08 08:19:46,070 - root - INFO - new node validate average_precision, 0.7450
+2025-10-08 08:19:46,070 - root - INFO - new node validate roc_auc, 0.7421
+2025-10-08 08:19:46,079 - root - INFO - save model ./saved_models/DyGFormer/wikipedia/DyGFormer_bochner_seed0/DyGFormer_bochner_seed0.pkl
+2025-10-08 08:19:50,346 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5317
+2025-10-08 08:19:50,346 - root - INFO - train average_precision, 0.8455
+2025-10-08 08:19:50,346 - root - INFO - train roc_auc, 0.8645
+2025-10-08 08:19:50,346 - root - INFO - validate loss: 0.4630
+2025-10-08 08:19:50,346 - root - INFO - validate average_precision, 0.8532
+2025-10-08 08:19:50,346 - root - INFO - validate roc_auc, 0.8621
+2025-10-08 08:19:50,346 - root - INFO - new node validate loss: 0.5676
+2025-10-08 08:19:50,346 - root - INFO - new node validate average_precision, 0.7612
+2025-10-08 08:19:50,346 - root - INFO - new node validate roc_auc, 0.7551
+2025-10-08 08:19:50,350 - root - INFO - save model ./saved_models/DyGFormer/wikipedia/DyGFormer_bochner_seed0/DyGFormer_bochner_seed0.pkl
+2025-10-08 08:19:50,398 - root - INFO - load model ./saved_models/DyGFormer/wikipedia/DyGFormer_bochner_seed0/DyGFormer_bochner_seed0.pkl
+2025-10-08 08:19:50,418 - root - INFO - get final performance on dataset wikipedia...
+2025-10-08 08:19:52,555 - root - INFO - validate loss: 0.4630
+2025-10-08 08:19:52,555 - root - INFO - validate average_precision, 0.8532
+2025-10-08 08:19:52,555 - root - INFO - validate roc_auc, 0.8621
+2025-10-08 08:19:52,555 - root - INFO - new node validate loss: 0.5676
+2025-10-08 08:19:52,555 - root - INFO - new node validate average_precision, 0.7612
+2025-10-08 08:19:52,555 - root - INFO - new node validate roc_auc, 0.7551
+2025-10-08 08:19:52,555 - root - INFO - test loss: 0.5246
+2025-10-08 08:19:52,556 - root - INFO - test average_precision, 0.7766
+2025-10-08 08:19:52,556 - root - INFO - test roc_auc, 0.8052
+2025-10-08 08:19:52,556 - root - INFO - new node test loss: 0.5997
+2025-10-08 08:19:52,556 - root - INFO - new node test average_precision, 0.6878
+2025-10-08 08:19:52,556 - root - INFO - new node test roc_auc, 0.7146
+2025-10-08 08:19:52,564 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGFormer/wikipedia/DyGFormer_bochner_seed0
+2025-10-08 08:19:52,564 - root - INFO - Run 1 cost 11.80 seconds.

@@ -1,0 +1,90 @@
+2025-10-08 09:41:21,248 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 09:41:21,248 - root - INFO - configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGAT_time2vec_seed1')
+2025-10-08 09:41:21,250 - root - INFO - Metrics will be saved to: ./saved_metrics/TGAT/reddit/TGAT_time2vec_seed1
+2025-10-08 09:41:21,251 - root - INFO - time encoder type: time2vec
+2025-10-08 09:41:21,251 - root - INFO - Time encoder will be injected into TGAT model
+2025-10-08 09:41:21,465 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 09:41:21,465 - root - INFO - model name: TGAT, #parameters: 4211780 B, 4113.06640625 KB, 4.016666412353516 MB.
+2025-10-08 09:42:05,863 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.5816
+2025-10-08 09:42:05,864 - root - INFO - train average_precision, 0.7597
+2025-10-08 09:42:05,864 - root - INFO - train roc_auc, 0.7897
+2025-10-08 09:42:05,864 - root - INFO - validate loss: 0.5937
+2025-10-08 09:42:05,864 - root - INFO - validate average_precision, 0.6987
+2025-10-08 09:42:05,864 - root - INFO - validate roc_auc, 0.7461
+2025-10-08 09:42:05,864 - root - INFO - new node validate loss: 0.7221
+2025-10-08 09:42:05,864 - root - INFO - new node validate average_precision, 0.5953
+2025-10-08 09:42:05,864 - root - INFO - new node validate roc_auc, 0.6162
+2025-10-08 09:42:05,874 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_time2vec_seed1/TGAT_time2vec_seed1.pkl
+2025-10-08 09:42:50,513 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.5370
+2025-10-08 09:42:50,514 - root - INFO - train average_precision, 0.7715
+2025-10-08 09:42:50,514 - root - INFO - train roc_auc, 0.8025
+2025-10-08 09:42:50,514 - root - INFO - validate loss: 0.5930
+2025-10-08 09:42:50,514 - root - INFO - validate average_precision, 0.7077
+2025-10-08 09:42:50,514 - root - INFO - validate roc_auc, 0.7482
+2025-10-08 09:42:50,514 - root - INFO - new node validate loss: 0.7231
+2025-10-08 09:42:50,514 - root - INFO - new node validate average_precision, 0.5952
+2025-10-08 09:42:50,514 - root - INFO - new node validate roc_auc, 0.6187
+2025-10-08 09:42:50,521 - root - INFO - save model ./saved_models/TGAT/reddit/TGAT_time2vec_seed1/TGAT_time2vec_seed1.pkl
+2025-10-08 09:42:50,565 - root - INFO - load model ./saved_models/TGAT/reddit/TGAT_time2vec_seed1/TGAT_time2vec_seed1.pkl
+2025-10-08 09:42:50,581 - root - INFO - get final performance on dataset reddit...
+2025-10-08 09:43:15,783 - root - INFO - validate loss: 0.5930
+2025-10-08 09:43:15,784 - root - INFO - validate average_precision, 0.7077
+2025-10-08 09:43:15,784 - root - INFO - validate roc_auc, 0.7482
+2025-10-08 09:43:15,784 - root - INFO - new node validate loss: 0.7231
+2025-10-08 09:43:15,784 - root - INFO - new node validate average_precision, 0.5952
+2025-10-08 09:43:15,784 - root - INFO - new node validate roc_auc, 0.6187
+2025-10-08 09:43:15,784 - root - INFO - test loss: 0.5898
+2025-10-08 09:43:15,784 - root - INFO - test average_precision, 0.7135
+2025-10-08 09:43:15,784 - root - INFO - test roc_auc, 0.7586
+2025-10-08 09:43:15,784 - root - INFO - new node test loss: 0.7242
+2025-10-08 09:43:15,784 - root - INFO - new node test average_precision, 0.6008
+2025-10-08 09:43:15,784 - root - INFO - new node test roc_auc, 0.6206
+2025-10-08 09:43:15,794 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGAT/reddit/TGAT_time2vec_seed1
+2025-10-08 09:43:15,794 - root - INFO - Run 2 cost 114.55 seconds.
+2025-10-08 09:43:15,799 - root - INFO - metrics over 2 runs:
+2025-10-08 09:43:15,799 - root - INFO - validate average_precision, [np.float64(0.6946776675153713), np.float64(0.7076928587060617)]
+2025-10-08 09:43:15,799 - root - INFO - average validate average_precision, 0.7012 ± 0.0092
+2025-10-08 09:43:15,800 - root - INFO - validate roc_auc, [np.float64(0.729411387912385), np.float64(0.7481975410304946)]
+2025-10-08 09:43:15,800 - root - INFO - average validate roc_auc, 0.7388 ± 0.0133
+2025-10-08 09:43:15,800 - root - INFO - new node validate average_precision, [np.float64(0.5934965302298919), np.float64(0.5952375084365443)]
+2025-10-08 09:43:15,800 - root - INFO - average new node validate average_precision, 0.5944 ± 0.0012
+2025-10-08 09:43:15,800 - root - INFO - new node validate roc_auc, [np.float64(0.6037396869515301), np.float64(0.6187209614471028)]
+2025-10-08 09:43:15,800 - root - INFO - average new node validate roc_auc, 0.6112 ± 0.0106
+2025-10-08 09:43:15,800 - root - INFO - test average_precision, [np.float64(0.6938646543138501), np.float64(0.7135282884072004)]
+2025-10-08 09:43:15,800 - root - INFO - average test average_precision, 0.7037 ± 0.0139
+2025-10-08 09:43:15,800 - root - INFO - test roc_auc, [np.float64(0.7353895939287985), np.float64(0.7586409766369993)]
+2025-10-08 09:43:15,801 - root - INFO - average test roc_auc, 0.7470 ± 0.0164
+2025-10-08 09:43:15,801 - root - INFO - new node test average_precision, [np.float64(0.5949189529874636), np.float64(0.6008302984229932)]
+2025-10-08 09:43:15,801 - root - INFO - average new node test average_precision, 0.5979 ± 0.0042
+2025-10-08 09:43:15,801 - root - INFO - new node test roc_auc, [np.float64(0.597797994575254), np.float64(0.6205597328024007)]
+2025-10-08 09:43:15,801 - root - INFO - average new node test roc_auc, 0.6092 ± 0.0161

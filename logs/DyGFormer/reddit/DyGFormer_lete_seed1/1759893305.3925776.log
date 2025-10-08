@@ -1,0 +1,106 @@
+2025-10-08 12:15:05,396 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 12:15:05,396 - root - INFO - configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=2, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_lete_seed1')
+2025-10-08 12:15:05,397 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/reddit/DyGFormer_lete_seed1
+2025-10-08 12:15:05,399 - root - INFO - time encoder type: lete
+2025-10-08 12:15:05,399 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 12:15:05,614 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=344, out_features=50, bias=True)
+      (edge): Linear(in_features=344, out_features=50, bias=True)
+      (time): Linear(in_features=200, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=100, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.2, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 12:15:05,615 - root - INFO - model name: DyGFormer, #parameters: 4451812 B, 4347.47265625 KB, 4.245578765869141 MB.
+2025-10-08 12:15:23,731 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.4224
+2025-10-08 12:15:23,732 - root - INFO - train average_precision, 0.8961
+2025-10-08 12:15:23,732 - root - INFO - train roc_auc, 0.8828
+2025-10-08 12:15:23,732 - root - INFO - validate loss: 0.2768
+2025-10-08 12:15:23,732 - root - INFO - validate average_precision, 0.9584
+2025-10-08 12:15:23,732 - root - INFO - validate roc_auc, 0.9496
+2025-10-08 12:15:23,732 - root - INFO - new node validate loss: 0.4167
+2025-10-08 12:15:23,732 - root - INFO - new node validate average_precision, 0.9139
+2025-10-08 12:15:23,732 - root - INFO - new node validate roc_auc, 0.8907
+2025-10-08 12:15:23,745 - root - INFO - save model ./saved_models/DyGFormer/reddit/DyGFormer_lete_seed1/DyGFormer_lete_seed1.pkl
+2025-10-08 12:15:42,093 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.3556
+2025-10-08 12:15:42,094 - root - INFO - train average_precision, 0.9269
+2025-10-08 12:15:42,094 - root - INFO - train roc_auc, 0.9048
+2025-10-08 12:15:42,094 - root - INFO - validate loss: 0.2579
+2025-10-08 12:15:42,094 - root - INFO - validate average_precision, 0.9627
+2025-10-08 12:15:42,094 - root - INFO - validate roc_auc, 0.9546
+2025-10-08 12:15:42,094 - root - INFO - new node validate loss: 0.4022
+2025-10-08 12:15:42,094 - root - INFO - new node validate average_precision, 0.9146
+2025-10-08 12:15:42,094 - root - INFO - new node validate roc_auc, 0.8904
+2025-10-08 12:15:42,100 - root - INFO - save model ./saved_models/DyGFormer/reddit/DyGFormer_lete_seed1/DyGFormer_lete_seed1.pkl
+2025-10-08 12:15:42,147 - root - INFO - load model ./saved_models/DyGFormer/reddit/DyGFormer_lete_seed1/DyGFormer_lete_seed1.pkl
+2025-10-08 12:15:42,166 - root - INFO - get final performance on dataset reddit...
+2025-10-08 12:15:51,155 - root - INFO - validate loss: 0.2579
+2025-10-08 12:15:51,155 - root - INFO - validate average_precision, 0.9627
+2025-10-08 12:15:51,155 - root - INFO - validate roc_auc, 0.9546
+2025-10-08 12:15:51,155 - root - INFO - new node validate loss: 0.4022
+2025-10-08 12:15:51,155 - root - INFO - new node validate average_precision, 0.9146
+2025-10-08 12:15:51,155 - root - INFO - new node validate roc_auc, 0.8904
+2025-10-08 12:15:51,155 - root - INFO - test loss: 0.2560
+2025-10-08 12:15:51,155 - root - INFO - test average_precision, 0.9650
+2025-10-08 12:15:51,155 - root - INFO - test roc_auc, 0.9586
+2025-10-08 12:15:51,155 - root - INFO - new node test loss: 0.4011
+2025-10-08 12:15:51,155 - root - INFO - new node test average_precision, 0.9218
+2025-10-08 12:15:51,155 - root - INFO - new node test roc_auc, 0.9042
+2025-10-08 12:15:51,164 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGFormer/reddit/DyGFormer_lete_seed1
+2025-10-08 12:15:51,164 - root - INFO - Run 2 cost 45.77 seconds.
+2025-10-08 12:15:51,168 - root - INFO - metrics over 2 runs:
+2025-10-08 12:15:51,168 - root - INFO - validate average_precision, [np.float64(0.9614402257943294), np.float64(0.9626609003623121)]
+2025-10-08 12:15:51,168 - root - INFO - average validate average_precision, 0.9621 ± 0.0009
+2025-10-08 12:15:51,168 - root - INFO - validate roc_auc, [np.float64(0.9528753211195239), np.float64(0.9545597118504804)]
+2025-10-08 12:15:51,168 - root - INFO - average validate roc_auc, 0.9537 ± 0.0012
+2025-10-08 12:15:51,169 - root - INFO - new node validate average_precision, [np.float64(0.9212890449308037), np.float64(0.9146348570456319)]
+2025-10-08 12:15:51,169 - root - INFO - average new node validate average_precision, 0.9180 ± 0.0047
+2025-10-08 12:15:51,169 - root - INFO - new node validate roc_auc, [np.float64(0.8973375105570145), np.float64(0.890407382157326)]
+2025-10-08 12:15:51,169 - root - INFO - average new node validate roc_auc, 0.8939 ± 0.0049
+2025-10-08 12:15:51,169 - root - INFO - test average_precision, [np.float64(0.965652945213039), np.float64(0.9650256229136456)]
+2025-10-08 12:15:51,169 - root - INFO - average test average_precision, 0.9653 ± 0.0004
+2025-10-08 12:15:51,169 - root - INFO - test roc_auc, [np.float64(0.9580993404322948), np.float64(0.958625659567705)]
+2025-10-08 12:15:51,169 - root - INFO - average test roc_auc, 0.9584 ± 0.0004
+2025-10-08 12:15:51,169 - root - INFO - new node test average_precision, [np.float64(0.9238348223435205), np.float64(0.9218347791535976)]
+2025-10-08 12:15:51,169 - root - INFO - average new node test average_precision, 0.9228 ± 0.0014
+2025-10-08 12:15:51,170 - root - INFO - new node test roc_auc, [np.float64(0.9057278768467221), np.float64(0.9041827187211449)]
+2025-10-08 12:15:51,170 - root - INFO - average new node test roc_auc, 0.9050 ± 0.0011

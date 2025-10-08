@@ -1,0 +1,297 @@
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name uci --time_encoder_type mercer --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T05:38:15.308028
+Test: Training-mercer-JODIE-uci
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: mercer
+   Dataset: uci
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 59,835 interactions
+   Subsampled data size: 2,991 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 2991 interactions, involving 396 different nodes
+The training dataset has 1720 interactions, involving 298 different nodes
+The validation dataset has 448 interactions, involving 132 different nodes
+The test dataset has 449 interactions, involving 150 different nodes
+The new node validation dataset has 150 interactions, involving 80 different nodes
+The new node test dataset has 320 interactions, involving 124 different nodes
+39 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 2,991 edges
+   Train data: 1,720 edges (57.5%)
+   Val data: 448 edges (15.0%)
+   Test data: 449 edges (15.0%)
+   Expected batches: 9
+   ✅ All splits proportionally scaled with ratio 0.58:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0
+   Train metrics: train_metrics_20251008_053811.csv
+   Val metrics: val_metrics_20251008_053811.csv
+   New node val metrics: new_node_val_metrics_20251008_053811.csv
+   Test metrics: test_metrics_20251008_053811.csv
+   New node test metrics: new_node_test_metrics_20251008_053811.csv
+   Test periodic metrics: test_periodic_metrics_20251008_053811.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_053811.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: mercer
+INFO: Creating Mercer Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/uci/JODIE_mercer_seed1
+   Train metrics: train_metrics_20251008_053813.csv
+   Val metrics: val_metrics_20251008_053813.csv
+   New node val metrics: new_node_val_metrics_20251008_053813.csv
+   Test metrics: test_metrics_20251008_053813.csv
+   New node test metrics: new_node_test_metrics_20251008_053813.csv
+   Test periodic metrics: test_periodic_metrics_20251008_053813.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_053813.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: mercer
+INFO: Creating Mercer Time Encoder.
+Time Embedding dim: 100
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='JODIE_mercer_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0
+INFO:root:time encoder type: mercer
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.4, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6938:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6938:  11%|█         | 1/9 [00:00<00:01,  4.02it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6938:  22%|██▏       | 2/9 [00:00<00:01,  5.07it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.7032:  22%|██▏       | 2/9 [00:00<00:01,  5.07it/s]
+Epoch: 1, Batch: 9/9, Loss: 0.6976:  22%|██▏       | 2/9 [00:00<00:01,  5.07it/s]
+Epoch: 1, Batch: 9/9, Loss: 0.6976: 100%|██████████| 9/9 [00:00<00:00, 24.35it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6798613667488098:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6771169900894165:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6793340444564819:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6974307298660278:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6968
+INFO:root:train average_precision, 0.4969
+INFO:root:train roc_auc, 0.4872
+INFO:root:validate loss: 0.6788
+INFO:root:validate average_precision, 0.6811
+INFO:root:validate roc_auc, 0.7053
+INFO:root:new node validate loss: 0.6974
+INFO:root:new node validate average_precision, 0.4515
+INFO:root:new node validate roc_auc, 0.4217
+INFO:root:save model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6937:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6874:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6874:  89%|████████▉ | 8/9 [00:00<00:00, 71.98it/s]
+Epoch: 2, Batch: 9/9, Loss: 0.6757:  89%|████████▉ | 8/9 [00:00<00:00, 71.98it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6625561118125916:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6622257828712463:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6612756252288818:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6945581436157227:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6854
+INFO:root:train average_precision, 0.5662
+INFO:root:train roc_auc, 0.5891
+INFO:root:validate loss: 0.6620
+INFO:root:validate average_precision, 0.7658
+INFO:root:validate roc_auc, 0.7929
+INFO:root:new node validate loss: 0.6946
+INFO:root:new node validate average_precision, 0.4777
+INFO:root:new node validate roc_auc, 0.5322
+INFO:root:save model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+INFO:root:load model ./saved_models/JODIE/uci/JODIE_mercer_seed0/JODIE_mercer_seed0.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6725367307662964:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6823182702064514:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6793633699417114:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6929011344909668:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6990683078765869:   0%|          | 0/2 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6781
+INFO:root:test average_precision, 0.6193
+INFO:root:test roc_auc, 0.6512
+INFO:root:new node test loss: 0.6960
+INFO:root:new node test average_precision, 0.5087
+INFO:root:new node test roc_auc, 0.4899
+INFO:root:✅ Metrics saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed0
+INFO:root:Run 1 cost 2.11 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='JODIE_mercer_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed1
+INFO:root:time encoder type: mercer
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.4, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 0.6933:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6960:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 6/9, Loss: 0.6960:  89%|████████▉ | 8/9 [00:00<00:00, 77.85it/s]
+Epoch: 1, Batch: 9/9, Loss: 0.6868:  89%|████████▉ | 8/9 [00:00<00:00, 77.85it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6798986792564392:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6877030730247498:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6808015704154968:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6941596865653992:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6949
+INFO:root:train average_precision, 0.5057
+INFO:root:train roc_auc, 0.4963
+INFO:root:validate loss: 0.6828
+INFO:root:validate average_precision, 0.6273
+INFO:root:validate roc_auc, 0.6545
+INFO:root:new node validate loss: 0.6942
+INFO:root:new node validate average_precision, 0.5026
+INFO:root:new node validate roc_auc, 0.5095
+INFO:root:save model ./saved_models/JODIE/uci/JODIE_mercer_seed1/JODIE_mercer_seed1.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 0.6933:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6885:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 6/9, Loss: 0.6885:  89%|████████▉ | 8/9 [00:00<00:00, 74.04it/s]
+Epoch: 2, Batch: 9/9, Loss: 0.6681:  89%|████████▉ | 8/9 [00:00<00:00, 74.04it/s]
+                                                                                 
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6670268177986145:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6772482395172119:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6661491394042969:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6936043500900269:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6849
+INFO:root:train average_precision, 0.5981
+INFO:root:train roc_auc, 0.5937
+INFO:root:validate loss: 0.6701
+INFO:root:validate average_precision, 0.6766
+INFO:root:validate roc_auc, 0.7383
+INFO:root:new node validate loss: 0.6936
+INFO:root:new node validate average_precision, 0.5201
+INFO:root:new node validate roc_auc, 0.4957
+INFO:root:save model ./saved_models/JODIE/uci/JODIE_mercer_seed1/JODIE_mercer_seed1.pkl
+INFO:root:load model ./saved_models/JODIE/uci/JODIE_mercer_seed1/JODIE_mercer_seed1.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.6798962354660034:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.6893895864486694:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 3-th batch, evaluate loss: 0.6857330799102783:   0%|          | 0/3 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 0.690973162651062:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 2-th batch, evaluate loss: 0.7023873329162598:   0%|          | 0/2 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:test loss: 0.6850
+INFO:root:test average_precision, 0.5655
+INFO:root:test roc_auc, 0.6027
+INFO:root:new node test loss: 0.6967
+INFO:root:new node test average_precision, 0.4957
+INFO:root:new node test roc_auc, 0.4756
+INFO:root:✅ Metrics saved to: ./saved_metrics/JODIE/uci/JODIE_mercer_seed1
+INFO:root:Run 2 cost 0.91 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:test average_precision, [np.float64(0.6192944288518003), np.float64(0.5655184413008371)]
+INFO:root:average test average_precision, 0.5924 ± 0.0380
+INFO:root:test roc_auc, [np.float64(0.6512278443009857), np.float64(0.6027030733722061)]
+INFO:root:average test roc_auc, 0.6270 ± 0.0343
+INFO:root:new node test average_precision, [np.float64(0.5087263925164689), np.float64(0.49565508599142305)]
+INFO:root:average new node test average_precision, 0.5022 ± 0.0092
+INFO:root:new node test roc_auc, [np.float64(0.4898805555555556), np.float64(0.47562777777777776)]
+INFO:root:average new node test roc_auc, 0.4828 ± 0.0101
+
+Return code: 0

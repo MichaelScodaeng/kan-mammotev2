@@ -2,6 +2,7 @@ import logging
 import time
 import sys
 import os
+import glob
 from tqdm import tqdm
 import numpy as np
 import warnings
@@ -406,6 +407,9 @@ if __name__ == "__main__":
         early_stopping = EarlyStopping(patience=args.patience, save_model_folder=save_model_folder,
                                        save_model_name=args.save_model_name, logger=logger, model_name=args.model_name)
 
+        # Initialize best average precision tracking (used for test metrics logging)
+        best_average_precision = 0.0
+
         # Smart checkpoint loading with automatic best checkpoint finding and validation
         start_epoch = 0
         checkpoint_loaded = False
@@ -458,21 +462,29 @@ if __name__ == "__main__":
                 if 'random_state' in checkpoint:
                     torch.set_rng_state(checkpoint['random_state'])
                 
-                best_acc = checkpoint.get('best_acc', 0)
+                # Restore best average precision (handle legacy 'best_acc' name)
+                best_average_precision = checkpoint.get('best_average_precision', checkpoint.get('best_acc', 0.0))
                 
                 # Restore early stopping state if available
                 if 'early_stopping_counter' in checkpoint:
                     early_stopping.counter = checkpoint['early_stopping_counter']
-                    early_stopping.best_score = checkpoint.get('early_stopping_best_score', None)
+                    # Restore best_metrics if available
+                    if 'early_stopping_best_metrics' in checkpoint:
+                        early_stopping.best_metrics = checkpoint['early_stopping_best_metrics']
+                    # Legacy compatibility for old checkpoints with best_score
+                    elif 'early_stopping_best_score' in checkpoint:
+                        # Convert single score to metrics dict format (best effort)
+                        early_stopping.best_metrics = {'average_precision': checkpoint['early_stopping_best_score']}
                 
                 checkpoint_loaded = True
                 
-                logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_acc: {best_acc:.4f}')
+                logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_average_precision: {best_average_precision:.4f}')
                 
             except Exception as e:
                 logger.error(f'Failed to load checkpoint {args.resume_from_checkpoint}: {e}')
                 logger.info('Starting fresh training')
                 start_epoch = 0
+                best_average_precision = 0.0
                 checkpoint_loaded = False
 
         # Adaptive checkpoint interval based on strategy
@@ -759,10 +771,11 @@ if __name__ == "__main__":
                 for metric_name in test_metrics[0].keys():
                     logger.info(f'test {metric_name}, {np.mean([test_metric[metric_name] for test_metric in test_metrics]):.4f}')
                     if metric_name == 'average_precision':
-                        if np.mean([test_metric[metric_name] for test_metric in test_metrics]) > best_acc:
-                            best_acc = np.mean([test_metric[metric_name] for test_metric in test_metrics])
+                        current_avg_precision = np.mean([test_metric[metric_name] for test_metric in test_metrics])
+                        if current_avg_precision > best_average_precision:
+                            best_average_precision = current_avg_precision
                         logger.info(
-                            f'best test average_precision: {best_acc:.4f}')
+                            f'best test average_precision: {best_average_precision:.4f}')
                 logger.info(f'new node test loss: {np.mean(new_node_test_losses):.4f}')
                 for metric_name in new_node_test_metrics[0].keys():
                     logger.info(f'new node test {metric_name}, {np.mean([new_node_test_metric[metric_name] for new_node_test_metric in new_node_test_metrics]):.4f}')
@@ -797,10 +810,11 @@ if __name__ == "__main__":
                     'val_metrics': val_metrics,
                     'random_state': torch.get_rng_state(),
                     'args': args,
-                    'best_acc': best_acc,
+                    'best_average_precision': best_average_precision,
+                    'best_acc': best_average_precision,  # Keep legacy name for compatibility
                     'seed': run,
                     'early_stopping_counter': early_stopping.counter,
-                    'early_stopping_best_score': early_stopping.best_score,
+                    'early_stopping_best_metrics': early_stopping.best_metrics,  # Use correct attribute
                     'timestamp': datetime.now().isoformat(),
                     'pytorch_version': torch.__version__
                 }

@@ -1,0 +1,76 @@
+2025-10-08 05:42:54,095 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 05:42:54,096 - root - INFO - configuration is Namespace(dataset_name='lastfm', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.3, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_mercer_seed0')
+2025-10-08 05:42:54,099 - root - INFO - Metrics will be saved to: ./saved_metrics/TGN/lastfm/TGN_mercer_seed0
+2025-10-08 05:42:54,101 - root - INFO - time encoder type: mercer
+2025-10-08 05:42:54,101 - root - INFO - Time encoder will be injected into TGN model
+2025-10-08 05:42:54,747 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1981, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1981, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.3, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 05:42:54,747 - root - INFO - model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+2025-10-08 05:43:02,573 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6542
+2025-10-08 05:43:02,574 - root - INFO - train average_precision, 0.6430
+2025-10-08 05:43:02,574 - root - INFO - train roc_auc, 0.6532
+2025-10-08 05:43:02,574 - root - INFO - validate loss: 0.6743
+2025-10-08 05:43:02,574 - root - INFO - validate average_precision, 0.6038
+2025-10-08 05:43:02,574 - root - INFO - validate roc_auc, 0.5932
+2025-10-08 05:43:02,574 - root - INFO - new node validate loss: 0.7650
+2025-10-08 05:43:02,574 - root - INFO - new node validate average_precision, 0.4947
+2025-10-08 05:43:02,575 - root - INFO - new node validate roc_auc, 0.4490
+2025-10-08 05:43:02,583 - root - INFO - save model ./saved_models/TGN/lastfm/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+2025-10-08 05:43:09,642 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6438
+2025-10-08 05:43:09,643 - root - INFO - train average_precision, 0.6709
+2025-10-08 05:43:09,643 - root - INFO - train roc_auc, 0.6701
+2025-10-08 05:43:09,643 - root - INFO - validate loss: 0.6645
+2025-10-08 05:43:09,643 - root - INFO - validate average_precision, 0.6257
+2025-10-08 05:43:09,643 - root - INFO - validate roc_auc, 0.6153
+2025-10-08 05:43:09,643 - root - INFO - new node validate loss: 0.7307
+2025-10-08 05:43:09,643 - root - INFO - new node validate average_precision, 0.5131
+2025-10-08 05:43:09,643 - root - INFO - new node validate roc_auc, 0.4698
+2025-10-08 05:43:09,648 - root - INFO - save model ./saved_models/TGN/lastfm/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+2025-10-08 05:43:09,829 - root - INFO - load model ./saved_models/TGN/lastfm/TGN_mercer_seed0/TGN_mercer_seed0.pkl
+2025-10-08 05:43:10,127 - root - INFO - get final performance on dataset lastfm...
+2025-10-08 05:43:11,254 - root - INFO - test loss: 0.6743
+2025-10-08 05:43:11,254 - root - INFO - test average_precision, 0.5939
+2025-10-08 05:43:11,254 - root - INFO - test roc_auc, 0.5778
+2025-10-08 05:43:11,254 - root - INFO - new node test loss: 0.6911
+2025-10-08 05:43:11,254 - root - INFO - new node test average_precision, 0.5447
+2025-10-08 05:43:11,255 - root - INFO - new node test roc_auc, 0.5218
+2025-10-08 05:43:11,264 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGN/lastfm/TGN_mercer_seed0
+2025-10-08 05:43:11,264 - root - INFO - Run 1 cost 17.17 seconds.

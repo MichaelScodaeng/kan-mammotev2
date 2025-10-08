@@ -1,0 +1,84 @@
+2025-10-08 11:56:57,658 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 11:56:57,658 - root - INFO - configuration is Namespace(dataset_name='SocialEvo', batch_size=200, model_name='TGN', gpu=0, num_neighbors=10, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGN_lete_seed1')
+2025-10-08 11:56:57,659 - root - INFO - Metrics will be saved to: ./saved_metrics/TGN/SocialEvo/TGN_lete_seed1
+2025-10-08 11:56:57,661 - root - INFO - time encoder type: lete
+2025-10-08 11:56:57,661 - root - INFO - Time encoder will be injected into TGN model
+2025-10-08 11:56:58,353 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=75, memory_dim=172)
+    (memory_updater): GRUMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=75, memory_dim=172)
+      (memory_updater): GRUCell(616, 172)
+    )
+    (embedding_module): GraphAttentionEmbedding(
+      (time_encoder): TimeEncoder(
+        (w): Linear(in_features=1, out_features=100, bias=True)
+      )
+      (temporal_conv_layers): ModuleList(
+        (0): MultiHeadAttention(
+          (query_projection): Linear(in_features=272, out_features=272, bias=False)
+          (key_projection): Linear(in_features=444, out_features=272, bias=False)
+          (value_projection): Linear(in_features=444, out_features=272, bias=False)
+          (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+          (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (merge_layers): ModuleList(
+        (0): MergeLayer(
+          (fc1): Linear(in_features=444, out_features=172, bias=True)
+          (fc2): Linear(in_features=172, out_features=172, bias=True)
+          (act): ReLU()
+        )
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 11:56:58,353 - root - INFO - model name: TGN, #parameters: 3855876 B, 3765.50390625 KB, 3.6772499084472656 MB.
+2025-10-08 11:57:07,828 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.3992
+2025-10-08 11:57:07,828 - root - INFO - train average_precision, 0.8436
+2025-10-08 11:57:07,828 - root - INFO - train roc_auc, 0.8921
+2025-10-08 11:57:07,829 - root - INFO - validate loss: 0.3867
+2025-10-08 11:57:07,829 - root - INFO - validate average_precision, 0.8673
+2025-10-08 11:57:07,829 - root - INFO - validate roc_auc, 0.8979
+2025-10-08 11:57:07,829 - root - INFO - new node validate loss: 0.4661
+2025-10-08 11:57:07,829 - root - INFO - new node validate average_precision, 0.8285
+2025-10-08 11:57:07,829 - root - INFO - new node validate roc_auc, 0.8575
+2025-10-08 11:57:07,838 - root - INFO - save model ./saved_models/TGN/SocialEvo/TGN_lete_seed1/TGN_lete_seed1.pkl
+2025-10-08 11:57:17,404 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.3548
+2025-10-08 11:57:17,404 - root - INFO - train average_precision, 0.8735
+2025-10-08 11:57:17,404 - root - INFO - train roc_auc, 0.9113
+2025-10-08 11:57:17,404 - root - INFO - validate loss: 0.3782
+2025-10-08 11:57:17,405 - root - INFO - validate average_precision, 0.8667
+2025-10-08 11:57:17,405 - root - INFO - validate roc_auc, 0.9025
+2025-10-08 11:57:17,405 - root - INFO - new node validate loss: 0.4705
+2025-10-08 11:57:17,405 - root - INFO - new node validate average_precision, 0.8053
+2025-10-08 11:57:17,405 - root - INFO - new node validate roc_auc, 0.8541
+2025-10-08 11:57:17,410 - root - INFO - load model ./saved_models/TGN/SocialEvo/TGN_lete_seed1/TGN_lete_seed1.pkl
+2025-10-08 11:57:17,480 - root - INFO - get final performance on dataset SocialEvo...
+2025-10-08 11:57:18,719 - root - INFO - test loss: 0.3833
+2025-10-08 11:57:18,719 - root - INFO - test average_precision, 0.8728
+2025-10-08 11:57:18,719 - root - INFO - test roc_auc, 0.9016
+2025-10-08 11:57:18,720 - root - INFO - new node test loss: 0.4513
+2025-10-08 11:57:18,720 - root - INFO - new node test average_precision, 0.8143
+2025-10-08 11:57:18,720 - root - INFO - new node test roc_auc, 0.8589
+2025-10-08 11:57:18,728 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGN/SocialEvo/TGN_lete_seed1
+2025-10-08 11:57:18,728 - root - INFO - Run 2 cost 21.07 seconds.
+2025-10-08 11:57:18,732 - root - INFO - metrics over 2 runs:
+2025-10-08 11:57:18,732 - root - INFO - test average_precision, [np.float64(0.8739822775058462), np.float64(0.872804681741859)]
+2025-10-08 11:57:18,733 - root - INFO - average test average_precision, 0.8734 ± 0.0008
+2025-10-08 11:57:18,733 - root - INFO - test roc_auc, [np.float64(0.9009640482004393), np.float64(0.9016166211292059)]
+2025-10-08 11:57:18,733 - root - INFO - average test roc_auc, 0.9013 ± 0.0005
+2025-10-08 11:57:18,733 - root - INFO - new node test average_precision, [np.float64(0.8501364580627426), np.float64(0.814330132450279)]
+2025-10-08 11:57:18,733 - root - INFO - average new node test average_precision, 0.8322 ± 0.0253
+2025-10-08 11:57:18,733 - root - INFO - new node test roc_auc, [np.float64(0.8800639186851212), np.float64(0.8589101701268742)]
+2025-10-08 11:57:18,733 - root - INFO - average new node test roc_auc, 0.8695 ± 0.0150

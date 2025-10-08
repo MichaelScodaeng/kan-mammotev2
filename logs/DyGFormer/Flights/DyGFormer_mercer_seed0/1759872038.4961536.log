@@ -1,0 +1,83 @@
+2025-10-08 06:20:38,498 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 06:20:38,498 - root - INFO - configuration is Namespace(dataset_name='Flights', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='mercer', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=8, channel_embedding_dim=50, max_input_sequence_length=256, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_mercer_seed0')
+2025-10-08 06:20:38,502 - root - INFO - Metrics will be saved to: ./saved_metrics/DyGFormer/Flights/DyGFormer_mercer_seed0
+2025-10-08 06:20:38,503 - root - INFO - time encoder type: mercer
+2025-10-08 06:20:38,503 - root - INFO - Time encoder will be injected into DyGFormer model
+2025-10-08 06:20:39,278 - root - INFO - model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): MercerTimeEncoder()
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=1376, out_features=50, bias=True)
+      (edge): Linear(in_features=1376, out_features=50, bias=True)
+      (time): Linear(in_features=800, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=400, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 06:20:39,278 - root - INFO - model name: DyGFormer, #parameters: 5046140 B, 4927.87109375 KB, 4.812374114990234 MB.
+2025-10-08 06:21:50,703 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.5403
+2025-10-08 06:21:50,704 - root - INFO - train average_precision, 0.7535
+2025-10-08 06:21:50,704 - root - INFO - train roc_auc, 0.7303
+2025-10-08 06:21:50,704 - root - INFO - validate loss: 0.4622
+2025-10-08 06:21:50,704 - root - INFO - validate average_precision, 0.9245
+2025-10-08 06:21:50,704 - root - INFO - validate roc_auc, 0.9088
+2025-10-08 06:21:50,705 - root - INFO - new node validate loss: 0.7192
+2025-10-08 06:21:50,705 - root - INFO - new node validate average_precision, 0.8417
+2025-10-08 06:21:50,705 - root - INFO - new node validate roc_auc, 0.8159
+2025-10-08 06:21:50,714 - root - INFO - save model ./saved_models/DyGFormer/Flights/DyGFormer_mercer_seed0/DyGFormer_mercer_seed0.pkl
+2025-10-08 06:23:01,532 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.4838
+2025-10-08 06:23:01,533 - root - INFO - train average_precision, 0.7844
+2025-10-08 06:23:01,533 - root - INFO - train roc_auc, 0.7661
+2025-10-08 06:23:01,533 - root - INFO - validate loss: 0.3157
+2025-10-08 06:23:01,533 - root - INFO - validate average_precision, 0.9439
+2025-10-08 06:23:01,533 - root - INFO - validate roc_auc, 0.9366
+2025-10-08 06:23:01,533 - root - INFO - new node validate loss: 0.5515
+2025-10-08 06:23:01,533 - root - INFO - new node validate average_precision, 0.8713
+2025-10-08 06:23:01,533 - root - INFO - new node validate roc_auc, 0.8557
+2025-10-08 06:23:01,540 - root - INFO - save model ./saved_models/DyGFormer/Flights/DyGFormer_mercer_seed0/DyGFormer_mercer_seed0.pkl
+2025-10-08 06:23:01,591 - root - INFO - load model ./saved_models/DyGFormer/Flights/DyGFormer_mercer_seed0/DyGFormer_mercer_seed0.pkl
+2025-10-08 06:23:01,611 - root - INFO - get final performance on dataset Flights...
+2025-10-08 06:23:31,516 - root - INFO - validate loss: 0.3157
+2025-10-08 06:23:31,517 - root - INFO - validate average_precision, 0.9439
+2025-10-08 06:23:31,517 - root - INFO - validate roc_auc, 0.9366
+2025-10-08 06:23:31,517 - root - INFO - new node validate loss: 0.5515
+2025-10-08 06:23:31,517 - root - INFO - new node validate average_precision, 0.8713
+2025-10-08 06:23:31,517 - root - INFO - new node validate roc_auc, 0.8557
+2025-10-08 06:23:31,517 - root - INFO - test loss: 0.3720
+2025-10-08 06:23:31,517 - root - INFO - test average_precision, 0.9183
+2025-10-08 06:23:31,518 - root - INFO - test roc_auc, 0.8997
+2025-10-08 06:23:31,518 - root - INFO - new node test loss: 0.6996
+2025-10-08 06:23:31,518 - root - INFO - new node test average_precision, 0.7842
+2025-10-08 06:23:31,518 - root - INFO - new node test roc_auc, 0.7524
+2025-10-08 06:23:31,527 - root - INFO - ✅ Metrics saved to: ./saved_metrics/DyGFormer/Flights/DyGFormer_mercer_seed0
+2025-10-08 06:23:31,527 - root - INFO - Run 1 cost 173.03 seconds.

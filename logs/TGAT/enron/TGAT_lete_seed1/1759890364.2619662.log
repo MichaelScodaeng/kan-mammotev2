@@ -1,0 +1,94 @@
+2025-10-08 11:26:04,265 - root - INFO - ********** Run 2 starts. **********
+2025-10-08 11:26:04,265 - root - INFO - configuration is Namespace(dataset_name='enron', batch_size=200, model_name='TGAT', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='lete', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='TGAT_lete_seed1')
+2025-10-08 11:26:04,267 - root - INFO - Metrics will be saved to: ./saved_metrics/TGAT/enron/TGAT_lete_seed1
+2025-10-08 11:26:04,268 - root - INFO - time encoder type: lete
+2025-10-08 11:26:04,268 - root - INFO - Time encoder will be injected into TGAT model
+2025-10-08 11:26:04,314 - root - INFO - model -> Sequential(
+  (0): TGAT(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): LeTE(
+        (w1_fourier): Linear(in_features=1, out_features=50, bias=True)
+        (w2_fourier): FourierSeries()
+        (w1_spline): Linear(in_features=1, out_features=50, bias=True)
+        (w2_spline): Spline()
+        (layernorm): LayerNorm((100,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+    (temporal_conv_layers): ModuleList(
+      (0-1): 2 x MultiHeadAttention(
+        (query_projection): Linear(in_features=272, out_features=272, bias=False)
+        (key_projection): Linear(in_features=444, out_features=272, bias=False)
+        (value_projection): Linear(in_features=444, out_features=272, bias=False)
+        (layer_norm): LayerNorm((272,), eps=1e-05, elementwise_affine=True)
+        (residual_fc): Linear(in_features=272, out_features=272, bias=True)
+        (dropout): Dropout(p=0.2, inplace=False)
+      )
+    )
+    (merge_layers): ModuleList(
+      (0-1): 2 x MergeLayer(
+        (fc1): Linear(in_features=444, out_features=172, bias=True)
+        (fc2): Linear(in_features=172, out_features=172, bias=True)
+        (act): ReLU()
+      )
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 11:26:04,314 - root - INFO - model name: TGAT, #parameters: 4216652 B, 4117.82421875 KB, 4.021312713623047 MB.
+2025-10-08 11:26:08,147 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6914
+2025-10-08 11:26:08,148 - root - INFO - train average_precision, 0.6270
+2025-10-08 11:26:08,148 - root - INFO - train roc_auc, 0.6540
+2025-10-08 11:26:08,148 - root - INFO - validate loss: 0.6905
+2025-10-08 11:26:08,148 - root - INFO - validate average_precision, 0.6066
+2025-10-08 11:26:08,148 - root - INFO - validate roc_auc, 0.6054
+2025-10-08 11:26:08,148 - root - INFO - new node validate loss: 0.6964
+2025-10-08 11:26:08,148 - root - INFO - new node validate average_precision, 0.4376
+2025-10-08 11:26:08,148 - root - INFO - new node validate roc_auc, 0.3759
+2025-10-08 11:26:08,158 - root - INFO - save model ./saved_models/TGAT/enron/TGAT_lete_seed1/TGAT_lete_seed1.pkl
+2025-10-08 11:26:11,937 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6764
+2025-10-08 11:26:11,937 - root - INFO - train average_precision, 0.7499
+2025-10-08 11:26:11,937 - root - INFO - train roc_auc, 0.7821
+2025-10-08 11:26:11,937 - root - INFO - validate loss: 0.6669
+2025-10-08 11:26:11,937 - root - INFO - validate average_precision, 0.6753
+2025-10-08 11:26:11,937 - root - INFO - validate roc_auc, 0.7176
+2025-10-08 11:26:11,938 - root - INFO - new node validate loss: 0.6934
+2025-10-08 11:26:11,938 - root - INFO - new node validate average_precision, 0.5596
+2025-10-08 11:26:11,938 - root - INFO - new node validate roc_auc, 0.5500
+2025-10-08 11:26:11,942 - root - INFO - save model ./saved_models/TGAT/enron/TGAT_lete_seed1/TGAT_lete_seed1.pkl
+2025-10-08 11:26:11,988 - root - INFO - load model ./saved_models/TGAT/enron/TGAT_lete_seed1/TGAT_lete_seed1.pkl
+2025-10-08 11:26:12,004 - root - INFO - get final performance on dataset enron...
+2025-10-08 11:26:13,351 - root - INFO - validate loss: 0.6669
+2025-10-08 11:26:13,351 - root - INFO - validate average_precision, 0.6753
+2025-10-08 11:26:13,351 - root - INFO - validate roc_auc, 0.7176
+2025-10-08 11:26:13,351 - root - INFO - new node validate loss: 0.6934
+2025-10-08 11:26:13,351 - root - INFO - new node validate average_precision, 0.5596
+2025-10-08 11:26:13,351 - root - INFO - new node validate roc_auc, 0.5500
+2025-10-08 11:26:13,351 - root - INFO - test loss: 0.6748
+2025-10-08 11:26:13,351 - root - INFO - test average_precision, 0.6732
+2025-10-08 11:26:13,351 - root - INFO - test roc_auc, 0.6854
+2025-10-08 11:26:13,352 - root - INFO - new node test loss: 0.6920
+2025-10-08 11:26:13,352 - root - INFO - new node test average_precision, 0.5146
+2025-10-08 11:26:13,352 - root - INFO - new node test roc_auc, 0.5186
+2025-10-08 11:26:13,361 - root - INFO - ✅ Metrics saved to: ./saved_metrics/TGAT/enron/TGAT_lete_seed1
+2025-10-08 11:26:13,362 - root - INFO - Run 2 cost 9.10 seconds.
+2025-10-08 11:26:13,365 - root - INFO - metrics over 2 runs:
+2025-10-08 11:26:13,365 - root - INFO - validate average_precision, [np.float64(0.693449904921727), np.float64(0.6752847682597576)]
+2025-10-08 11:26:13,365 - root - INFO - average validate average_precision, 0.6844 ± 0.0128
+2025-10-08 11:26:13,365 - root - INFO - validate roc_auc, [np.float64(0.7116663429752067), np.float64(0.717564033516988)]
+2025-10-08 11:26:13,365 - root - INFO - average validate roc_auc, 0.7146 ± 0.0042
+2025-10-08 11:26:13,365 - root - INFO - new node validate average_precision, [np.float64(0.45855842748003917), np.float64(0.5595894184515295)]
+2025-10-08 11:26:13,365 - root - INFO - average new node validate average_precision, 0.5091 ± 0.0714
+2025-10-08 11:26:13,366 - root - INFO - new node validate roc_auc, [np.float64(0.44332986472424557), np.float64(0.5500104058272632)]
+2025-10-08 11:26:13,366 - root - INFO - average new node validate roc_auc, 0.4967 ± 0.0754
+2025-10-08 11:26:13,366 - root - INFO - test average_precision, [np.float64(0.710649768973165), np.float64(0.6732152185732277)]
+2025-10-08 11:26:13,366 - root - INFO - average test average_precision, 0.6919 ± 0.0265
+2025-10-08 11:26:13,366 - root - INFO - test roc_auc, [np.float64(0.7273263675866888), np.float64(0.685436909992139)]
+2025-10-08 11:26:13,366 - root - INFO - average test roc_auc, 0.7064 ± 0.0296
+2025-10-08 11:26:13,366 - root - INFO - new node test average_precision, [np.float64(0.5377525909531391), np.float64(0.5146145706182232)]
+2025-10-08 11:26:13,366 - root - INFO - average new node test average_precision, 0.5262 ± 0.0164
+2025-10-08 11:26:13,366 - root - INFO - new node test roc_auc, [np.float64(0.5559763313609468), np.float64(0.5185798816568047)]
+2025-10-08 11:26:13,366 - root - INFO - average new node test roc_auc, 0.5373 ± 0.0264

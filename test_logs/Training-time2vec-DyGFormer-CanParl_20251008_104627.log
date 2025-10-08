@@ -1,0 +1,206 @@
+Command: python experiments/train_link_prediction.py --model_name DyGFormer --dataset_name CanParl --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:46:38.607532
+Test: Training-time2vec-DyGFormer-CanParl
+================================================================================
+FAILED with return code: 1
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: CanParl
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 74,478 interactions
+   Subsampled data size: 3,723 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 3723 interactions, involving 307 different nodes
+The training dataset has 3723 interactions, involving 307 different nodes
+The validation dataset has 0 interactions, involving 0 different nodes
+The test dataset has 0 interactions, involving 0 different nodes
+The new node validation dataset has 0 interactions, involving 0 different nodes
+The new node test dataset has 0 interactions, involving 0 different nodes
+0 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 3,723 edges
+   Train data: 3,723 edges (100.0%)
+   Val data: 0 edges (0.0%)
+   Test data: 0 edges (0.0%)
+   Expected batches: 19
+   ✅ All splits proportionally scaled with ratio 1.00:0.00:0.00
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/DyGFormer/CanParl/DyGFormer_time2vec_seed0
+   Train metrics: train_metrics_20251008_104631.csv
+   Val metrics: val_metrics_20251008_104631.csv
+   New node val metrics: new_node_val_metrics_20251008_104631.csv
+   Test metrics: test_metrics_20251008_104631.csv
+   New node test metrics: new_node_test_metrics_20251008_104631.csv
+   Test periodic metrics: test_periodic_metrics_20251008_104631.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_104631.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+DyGFormer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3723
+batch size:  200
+num batches:  19
+num training interactions:  3723
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='CanParl', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=64, channel_embedding_dim=50, max_input_sequence_length=2048, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/DyGFormer/CanParl/DyGFormer_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into DyGFormer model
+INFO:root:model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=11008, out_features=50, bias=True)
+      (edge): Linear(in_features=11008, out_features=50, bias=True)
+      (time): Linear(in_features=6400, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=3200, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: DyGFormer, #parameters: 10572540 B, 10324.74609375 KB, 10.082759857177734 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:   5%|▌         | 1/19 [00:00<00:05,  3.16it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:  11%|█         | 2/19 [00:00<00:03,  4.84it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:  16%|█▌        | 3/19 [00:00<00:02,  5.76it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:  21%|██        | 4/19 [00:00<00:02,  6.50it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6939:  26%|██▋       | 5/19 [00:00<00:02,  6.83it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  26%|██▋       | 5/19 [00:00<00:02,  6.83it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  32%|███▏      | 6/19 [00:00<00:01,  7.14it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  37%|███▋      | 7/19 [00:01<00:01,  7.39it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  42%|████▏     | 8/19 [00:01<00:01,  7.46it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  47%|████▋     | 9/19 [00:01<00:01,  7.59it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6921:  53%|█████▎    | 10/19 [00:01<00:01,  7.61it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  53%|█████▎    | 10/19 [00:01<00:01,  7.61it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  58%|█████▊    | 11/19 [00:01<00:01,  7.73it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  63%|██████▎   | 12/19 [00:01<00:00,  7.82it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  68%|██████▊   | 13/19 [00:01<00:00,  7.84it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  74%|███████▎  | 14/19 [00:01<00:00,  7.69it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6923:  79%|███████▉  | 15/19 [00:02<00:00,  7.68it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6935:  79%|███████▉  | 15/19 [00:02<00:00,  7.68it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6935:  84%|████████▍ | 16/19 [00:02<00:00,  7.57it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6935:  89%|████████▉ | 17/19 [00:02<00:00,  7.53it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6935:  95%|█████████▍| 18/19 [00:02<00:00,  7.71it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6929:  95%|█████████▍| 18/19 [00:02<00:00,  7.71it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6937
+INFO:root:train average_precision, 0.5055
+INFO:root:train roc_auc, 0.5040
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/DyGFormer/CanParl/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:   5%|▌         | 1/19 [00:00<00:02,  7.39it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:  11%|█         | 2/19 [00:00<00:02,  7.72it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:  16%|█▌        | 3/19 [00:00<00:02,  7.70it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:  21%|██        | 4/19 [00:00<00:01,  7.74it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6933:  26%|██▋       | 5/19 [00:00<00:01,  7.77it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  26%|██▋       | 5/19 [00:00<00:01,  7.77it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  32%|███▏      | 6/19 [00:00<00:01,  7.75it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  37%|███▋      | 7/19 [00:00<00:01,  7.77it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  42%|████▏     | 8/19 [00:01<00:01,  7.82it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  47%|████▋     | 9/19 [00:01<00:01,  7.67it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6935:  53%|█████▎    | 10/19 [00:01<00:01,  7.73it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  53%|█████▎    | 10/19 [00:01<00:01,  7.73it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  58%|█████▊    | 11/19 [00:01<00:01,  7.78it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  63%|██████▎   | 12/19 [00:01<00:00,  7.69it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  68%|██████▊   | 13/19 [00:01<00:00,  7.70it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  74%|███████▎  | 14/19 [00:01<00:00,  7.72it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6920:  79%|███████▉  | 15/19 [00:01<00:00,  7.74it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6944:  79%|███████▉  | 15/19 [00:02<00:00,  7.74it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6944:  84%|████████▍ | 16/19 [00:02<00:00,  7.73it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6944:  89%|████████▉ | 17/19 [00:02<00:00,  7.81it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6944:  95%|█████████▍| 18/19 [00:02<00:00,  7.82it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.6940:  95%|█████████▍| 18/19 [00:02<00:00,  7.82it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6934
+INFO:root:train average_precision, 0.5078
+INFO:root:train roc_auc, 0.5019
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/DyGFormer/CanParl/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+INFO:root:load model ./saved_models/DyGFormer/CanParl/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+INFO:root:get final performance on dataset CanParl...
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:test loss: nan
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 942, in <module>
+    for metric_name in test_metrics[0].keys():
+                       ~~~~~~~~~~~~^^^
+IndexError: list index out of range

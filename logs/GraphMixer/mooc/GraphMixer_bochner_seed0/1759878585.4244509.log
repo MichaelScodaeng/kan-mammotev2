@@ -1,0 +1,80 @@
+2025-10-08 08:09:45,426 - root - INFO - ********** Run 1 starts. **********
+2025-10-08 08:09:45,426 - root - INFO - configuration is Namespace(dataset_name='mooc', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_bochner_seed0')
+2025-10-08 08:09:45,429 - root - INFO - Metrics will be saved to: ./saved_metrics/GraphMixer/mooc/GraphMixer_bochner_seed0
+2025-10-08 08:09:45,430 - root - INFO - time encoder type: bochner
+2025-10-08 08:09:45,430 - root - INFO - Time encoder will be injected into GraphMixer model
+2025-10-08 08:09:45,771 - root - INFO - model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.4, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.4, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2025-10-08 08:09:45,772 - root - INFO - model name: GraphMixer, #parameters: 2570404 B, 2510.16015625 KB, 2.4513282775878906 MB.
+2025-10-08 08:09:49,686 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.6872
+2025-10-08 08:09:49,686 - root - INFO - train average_precision, 0.5665
+2025-10-08 08:09:49,686 - root - INFO - train roc_auc, 0.5894
+2025-10-08 08:09:49,686 - root - INFO - validate loss: 0.6778
+2025-10-08 08:09:49,686 - root - INFO - validate average_precision, 0.5823
+2025-10-08 08:09:49,686 - root - INFO - validate roc_auc, 0.6061
+2025-10-08 08:09:49,686 - root - INFO - new node validate loss: 0.7219
+2025-10-08 08:09:49,686 - root - INFO - new node validate average_precision, 0.5320
+2025-10-08 08:09:49,687 - root - INFO - new node validate roc_auc, 0.5373
+2025-10-08 08:09:49,695 - root - INFO - save model ./saved_models/GraphMixer/mooc/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+2025-10-08 08:09:52,663 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.6607
+2025-10-08 08:09:52,664 - root - INFO - train average_precision, 0.5910
+2025-10-08 08:09:52,664 - root - INFO - train roc_auc, 0.6237
+2025-10-08 08:09:52,664 - root - INFO - validate loss: 0.7256
+2025-10-08 08:09:52,665 - root - INFO - validate average_precision, 0.5947
+2025-10-08 08:09:52,665 - root - INFO - validate roc_auc, 0.6421
+2025-10-08 08:09:52,665 - root - INFO - new node validate loss: 0.8103
+2025-10-08 08:09:52,665 - root - INFO - new node validate average_precision, 0.5403
+2025-10-08 08:09:52,665 - root - INFO - new node validate roc_auc, 0.5471
+2025-10-08 08:09:52,670 - root - INFO - save model ./saved_models/GraphMixer/mooc/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+2025-10-08 08:09:52,704 - root - INFO - load model ./saved_models/GraphMixer/mooc/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+2025-10-08 08:09:52,720 - root - INFO - get final performance on dataset mooc...
+2025-10-08 08:09:54,178 - root - INFO - validate loss: 0.7256
+2025-10-08 08:09:54,179 - root - INFO - validate average_precision, 0.5947
+2025-10-08 08:09:54,180 - root - INFO - validate roc_auc, 0.6421
+2025-10-08 08:09:54,180 - root - INFO - new node validate loss: 0.8103
+2025-10-08 08:09:54,180 - root - INFO - new node validate average_precision, 0.5403
+2025-10-08 08:09:54,180 - root - INFO - new node validate roc_auc, 0.5471
+2025-10-08 08:09:54,180 - root - INFO - test loss: 0.7269
+2025-10-08 08:09:54,181 - root - INFO - test average_precision, 0.5997
+2025-10-08 08:09:54,181 - root - INFO - test roc_auc, 0.6402
+2025-10-08 08:09:54,181 - root - INFO - new node test loss: 0.8012
+2025-10-08 08:09:54,181 - root - INFO - new node test average_precision, 0.5499
+2025-10-08 08:09:54,181 - root - INFO - new node test roc_auc, 0.5562
+2025-10-08 08:09:54,189 - root - INFO - ✅ Metrics saved to: ./saved_metrics/GraphMixer/mooc/GraphMixer_bochner_seed0
+2025-10-08 08:09:54,189 - root - INFO - Run 1 cost 8.76 seconds.

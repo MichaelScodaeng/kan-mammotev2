@@ -1,0 +1,183 @@
+Command: python experiments/train_link_prediction.py --model_name GraphMixer --dataset_name CanParl --time_encoder_type bochner --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T08:13:04.871935
+Test: Training-bochner-GraphMixer-CanParl
+================================================================================
+FAILED with return code: 1
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: bochner
+   Dataset: CanParl
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 74,478 interactions
+   Subsampled data size: 3,723 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 3723 interactions, involving 307 different nodes
+The training dataset has 3723 interactions, involving 307 different nodes
+The validation dataset has 0 interactions, involving 0 different nodes
+The test dataset has 0 interactions, involving 0 different nodes
+The new node validation dataset has 0 interactions, involving 0 different nodes
+The new node test dataset has 0 interactions, involving 0 different nodes
+0 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 3,723 edges
+   Train data: 3,723 edges (100.0%)
+   Val data: 0 edges (0.0%)
+   Test data: 0 edges (0.0%)
+   Expected batches: 19
+   ✅ All splits proportionally scaled with ratio 1.00:0.00:0.00
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/GraphMixer/CanParl/GraphMixer_bochner_seed0
+   Train metrics: train_metrics_20251008_081300.csv
+   Val metrics: val_metrics_20251008_081300.csv
+   New node val metrics: new_node_val_metrics_20251008_081300.csv
+   Test metrics: test_metrics_20251008_081300.csv
+   New node test metrics: new_node_test_metrics_20251008_081300.csv
+   Test periodic metrics: test_periodic_metrics_20251008_081300.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_081300.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: bochner
+INFO: Creating Bochner Time Encoder.
+Time Embedding dim: 100
+GraphMixer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  19
+num training interactions:  3723
+batch size:  200
+num batches:  19
+num training interactions:  3723
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='CanParl', batch_size=200, model_name='GraphMixer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='bochner', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='GraphMixer_bochner_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/GraphMixer/CanParl/GraphMixer_bochner_seed0
+INFO:root:time encoder type: bochner
+INFO:root:Time encoder will be injected into GraphMixer model
+INFO:root:model -> Sequential(
+  (0): GraphMixer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): BochnerTimeEncoder()
+    )
+    (projection_layer): Linear(in_features=272, out_features=172, bias=True)
+    (mlp_mixers): ModuleList(
+      (0-1): 2 x MLPMixer(
+        (token_norm): LayerNorm((20,), eps=1e-05, elementwise_affine=True)
+        (token_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=20, out_features=10, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.2, inplace=False)
+            (3): Linear(in_features=10, out_features=20, bias=True)
+            (4): Dropout(p=0.2, inplace=False)
+          )
+        )
+        (channel_norm): LayerNorm((172,), eps=1e-05, elementwise_affine=True)
+        (channel_feedforward): FeedForwardNet(
+          (ffn): Sequential(
+            (0): Linear(in_features=172, out_features=688, bias=True)
+            (1): GELU(approximate='none')
+            (2): Dropout(p=0.2, inplace=False)
+            (3): Linear(in_features=688, out_features=172, bias=True)
+            (4): Dropout(p=0.2, inplace=False)
+          )
+        )
+      )
+    )
+    (output_layer): Linear(in_features=344, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: GraphMixer, #parameters: 2570404 B, 2510.16015625 KB, 2.4513282775878906 MB.
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6929:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6929:   5%|▌         | 1/19 [00:00<00:05,  3.50it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6929:  16%|█▌        | 3/19 [00:00<00:01,  8.84it/s]
+Epoch: 1, Batch: 1/19, Loss: 0.6929:  26%|██▋       | 5/19 [00:00<00:01, 11.91it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6932:  26%|██▋       | 5/19 [00:00<00:01, 11.91it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6932:  37%|███▋      | 7/19 [00:00<00:00, 13.96it/s]
+Epoch: 1, Batch: 6/19, Loss: 0.6932:  53%|█████▎    | 10/19 [00:00<00:00, 16.69it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6932:  53%|█████▎    | 10/19 [00:00<00:00, 16.69it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6932:  63%|██████▎   | 12/19 [00:00<00:00, 16.46it/s]
+Epoch: 1, Batch: 11/19, Loss: 0.6932:  74%|███████▎  | 14/19 [00:00<00:00, 16.74it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6930:  74%|███████▎  | 14/19 [00:01<00:00, 16.74it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6930:  84%|████████▍ | 16/19 [00:01<00:00, 16.36it/s]
+Epoch: 1, Batch: 16/19, Loss: 0.6930:  95%|█████████▍| 18/19 [00:01<00:00, 16.49it/s]
+Epoch: 1, Batch: 19/19, Loss: 0.6933:  95%|█████████▍| 18/19 [00:01<00:00, 16.49it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.6931
+INFO:root:train average_precision, 0.5135
+INFO:root:train roc_auc, 0.5084
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/GraphMixer/CanParl/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+
+  0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6930:   0%|          | 0/19 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6930:  11%|█         | 2/19 [00:00<00:00, 17.09it/s]
+Epoch: 2, Batch: 1/19, Loss: 0.6930:  21%|██        | 4/19 [00:00<00:00, 16.45it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6929:  21%|██        | 4/19 [00:00<00:00, 16.45it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6929:  32%|███▏      | 6/19 [00:00<00:00, 16.32it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6929:  42%|████▏     | 8/19 [00:00<00:00, 16.31it/s]
+Epoch: 2, Batch: 6/19, Loss: 0.6929:  53%|█████▎    | 10/19 [00:00<00:00, 15.80it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6933:  53%|█████▎    | 10/19 [00:00<00:00, 15.80it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6933:  63%|██████▎   | 12/19 [00:00<00:00, 16.26it/s]
+Epoch: 2, Batch: 11/19, Loss: 0.6933:  74%|███████▎  | 14/19 [00:00<00:00, 16.63it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6931:  74%|███████▎  | 14/19 [00:00<00:00, 16.63it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6931:  84%|████████▍ | 16/19 [00:00<00:00, 16.74it/s]
+Epoch: 2, Batch: 16/19, Loss: 0.6931:  95%|█████████▍| 18/19 [00:01<00:00, 17.05it/s]
+Epoch: 2, Batch: 19/19, Loss: 0.6932:  95%|█████████▍| 18/19 [00:01<00:00, 17.05it/s]
+                                                                                     
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.6932
+INFO:root:train average_precision, 0.5094
+INFO:root:train roc_auc, 0.4983
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:save model ./saved_models/GraphMixer/CanParl/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+INFO:root:load model ./saved_models/GraphMixer/CanParl/GraphMixer_bochner_seed0/GraphMixer_bochner_seed0.pkl
+INFO:root:get final performance on dataset CanParl...
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+
+0it [00:00, ?it/s]
+                  
+INFO:root:validate loss: nan
+INFO:root:new node validate loss: nan
+INFO:root:test loss: nan
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 942, in <module>
+    for metric_name in test_metrics[0].keys():
+                       ~~~~~~~~~~~~^^^
+IndexError: list index out of range

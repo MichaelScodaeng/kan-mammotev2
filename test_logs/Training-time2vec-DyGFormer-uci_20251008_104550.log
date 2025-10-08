@@ -1,0 +1,425 @@
+Command: python experiments/train_link_prediction.py --model_name DyGFormer --dataset_name uci --time_encoder_type time2vec --num_epochs 2 --num_runs 2 --data_ratio 0.05 --load_best_configs --save_checkpoints --checkpoint_strategy minimal
+Timestamp: 2025-10-08T10:46:06.015097
+Test: Training-time2vec-DyGFormer-uci
+================================================================================
+STDOUT:
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: time2vec
+   Dataset: uci
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 0.05
+   Seed: 42
+
+🔄 Applying data_ratio=0.05 BEFORE splitting
+   Original data size: 59,835 interactions
+   Subsampled data size: 2,991 interactions (5.0%)
+   📌 Using seed=42 for reproducible subsampling
+The dataset has 2991 interactions, involving 396 different nodes
+The training dataset has 1720 interactions, involving 298 different nodes
+The validation dataset has 448 interactions, involving 132 different nodes
+The test dataset has 449 interactions, involving 150 different nodes
+The new node validation dataset has 150 interactions, involving 80 different nodes
+The new node test dataset has 320 interactions, involving 124 different nodes
+39 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=0.05):
+   Full data: 2,991 edges
+   Train data: 1,720 edges (57.5%)
+   Val data: 448 edges (15.0%)
+   Test data: 449 edges (15.0%)
+   Expected batches: 9
+   ✅ All splits proportionally scaled with ratio 0.58:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed0
+   Train metrics: train_metrics_20251008_104555.csv
+   Val metrics: val_metrics_20251008_104555.csv
+   New node val metrics: new_node_val_metrics_20251008_104555.csv
+   Test metrics: test_metrics_20251008_104555.csv
+   New node test metrics: new_node_test_metrics_20251008_104555.csv
+   Test periodic metrics: test_periodic_metrics_20251008_104555.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_104555.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+DyGFormer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed0/metrics_summary.txt
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed1
+   Train metrics: train_metrics_20251008_104601.csv
+   Val metrics: val_metrics_20251008_104601.csv
+   New node val metrics: new_node_val_metrics_20251008_104601.csv
+   Test metrics: test_metrics_20251008_104601.csv
+   New node test metrics: new_node_test_metrics_20251008_104601.csv
+   Test periodic metrics: test_periodic_metrics_20251008_104601.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251008_104601.csv
+Available encoders: ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite', 'original', 'time_encoder', 'default', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline']
+Requested encoder: time2vec
+INFO: Creating Time2Vec Time Encoder.
+Time Embedding dim: 100
+DyGFormer: Using custom time encoder: TimeEncoderWrapper
+batch size:  200
+num batches:  9
+num training interactions:  1720
+batch size:  200
+num batches:  9
+num training interactions:  1720
+📄 Metrics summary saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed1/metrics_summary.txt
+
+================================================================================
+STDERR:
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed0
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into DyGFormer model
+INFO:root:model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: DyGFormer, #parameters: 4348140 B, 4246.23046875 KB, 4.146709442138672 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:  11%|█         | 1/9 [00:00<00:02,  3.01it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:  22%|██▏       | 2/9 [00:00<00:01,  4.36it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:  33%|███▎      | 3/9 [00:00<00:01,  5.12it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:  44%|████▍     | 4/9 [00:00<00:00,  5.58it/s]
+Epoch: 1, Batch: 1/9, Loss: 14.9066:  56%|█████▌    | 5/9 [00:00<00:00,  5.87it/s]
+Epoch: 1, Batch: 6/9, Loss: 33.3703:  56%|█████▌    | 5/9 [00:01<00:00,  5.87it/s]
+Epoch: 1, Batch: 6/9, Loss: 33.3703:  67%|██████▋   | 6/9 [00:01<00:00,  6.17it/s]
+Epoch: 1, Batch: 6/9, Loss: 33.3703:  78%|███████▊  | 7/9 [00:01<00:00,  6.37it/s]
+Epoch: 1, Batch: 6/9, Loss: 33.3703:  89%|████████▉ | 8/9 [00:01<00:00,  6.51it/s]
+Epoch: 1, Batch: 9/9, Loss: 22.4440:  89%|████████▉ | 8/9 [00:01<00:00,  6.51it/s]
+Epoch: 1, Batch: 9/9, Loss: 22.4440: 100%|██████████| 9/9 [00:01<00:00,  7.29it/s]
+                                                                                  
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 26.615480422973633:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 26.615480422973633:  33%|███▎      | 1/3 [00:00<00:00,  8.96it/s]
+evaluate for the 2-th batch, evaluate loss: 36.273094177246094:  33%|███▎      | 1/3 [00:00<00:00,  8.96it/s]
+evaluate for the 2-th batch, evaluate loss: 36.273094177246094:  67%|██████▋   | 2/3 [00:00<00:00,  8.96it/s]
+evaluate for the 3-th batch, evaluate loss: 33.99828338623047:  67%|██████▋   | 2/3 [00:00<00:00,  8.96it/s] 
+                                                                                                            
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.00367736816406:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                    
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 25.0768
+INFO:root:train average_precision, 0.5372
+INFO:root:train roc_auc, 0.5191
+INFO:root:validate loss: 32.2956
+INFO:root:validate average_precision, 0.5361
+INFO:root:validate roc_auc, 0.5052
+INFO:root:new node validate loss: 33.0037
+INFO:root:new node validate average_precision, 0.5260
+INFO:root:new node validate roc_auc, 0.5048
+INFO:root:save model ./saved_models/DyGFormer/uci/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:  11%|█         | 1/9 [00:00<00:01,  4.08it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:  22%|██▏       | 2/9 [00:00<00:01,  5.33it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:  33%|███▎      | 3/9 [00:00<00:01,  5.92it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:  44%|████▍     | 4/9 [00:00<00:00,  6.24it/s]
+Epoch: 2, Batch: 1/9, Loss: 14.2810:  56%|█████▌    | 5/9 [00:00<00:00,  6.44it/s]
+Epoch: 2, Batch: 6/9, Loss: 27.8213:  56%|█████▌    | 5/9 [00:00<00:00,  6.44it/s]
+Epoch: 2, Batch: 6/9, Loss: 27.8213:  67%|██████▋   | 6/9 [00:00<00:00,  6.52it/s]
+Epoch: 2, Batch: 6/9, Loss: 27.8213:  78%|███████▊  | 7/9 [00:01<00:00,  6.53it/s]
+Epoch: 2, Batch: 6/9, Loss: 27.8213:  89%|████████▉ | 8/9 [00:01<00:00,  6.50it/s]
+Epoch: 2, Batch: 9/9, Loss: 21.4431:  89%|████████▉ | 8/9 [00:01<00:00,  6.50it/s]
+Epoch: 2, Batch: 9/9, Loss: 21.4431: 100%|██████████| 9/9 [00:01<00:00,  7.27it/s]
+                                                                                  
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.551998138427734:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 23.551998138427734:  33%|███▎      | 1/3 [00:00<00:00,  8.80it/s]
+evaluate for the 2-th batch, evaluate loss: 34.03009033203125:  33%|███▎      | 1/3 [00:00<00:00,  8.80it/s] 
+evaluate for the 2-th batch, evaluate loss: 34.03009033203125:  67%|██████▋   | 2/3 [00:00<00:00,  8.80it/s]
+evaluate for the 3-th batch, evaluate loss: 35.486656188964844:  67%|██████▋   | 2/3 [00:00<00:00,  8.80it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.8968505859375:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                   
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 26.7567
+INFO:root:train average_precision, 0.5201
+INFO:root:train roc_auc, 0.5094
+INFO:root:validate loss: 31.0229
+INFO:root:validate average_precision, 0.4813
+INFO:root:validate roc_auc, 0.4802
+INFO:root:new node validate loss: 35.8969
+INFO:root:new node validate average_precision, 0.4417
+INFO:root:new node validate roc_auc, 0.4221
+INFO:root:load model ./saved_models/DyGFormer/uci/DyGFormer_time2vec_seed0/DyGFormer_time2vec_seed0.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 26.615480422973633:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 26.615480422973633:  33%|███▎      | 1/3 [00:00<00:00,  8.76it/s]
+evaluate for the 2-th batch, evaluate loss: 36.273094177246094:  33%|███▎      | 1/3 [00:00<00:00,  8.76it/s]
+evaluate for the 2-th batch, evaluate loss: 36.273094177246094:  67%|██████▋   | 2/3 [00:00<00:00,  8.72it/s]
+evaluate for the 3-th batch, evaluate loss: 33.99828338623047:  67%|██████▋   | 2/3 [00:00<00:00,  8.72it/s] 
+                                                                                                            
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.00367736816406:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                    
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.91950988769531:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.91950988769531:  33%|███▎      | 1/3 [00:00<00:00,  8.69it/s]
+evaluate for the 2-th batch, evaluate loss: 39.01874923706055:  33%|███▎      | 1/3 [00:00<00:00,  8.69it/s]
+evaluate for the 2-th batch, evaluate loss: 39.01874923706055:  67%|██████▋   | 2/3 [00:00<00:00,  8.67it/s]
+evaluate for the 3-th batch, evaluate loss: 34.90731430053711:  67%|██████▋   | 2/3 [00:00<00:00,  8.67it/s]
+                                                                                                            
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.18046188354492:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 33.18046188354492:  50%|█████     | 1/2 [00:00<00:00,  8.72it/s]
+evaluate for the 2-th batch, evaluate loss: 36.51955795288086:  50%|█████     | 1/2 [00:00<00:00,  8.72it/s]
+                                                                                                            
+INFO:root:validate loss: 32.2956
+INFO:root:validate average_precision, 0.5361
+INFO:root:validate roc_auc, 0.5052
+INFO:root:new node validate loss: 33.0037
+INFO:root:new node validate average_precision, 0.5260
+INFO:root:new node validate roc_auc, 0.5048
+INFO:root:test loss: 36.6152
+INFO:root:test average_precision, 0.5196
+INFO:root:test roc_auc, 0.4880
+INFO:root:new node test loss: 34.8500
+INFO:root:new node test average_precision, 0.4914
+INFO:root:new node test roc_auc, 0.4863
+INFO:root:✅ Metrics saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed0
+INFO:root:Run 1 cost 5.36 seconds.
+INFO:root:********** Run 2 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='DyGFormer', gpu=0, num_neighbors=20, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='time2vec', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=2, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=2, test_interval_epochs=100, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=0.05, seed=1, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=20, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='minimal', validate_checkpoints=True, device='cuda:0', save_model_name='DyGFormer_time2vec_seed1')
+INFO:root:Metrics will be saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed1
+INFO:root:time encoder type: time2vec
+INFO:root:Time encoder will be injected into DyGFormer model
+INFO:root:model -> Sequential(
+  (0): DyGFormer(
+    (time_encoder): TimeEncoderWrapper(
+      (encoder): Time2VecEncoder(
+        (time2vec_layer): SineActivation()
+      )
+    )
+    (neighbor_co_occurrence_encoder): NeighborCooccurrenceEncoder(
+      (neighbor_co_occurrence_encode_layer): Sequential(
+        (0): Linear(in_features=1, out_features=50, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=50, out_features=50, bias=True)
+      )
+    )
+    (projection_layer): ModuleDict(
+      (node): Linear(in_features=172, out_features=50, bias=True)
+      (edge): Linear(in_features=172, out_features=50, bias=True)
+      (time): Linear(in_features=100, out_features=50, bias=True)
+      (neighbor_co_occurrence): Linear(in_features=50, out_features=50, bias=True)
+    )
+    (transformers): ModuleList(
+      (0-1): 2 x TransformerEncoder(
+        (multi_head_attention): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=200, out_features=200, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear_layers): ModuleList(
+          (0): Linear(in_features=200, out_features=800, bias=True)
+          (1): Linear(in_features=800, out_features=200, bias=True)
+        )
+        (norm_layers): ModuleList(
+          (0-1): 2 x LayerNorm((200,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (output_layer): Linear(in_features=200, out_features=172, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: DyGFormer, #parameters: 4348140 B, 4246.23046875 KB, 4.146709442138672 MB.
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:  11%|█         | 1/9 [00:00<00:01,  6.85it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:  22%|██▏       | 2/9 [00:00<00:01,  6.58it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:  33%|███▎      | 3/9 [00:00<00:00,  6.47it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:  44%|████▍     | 4/9 [00:00<00:00,  6.56it/s]
+Epoch: 1, Batch: 1/9, Loss: 15.9301:  56%|█████▌    | 5/9 [00:00<00:00,  6.54it/s]
+Epoch: 1, Batch: 6/9, Loss: 14.8914:  56%|█████▌    | 5/9 [00:00<00:00,  6.54it/s]
+Epoch: 1, Batch: 6/9, Loss: 14.8914:  67%|██████▋   | 6/9 [00:00<00:00,  6.53it/s]
+Epoch: 1, Batch: 6/9, Loss: 14.8914:  78%|███████▊  | 7/9 [00:01<00:00,  6.60it/s]
+Epoch: 1, Batch: 6/9, Loss: 14.8914:  89%|████████▉ | 8/9 [00:01<00:00,  6.66it/s]
+Epoch: 1, Batch: 9/9, Loss: 17.7586:  89%|████████▉ | 8/9 [00:01<00:00,  6.66it/s]
+                                                                                  
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 10.408981323242188:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 10.408981323242188:  33%|███▎      | 1/3 [00:00<00:00,  8.95it/s]
+evaluate for the 2-th batch, evaluate loss: 16.486297607421875:  33%|███▎      | 1/3 [00:00<00:00,  8.95it/s]
+evaluate for the 2-th batch, evaluate loss: 16.486297607421875:  67%|██████▋   | 2/3 [00:00<00:00,  8.94it/s]
+evaluate for the 3-th batch, evaluate loss: 10.683088302612305:  67%|██████▋   | 2/3 [00:00<00:00,  8.94it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 12.431817054748535:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 19.7593
+INFO:root:train average_precision, 0.5156
+INFO:root:train roc_auc, 0.5057
+INFO:root:validate loss: 12.5261
+INFO:root:validate average_precision, 0.5059
+INFO:root:validate roc_auc, 0.4963
+INFO:root:new node validate loss: 12.4318
+INFO:root:new node validate average_precision, 0.5051
+INFO:root:new node validate roc_auc, 0.5038
+INFO:root:save model ./saved_models/DyGFormer/uci/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+
+  0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:   0%|          | 0/9 [00:00<?, ?it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:  11%|█         | 1/9 [00:00<00:01,  7.28it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:  22%|██▏       | 2/9 [00:00<00:01,  6.91it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:  33%|███▎      | 3/9 [00:00<00:00,  6.75it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:  44%|████▍     | 4/9 [00:00<00:00,  6.77it/s]
+Epoch: 2, Batch: 1/9, Loss: 2.9347:  56%|█████▌    | 5/9 [00:00<00:00,  6.79it/s]
+Epoch: 2, Batch: 6/9, Loss: 11.0748:  56%|█████▌    | 5/9 [00:00<00:00,  6.79it/s]
+Epoch: 2, Batch: 6/9, Loss: 11.0748:  67%|██████▋   | 6/9 [00:00<00:00,  6.82it/s]
+Epoch: 2, Batch: 6/9, Loss: 11.0748:  78%|███████▊  | 7/9 [00:01<00:00,  6.80it/s]
+Epoch: 2, Batch: 6/9, Loss: 11.0748:  89%|████████▉ | 8/9 [00:01<00:00,  6.72it/s]
+Epoch: 2, Batch: 9/9, Loss: 34.6185:  89%|████████▉ | 8/9 [00:01<00:00,  6.72it/s]
+                                                                                  
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.55069351196289:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 35.55069351196289:  33%|███▎      | 1/3 [00:00<00:00,  8.99it/s]
+evaluate for the 2-th batch, evaluate loss: 41.07295227050781:  33%|███▎      | 1/3 [00:00<00:00,  8.99it/s]
+evaluate for the 2-th batch, evaluate loss: 41.07295227050781:  67%|██████▋   | 2/3 [00:00<00:00,  9.00it/s]
+evaluate for the 3-th batch, evaluate loss: 41.34210205078125:  67%|██████▋   | 2/3 [00:00<00:00,  9.00it/s]
+                                                                                                            
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 38.92972183227539:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                    
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 16.6039
+INFO:root:train average_precision, 0.5147
+INFO:root:train roc_auc, 0.4957
+INFO:root:validate loss: 39.3219
+INFO:root:validate average_precision, 0.4862
+INFO:root:validate roc_auc, 0.4770
+INFO:root:new node validate loss: 38.9297
+INFO:root:new node validate average_precision, 0.4835
+INFO:root:new node validate roc_auc, 0.4775
+INFO:root:load model ./saved_models/DyGFormer/uci/DyGFormer_time2vec_seed1/DyGFormer_time2vec_seed1.pkl
+INFO:root:get final performance on dataset uci...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 10.408981323242188:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 10.408981323242188:  33%|███▎      | 1/3 [00:00<00:00,  8.97it/s]
+evaluate for the 2-th batch, evaluate loss: 16.486297607421875:  33%|███▎      | 1/3 [00:00<00:00,  8.97it/s]
+evaluate for the 2-th batch, evaluate loss: 16.486297607421875:  67%|██████▋   | 2/3 [00:00<00:00,  8.87it/s]
+evaluate for the 3-th batch, evaluate loss: 10.683088302612305:  67%|██████▋   | 2/3 [00:00<00:00,  8.87it/s]
+                                                                                                             
+
+  0%|          | 0/1 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 12.431817054748535:   0%|          | 0/1 [00:00<?, ?it/s]
+                                                                                                     
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 18.790735244750977:   0%|          | 0/3 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 18.790735244750977:  33%|███▎      | 1/3 [00:00<00:00,  8.99it/s]
+evaluate for the 2-th batch, evaluate loss: 19.17203712463379:  33%|███▎      | 1/3 [00:00<00:00,  8.99it/s] 
+evaluate for the 2-th batch, evaluate loss: 19.17203712463379:  67%|██████▋   | 2/3 [00:00<00:00,  8.99it/s]
+evaluate for the 3-th batch, evaluate loss: 14.702198028564453:  67%|██████▋   | 2/3 [00:00<00:00,  8.99it/s]
+                                                                                                             
+
+  0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 16.46858787536621:   0%|          | 0/2 [00:00<?, ?it/s]
+evaluate for the 1-th batch, evaluate loss: 16.46858787536621:  50%|█████     | 1/2 [00:00<00:00,  8.99it/s]
+evaluate for the 2-th batch, evaluate loss: 17.019229888916016:  50%|█████     | 1/2 [00:00<00:00,  8.99it/s]
+                                                                                                             
+INFO:root:validate loss: 12.5261
+INFO:root:validate average_precision, 0.5059
+INFO:root:validate roc_auc, 0.4963
+INFO:root:new node validate loss: 12.4318
+INFO:root:new node validate average_precision, 0.5051
+INFO:root:new node validate roc_auc, 0.5038
+INFO:root:test loss: 17.5550
+INFO:root:test average_precision, 0.5263
+INFO:root:test roc_auc, 0.5204
+INFO:root:new node test loss: 16.7439
+INFO:root:new node test average_precision, 0.5207
+INFO:root:new node test roc_auc, 0.5227
+INFO:root:✅ Metrics saved to: ./saved_metrics/DyGFormer/uci/DyGFormer_time2vec_seed1
+INFO:root:Run 2 cost 4.19 seconds.
+INFO:root:metrics over 2 runs:
+INFO:root:validate average_precision, [np.float64(0.5360907317559828), np.float64(0.5058800493416776)]
+INFO:root:average validate average_precision, 0.5210 ± 0.0214
+INFO:root:validate roc_auc, [np.float64(0.5052175925925926), np.float64(0.4963391203703704)]
+INFO:root:average validate roc_auc, 0.5008 ± 0.0063
+INFO:root:new node validate average_precision, [np.float64(0.5260197340729688), np.float64(0.5050927112151913)]
+INFO:root:average new node validate average_precision, 0.5156 ± 0.0148
+INFO:root:new node validate roc_auc, [np.float64(0.5047999999999999), np.float64(0.5038222222222222)]
+INFO:root:average new node validate roc_auc, 0.5043 ± 0.0007
+INFO:root:test average_precision, [np.float64(0.5195799520490036), np.float64(0.5263143959139437)]
+INFO:root:average test average_precision, 0.5229 ± 0.0048
+INFO:root:test roc_auc, [np.float64(0.4879982333749826), np.float64(0.5204099836873525)]
+INFO:root:average test roc_auc, 0.5042 ± 0.0229
+INFO:root:new node test average_precision, [np.float64(0.4914117696933614), np.float64(0.5206609251971241)]
+INFO:root:average new node test average_precision, 0.5060 ± 0.0207
+INFO:root:new node test roc_auc, [np.float64(0.4863256944444444), np.float64(0.5227069444444444)]
+INFO:root:average new node test roc_auc, 0.5045 ± 0.0257
+
+Return code: 0
