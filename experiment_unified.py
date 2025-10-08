@@ -71,7 +71,7 @@ import sys
 from datetime import datetime
 
 # Define experiment parameters
-models = ['TGAT', 'JODIE', 'TGN', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'TCL', 'DyRep']  # 'CAWN'
+models = ['TGAT', 'JODIE', 'TGN', 'DyGFormer', 'DyGMamba', 'TCL']  # 'CAWN', 'DyRep', 'GraphMixer'
 datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci', 
             'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
 time_encoders = ['original', 'lete', 'kan_mammote_dual_kmote','mercer', 'bochner', 'time2vec']
