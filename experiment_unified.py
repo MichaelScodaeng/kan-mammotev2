@@ -91,7 +91,7 @@ def parse_arguments():
                         help='Only resume incomplete experiments')
     parser.add_argument('--generate_report', action='store_true',
                         help='Generate experiment report and exit')
-    parser.add_argument('--num_runs', type=int, default=1,
+    parser.add_argument('--num_runs', type=int, default=3,
                         help='Number of runs per experiment (default: 1)')
     parser.add_argument('--timeout_hours', type=float, default=12.0,
                         help='Timeout in hours per experiment (default: 12)')
