@@ -102,6 +102,8 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='checkpoint frequency strategy')
     parser.add_argument('--validate_checkpoints', action='store_true', default=True,
                         help='validate checkpoint integrity before loading (recommended)')
+    parser.add_argument('--disable_progress_bar', action='store_true', default=False,
+                        help='disable tqdm progress bars (useful for logging to files in batch jobs)')
 
     try:
         args = parser.parse_args()

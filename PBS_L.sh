@@ -17,4 +17,4 @@ conda activate kan_mammote
 
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_bochner.py --single_encoder "bochner" --num_epochs 1000 > experiment_bochn_L_01.log 2>&1
+python experiment_unified.py --single_encoder "bochner" --disable_progress_bar > experiment_bochn_L_01.log 2>&1

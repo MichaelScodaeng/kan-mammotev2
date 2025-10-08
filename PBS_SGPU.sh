@@ -20,4 +20,4 @@ source ~/.bashrc
 conda activate kan_mammote
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_mercer.py --single_encoder "mercer" --num_epochs 1000 > experiment_mercer_s_01.log 2>&1
+python experiment_unified.py --single_encoder "mercer" --disable_progress_bar > experiment_mercer_s_01.log 2>&1

@@ -550,10 +550,18 @@ if __name__ == "__main__":
 
             # store train losses and metrics
             train_losses, train_metrics = [], []
-            print("batch size: ", args.batch_size)
+            """ print("batch size: ", args.batch_size)
             print("num batches: ", len(train_idx_data_loader))
-            print("num training interactions: ", len(train_data.src_node_ids))
-            train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, dynamic_ncols=True, leave=False)
+            print("num training interactions: ", len(train_data.src_node_ids)) """
+            
+            # Conditional tqdm usage based on --disable_progress_bar flag
+            if args.disable_progress_bar:
+                train_idx_data_loader_tqdm = train_idx_data_loader
+                use_tqdm = False
+            else:
+                train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, dynamic_ncols=True, leave=False)
+                use_tqdm = True
+                
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
 
                 train_data_indices = train_data_indices.numpy()
@@ -673,11 +681,13 @@ if __name__ == "__main__":
                 loss.backward()
                 optimizer.step()
                 
-                 # Update progress bar less frequently to avoid conflicts
-                if batch_idx % 5 == 0 or batch_idx == len(train_idx_data_loader_tqdm) - 1:
+                # Update progress bar less frequently to avoid conflicts (only if tqdm is enabled)
+                if use_tqdm and (batch_idx % 5 == 0 or batch_idx == len(train_idx_data_loader) - 1):
                     train_idx_data_loader_tqdm.set_description(
-                        f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader_tqdm)}, Loss: {loss.item():.4f}'
+                        f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader)}, Loss: {loss.item():.4f}'
                     )
+                elif not use_tqdm and batch_idx % 50 == 0:  # Print progress every 50 batches when not using tqdm
+                    logger.info(f'Epoch: {epoch + 1}, Batch: {batch_idx + 1}/{len(train_idx_data_loader)}, Loss: {loss.item():.4f}')
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
