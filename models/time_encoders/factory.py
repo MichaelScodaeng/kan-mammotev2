@@ -103,14 +103,14 @@ class TimeEncoderWrapper(torch.nn.Module):
             if t_abs is not None and t_rel is not None:
                 if self._debug_mode:
                     print(f"   🎯 Using dual-stream interface: t_abs + t_rel")
-                result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel, debug=self._debug_mode)
+                result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
             elif timestamps is not None:
                 # timestamps is usually delta_t, so treat as t_rel
                 t_rel_default = timestamps
                 t_abs_default = torch.zeros_like(timestamps)
                 if self._debug_mode:
                     print(f"   🎯 Using dual-stream interface: dummy t_abs + timestamps as t_rel")
-                result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default, debug=self._debug_mode)
+                result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default)
         
         # Strategy 2: OriginalTimeEncoder uses relative time (delta_t)
         # It expects: forward(timestamps) where timestamps = delta_t (relative time)
