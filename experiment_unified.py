@@ -385,8 +385,7 @@ def run_experiment_with_retry(model, dataset, time_encoder_name, combo_key, comm
             print(f"🚀 Running: {' '.join(command)}")
             
             # Run the training
-            result = subprocess.run(command, check=True, capture_output=False, text=True, 
-                                  timeout=args.timeout_hours * 3600 if args.timeout_hours else None)
+            result = subprocess.run(command, check=True, capture_output=False, text=True)
             
             # Verify that training actually succeeded
             if verify_training_success(model, dataset, time_encoder_name, args.num_runs):
@@ -952,7 +951,7 @@ if __name__ == "__main__":
                 # Run the command with timeout
                 start_time = time.time()
                 timeout_seconds = int(args.timeout_hours * 3600)
-                result = subprocess.run(command, text=True, check=True, timeout=timeout_seconds)
+                result = subprocess.run(command, text=True, check=True)
                 end_time = time.time()
                 
                 # Check if training actually completed

@@ -171,7 +171,8 @@ class TimeEncoderWrapper(torch.nn.Module):
             if result.dim() == 4:  # [batch, seq, 1, feat] -> [batch, seq, feat]
                 result = result.squeeze(2)
             elif result.dim() == 3 and result.shape[-2] == 1:  # [batch, 1, feat] -> [batch, feat]
-                result = result.squeeze(-2)
+                pass
+                #result = result.squeeze(-2)
             elif result.dim() == 2 and input_for_shape.dim() == 3:
                 # Need to expand for neighbors: [batch, feat] -> [batch, neighbors, feat]
                 num_neighbors = input_for_shape.shape[1]

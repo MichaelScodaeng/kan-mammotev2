@@ -419,7 +419,7 @@ if __name__ == "__main__":
 
         model = convert_to_gpu(model, device=args.device)
 
-        '''# ===== WARM UP KAN-MAMMOTE (if applicable) =====
+        # ===== WARM UP KAN-MAMMOTE (if applicable) =====
         # Only attempt warmup if Mamba is available
         if MAMBA_AVAILABLE:
             # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
@@ -434,7 +434,7 @@ if __name__ == "__main__":
                 if hasattr(time_encoder, 'warmup'):
                     logger.info(f"Warming up time encoder...")
                     time_encoder.warmup(device=args.device, num_iterations=3)
-        # ===== END WARM UP ====='''
+        # ===== END WARM UP =====
 
         # Use ablation_dir if provided, otherwise default to ./saved_models
         if hasattr(args, 'ablation_dir') and args.ablation_dir:
@@ -571,7 +571,7 @@ if __name__ == "__main__":
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
                 
                 # 🔍 ENABLE DEBUG FOR FIRST FEW BATCHES (if debug_encoder is enabled)
-                debug_this_batch = args.debug_encoder and batch_idx < 3  # Debug first 3 batches
+                debug_this_batch = False #args.debug_encoder and batch_idx < 3  # Debug first 3 batches
                 if debug_this_batch:
                     logger.info(f"\n🔍 ENABLING DEBUG FOR BATCH {batch_idx} (Debug enabled)")
                     

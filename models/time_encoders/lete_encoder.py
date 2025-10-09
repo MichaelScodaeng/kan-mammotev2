@@ -164,8 +164,10 @@ class LeTE(BaseTimeEncoder):
         #print("lete kuay forward")
         if t_rel is not None:
             input_tensor = t_rel.squeeze(-1) if t_rel.dim() > 2 else t_rel
+            #print("lete kuay t_rel")
         elif timestamps is not None:
             input_tensor = timestamps
+            #print("lete kuay timestamps")
         elif t_abs is not None:
             raise ValueError("Got t_abs not t_rel")
             input_tensor = t_abs.squeeze(-1) if t_abs.dim() > 2 else t_abs
