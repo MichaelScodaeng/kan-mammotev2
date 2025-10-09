@@ -369,7 +369,8 @@ if __name__ == "__main__":
             dynamic_backbone = MemoryModel(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                            time_feat_dim=args.time_feat_dim, model_name=args.model_name, num_layers=args.num_layers, num_heads=args.num_heads,
                                            dropout=args.dropout, src_node_mean_time_shift=src_node_mean_time_shift, src_node_std_time_shift=src_node_std_time_shift,
-                                           dst_node_mean_time_shift_dst=dst_node_mean_time_shift_dst, dst_node_std_time_shift=dst_node_std_time_shift, device=args.device)
+                                           dst_node_mean_time_shift_dst=dst_node_mean_time_shift_dst, dst_node_std_time_shift=dst_node_std_time_shift, 
+                                           device=args.device, time_encoder=time_encoder)
         elif args.model_name == 'CAWN':
             dynamic_backbone = CAWN(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                     time_feat_dim=args.time_feat_dim, position_feat_dim=args.position_feat_dim, walk_length=args.walk_length,
@@ -378,6 +379,11 @@ if __name__ == "__main__":
             dynamic_backbone = TCL(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                    time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
                                    num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
+            
+            # 🔍 Enable debug mode for TCL if debug_encoder is set
+            if args.debug_encoder:
+                dynamic_backbone._debug_encoder = True
+                logger.info(f"🔍 Debug mode ENABLED for TCL time encoder calls")
         elif args.model_name == 'GraphMixer':
             dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                           time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
@@ -413,7 +419,7 @@ if __name__ == "__main__":
 
         model = convert_to_gpu(model, device=args.device)
 
-        # ===== WARM UP KAN-MAMMOTE (if applicable) =====
+        '''# ===== WARM UP KAN-MAMMOTE (if applicable) =====
         # Only attempt warmup if Mamba is available
         if MAMBA_AVAILABLE:
             # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
@@ -428,7 +434,7 @@ if __name__ == "__main__":
                 if hasattr(time_encoder, 'warmup'):
                     logger.info(f"Warming up time encoder...")
                     time_encoder.warmup(device=args.device, num_iterations=3)
-        # ===== END WARM UP =====
+        # ===== END WARM UP ====='''
 
         # Use ablation_dir if provided, otherwise default to ./saved_models
         if hasattr(args, 'ablation_dir') and args.ablation_dir:
@@ -563,11 +569,32 @@ if __name__ == "__main__":
                 use_tqdm = True
                 
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
+                
+                # 🔍 ENABLE DEBUG FOR FIRST FEW BATCHES (if debug_encoder is enabled)
+                debug_this_batch = args.debug_encoder and batch_idx < 3  # Debug first 3 batches
+                if debug_this_batch:
+                    logger.info(f"\n🔍 ENABLING DEBUG FOR BATCH {batch_idx} (Debug enabled)")
+                    
+                    # Enable debug mode for time encoder
+                    if hasattr(time_encoder, 'enable_debug_mode'):
+                        time_encoder.enable_debug_mode()
+                    
+                    # Enable debug for model if it has debug capabilities
+                    if hasattr(model[0], '_debug_encoder'):
+                        model[0]._debug_encoder = True
 
                 train_data_indices = train_data_indices.numpy()
                 batch_src_node_ids, batch_dst_node_ids, batch_node_interact_times, batch_edge_ids = \
                     train_data.src_node_ids[train_data_indices], train_data.dst_node_ids[train_data_indices], \
                     train_data.node_interact_times[train_data_indices], train_data.edge_ids[train_data_indices]
+
+                # 🔍 BATCH DEBUG INFO
+                if debug_this_batch:
+                    logger.info(f"📊 BATCH {batch_idx} INFO:")
+                    logger.info(f"   Batch size: {len(batch_src_node_ids)}")
+                    logger.info(f"   Time range: [{batch_node_interact_times.min():.1f}, {batch_node_interact_times.max():.1f}]")
+                    logger.info(f"   Src nodes sample: {batch_src_node_ids[:5]}")
+                    logger.info(f"   Dst nodes sample: {batch_dst_node_ids[:5]}")
 
                 _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids))
                 batch_neg_src_node_ids = batch_src_node_ids
@@ -691,6 +718,17 @@ if __name__ == "__main__":
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
                     model[0].memory_bank.detach_memory_bank()
 
+                # 🔍 DISABLE DEBUG AFTER BATCH
+                if debug_this_batch:
+                    # Disable debug mode
+                    if hasattr(time_encoder, 'disable_debug_mode'):
+                        time_encoder.disable_debug_mode()
+                    
+                    if hasattr(model[0], '_debug_encoder'):
+                        model[0]._debug_encoder = False
+                    
+                    logger.info(f"🔍 DEBUG BATCH {batch_idx} COMPLETED\n")
+
             # Add epoch-level progress logging when tqdm is disabled
             if not use_tqdm:
                 logger.info(f'Epoch: {epoch + 1}/{args.num_epochs} completed, Average Loss: {np.mean(train_losses):.4f}, Batches: {len(train_idx_data_loader)}')
@@ -707,7 +745,8 @@ if __name__ == "__main__":
                                                                      evaluate_data=val_data,
                                                                      loss_func=loss_func,
                                                                      num_neighbors=args.num_neighbors,
-                                                                     time_gap=args.time_gap)
+                                                                     time_gap=args.time_gap,
+                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
             
 
 
@@ -726,7 +765,8 @@ if __name__ == "__main__":
                                                                                        evaluate_data=new_node_val_data,
                                                                                        loss_func=loss_func,
                                                                                        num_neighbors=args.num_neighbors,
-                                                                                       time_gap=args.time_gap)
+                                                                                       time_gap=args.time_gap,
+                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False))
 
 
 
@@ -790,7 +830,8 @@ if __name__ == "__main__":
                                                                            evaluate_data=test_data,
                                                                            loss_func=loss_func,
                                                                            num_neighbors=args.num_neighbors,
-                                                                           time_gap=args.time_gap)
+                                                                           time_gap=args.time_gap,
+                                                                           disable_progress_bar=getattr(args, 'disable_progress_bar', False))
 
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -805,7 +846,8 @@ if __name__ == "__main__":
                                                                                              evaluate_data=new_node_test_data,
                                                                                              loss_func=loss_func,
                                                                                              num_neighbors=args.num_neighbors,
-                                                                                             time_gap=args.time_gap)
+                                                                                             time_gap=args.time_gap,
+                                                                                             disable_progress_bar=getattr(args, 'disable_progress_bar', False))
 
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -927,7 +969,8 @@ if __name__ == "__main__":
                                                                      evaluate_data=val_data,
                                                                      loss_func=loss_func,
                                                                      num_neighbors=args.num_neighbors,
-                                                                     time_gap=args.time_gap)
+                                                                     time_gap=args.time_gap,
+                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
         
             new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                                                                                        model=model,
@@ -937,7 +980,8 @@ if __name__ == "__main__":
                                                                                        evaluate_data=new_node_val_data,
                                                                                        loss_func=loss_func,
                                                                                        num_neighbors=args.num_neighbors,
-                                                                                       time_gap=args.time_gap)
+                                                                                       time_gap=args.time_gap,
+                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False))
 
         if args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # the memory in the best model has seen the validation edges, we need to backup the memory for new testing nodes
@@ -951,7 +995,8 @@ if __name__ == "__main__":
                                                                    evaluate_data=test_data,
                                                                    loss_func=loss_func,
                                                                    num_neighbors=args.num_neighbors,
-                                                                   time_gap=args.time_gap)
+                                                                   time_gap=args.time_gap,
+                                                                   disable_progress_bar=getattr(args, 'disable_progress_bar', False))
 
         if args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # reload validation memory bank for new testing nodes
@@ -965,7 +1010,8 @@ if __name__ == "__main__":
                                                                                      evaluate_data=new_node_test_data,
                                                                                      loss_func=loss_func,
                                                                                      num_neighbors=args.num_neighbors,
-                                                                                     time_gap=args.time_gap)
+                                                                                     time_gap=args.time_gap,
+                                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
         # store the evaluation metrics at the current run
         val_metric_dict, new_node_val_metric_dict, test_metric_dict, new_node_test_metric_dict = {}, {}, {}, {}
 

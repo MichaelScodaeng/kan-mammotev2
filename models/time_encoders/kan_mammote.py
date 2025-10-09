@@ -139,6 +139,9 @@ class KAN_MAMMOTE(nn.Module):
         print(f"🔥 Warming up KAN-MAMMOTE ({mamba_type})...")
         print(f"{'='*60}")
         
+        # Ensure model is on the correct device
+        self.to(device)
+        
         # Create dummy input matching typical batch size
         batch_size = 2
         seq_len = 64  # Shorter sequence for faster warm-up
@@ -171,7 +174,7 @@ class KAN_MAMMOTE(nn.Module):
         print(f"✅ Warm-up complete! CUDA kernels cached for this session.")
         print(f"{'='*60}\n")
         
-    def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
+    def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor, debug: bool = False) -> torch.Tensor:
         """
         Forward pass with flexible relative time encoding and FAIR comparison between ControllableMamba2 and vanilla Mamba2.
         
@@ -191,26 +194,64 @@ class KAN_MAMMOTE(nn.Module):
         Args:
             t_abs: Absolute time tensor (B, S, 1)
             t_rel: Relative time tensor (B, S, 1)
+            debug: Enable detailed debugging output
             
         Returns:
             final_embedding: Output embeddings (B, S, embedding_dim)
         """
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"\n{'='*60}")
+            print(f"🔍 KAN-MAMMOTE DEBUG - Forward Pass")
+            print(f"{'='*60}")
+            print(f"📊 INPUT SHAPES:")
+            print(f"   t_abs shape: {t_abs.shape}")
+            print(f"   t_rel shape: {t_rel.shape}")
+            print(f"   t_abs dtype: {t_abs.dtype}, device: {t_abs.device}")
+            print(f"   t_rel dtype: {t_rel.dtype}, device: {t_rel.device}")
+            
+            # Sample a few values for inspection
+            print(f"📈 SAMPLE VALUES:")
+            print(f"   t_abs sample: {t_abs.flatten()[:5].detach().cpu().numpy()}")
+            print(f"   t_rel sample: {t_rel.flatten()[:5].detach().cpu().numpy()}")
+            print(f"   t_abs range: [{t_abs.min().item():.3f}, {t_abs.max().item():.3f}]")
+            print(f"   t_rel range: [{t_rel.min().item():.3f}, {t_rel.max().item():.3f}]")
+        
         # Get absolute time features using K-MOTE
         u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+        
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🎯 K-MOTE ABS OUTPUT:")
+            print(f"   u_k shape: {u_k.shape}")
+            print(f"   u_k sample: {u_k.flatten()[:5].detach().cpu().numpy()}")
         
         # ===== Get relative time features based on mode =====
         if self.use_kmote_for_relative:
             # Dual K-MOTE mode: Use K-MOTE for relative time
             v_k = self.k_mote_rel(t_rel)  # (B, S, expert_dim)
+            if debug or hasattr(self, '_debug_mode'):
+                print(f"🎯 K-MOTE REL OUTPUT (dual mode):")
+                print(f"   v_k shape: {v_k.shape}")
         else:
             # SM-kernel mode: Use SM-kernel for relative time
             v_k = self.sm_kernel(t_rel)  # (B, S, num_mixtures)
+            if debug or hasattr(self, '_debug_mode'):
+                print(f"🎯 SM-KERNEL OUTPUT:")
+                print(f"   v_k shape: {v_k.shape}")
         
         # ===== Fuse relative time features to expert_dim =====
         fusion_features = self.fusion_mlp_base(v_k)  # (B, S, expert_dim)
         
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🔧 FUSION OUTPUT:")
+            print(f"   fusion_features shape: {fusion_features.shape}")
+        
         # ===== Combine with absolute time features (residual connection) =====
         combined_input = u_k + fusion_features  # (B, S, expert_dim)
+        
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🔗 COMBINED INPUT TO MAMBA:")
+            print(f"   combined_input shape: {combined_input.shape}")
+            print(f"   Sequence length being processed: {combined_input.shape[1]}")
         
         if self.use_controllable_mamba:
             # ===== ControllableMamba2 path: Add temporal modulation =====
@@ -222,6 +263,11 @@ class KAN_MAMMOTE(nn.Module):
             gamma = torch.sigmoid(gamma_logits) + 0.5  # Range: [0.5, 1.5]
             temporal_modulators = (gamma, beta)
             
+            if debug or hasattr(self, '_debug_mode'):
+                print(f"⚙️  CONTROLLABLE MAMBA2 MODULATION:")
+                print(f"   modulator_logits shape: {modulator_logits.shape}")
+                print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
+            
             # Forward through ControllableMamba2 with temporal modulation
             # Input: combined_input (u_k + fusion)
             # Modulation: gamma, beta modify dt inside Mamba2
@@ -229,11 +275,35 @@ class KAN_MAMMOTE(nn.Module):
             
         else:
             # ===== Vanilla Mamba2 path: No modulation =====
+            if debug or hasattr(self, '_debug_mode'):
+                print(f"⚙️  VANILLA MAMBA2 (no modulation)")
+            
             # Input: same combined_input (u_k + fusion)
             # No temporal modulation
             mamba_output = self.mamba2(combined_input)
         
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🐍 MAMBA OUTPUT:")
+            print(f"   mamba_output shape: {mamba_output.shape}")
+        
         # Project to embedding dimension
         final_embedding = self.output_projection(mamba_output)
 
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🎯 FINAL OUTPUT:")
+            print(f"   final_embedding shape: {final_embedding.shape}")
+            print(f"   final_embedding sample: {final_embedding.flatten()[:5].detach().cpu().numpy()}")
+            print(f"{'='*60}\n")
+
         return final_embedding
+    
+    def enable_debug_mode(self):
+        """Enable persistent debug mode"""
+        self._debug_mode = True
+        print("🔍 KAN-MAMMOTE Debug Mode ENABLED")
+    
+    def disable_debug_mode(self):
+        """Disable persistent debug mode"""
+        if hasattr(self, '_debug_mode'):
+            delattr(self, '_debug_mode')
+        print("🔍 KAN-MAMMOTE Debug Mode DISABLED")

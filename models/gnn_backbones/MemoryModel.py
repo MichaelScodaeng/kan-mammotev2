@@ -12,7 +12,7 @@ class MemoryModel(torch.nn.Module):
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, model_name: str = 'TGN', num_layers: int = 2, num_heads: int = 2, dropout: float = 0.1,
                  src_node_mean_time_shift: float = 0.0, src_node_std_time_shift: float = 1.0, dst_node_mean_time_shift_dst: float = 0.0,
-                 dst_node_std_time_shift: float = 1.0, device: str = 'cpu'):
+                 dst_node_std_time_shift: float = 1.0, device: str = 'cpu', time_encoder: torch.nn.Module = None):
         """
         General framework for memory-based models, support TGN, DyRep and JODIE.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -28,6 +28,7 @@ class MemoryModel(torch.nn.Module):
         :param dst_node_mean_time_shift_dst: float, mean of destination node time shifts
         :param dst_node_std_time_shift: float, standard deviation of destination node time shifts
         :param device: str, device
+        :param time_encoder: torch.nn.Module, optional custom time encoder (if None, uses default TimeEncoder)
         """
         super(MemoryModel, self).__init__()
 
@@ -53,7 +54,13 @@ class MemoryModel(torch.nn.Module):
         # since models use the identity function for message encoding, message dimension is 2 * memory_dim + time_feat_dim + edge_feat_dim
         self.message_dim = self.memory_dim + self.memory_dim + self.time_feat_dim + self.edge_feat_dim
 
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+        # Use provided time encoder or create default one
+        if time_encoder is not None:
+            self.time_encoder = time_encoder
+            print(f"MemoryModel ({model_name}): Using custom time encoder: {type(time_encoder).__name__}")
+        else:
+            self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
+            print(f"MemoryModel ({model_name}): Using default TimeEncoder")
 
         # message module (models use the identity function for message encoding, hence, we only create MessageAggregator)
         self.message_aggregator = MessageAggregator()
@@ -231,8 +238,27 @@ class MemoryModel(torch.nn.Module):
         # Tensor, shape (batch_size, )
         src_node_delta_times = torch.from_numpy(node_interact_times).float().to(self.device) - \
                                self.memory_bank.node_last_updated_times[torch.from_numpy(src_node_ids)]
-        # Tensor, shape (batch_size, time_feat_dim)
-        src_node_delta_time_features = self.time_encoder(src_node_delta_times.unsqueeze(dim=1)).reshape(len(src_node_ids), -1)
+        
+        # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+        time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
+        
+        if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+         # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+            t_abs = torch.from_numpy(node_interact_times).float().to(self.device).unsqueeze(dim=1)  # Absolute interaction times
+            t_rel = src_node_delta_times.unsqueeze(dim=1)  # Relative time differences
+            src_node_delta_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel).reshape(len(src_node_ids), -1)
+        else:
+            # Standard time encoders: Use relative time only (backward compatibility)
+            src_node_delta_time_features = self.time_encoder(timestamps=src_node_delta_times.unsqueeze(dim=1)).reshape(len(src_node_ids), -1)
 
         # Tensor, shape (batch_size, edge_feat_dim)
         edge_features = self.edge_raw_features[torch.from_numpy(edge_ids)]
@@ -602,7 +628,39 @@ class GraphAttentionEmbedding(nn.Module):
 
         # query (source) node always has the start time with time interval == 0
         # shape (batch_size, 1, time_feat_dim)
-        node_time_features = self.time_encoder(timestamps=torch.zeros(node_interact_times.shape).unsqueeze(dim=1).to(device))
+        
+        # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+        time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
+        
+        if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Pass both zero absolute and relative time
+            zeros_shape = (node_interact_times.shape[0], 1)
+            t_abs = torch.zeros(zeros_shape).to(device)  # Zero absolute times
+            t_rel = torch.zeros(zeros_shape).to(device)  # Zero relative times  
+            node_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
+        else:
+            # Standard time encoders: Use zeros as timestamps
+            node_time_features = self.time_encoder(timestamps=torch.zeros(node_interact_times.shape).unsqueeze(dim=1).to(device))
+        
+        # 🔍 DEBUG: Ensure node_time_features has correct shape
+        #print(f"🔍 node_time_features after encoder: {node_time_features.shape}")
+        
+        # Ensure node_time_features has shape (batch_size, 1, time_feat_dim)
+        if node_time_features.dim() == 2:
+            node_time_features = node_time_features.unsqueeze(1)  # Add missing middle dimension
+        elif node_time_features.dim() == 3 and node_time_features.shape[1] != 1:
+            # If it has wrong middle dimension, fix it
+            node_time_features = node_time_features.reshape(node_time_features.shape[0], 1, -1)
+        
+        #print(f"🔍 node_time_features after shape fix: {node_time_features.shape}")
         # shape (batch_size, node_feat_dim)
         # add memory and node raw features to get node features
         # note that when using getting values of the ids from Tensor, convert the ndarray to tensor to avoid wrong retrieval
@@ -643,11 +701,45 @@ class GraphAttentionEmbedding(nn.Module):
             # adarray, shape (batch_size, num_neighbors)
             neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
 
-            # shape (batch_size, num_neighbors, time_feat_dim)
-            neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(neighbor_delta_times).float().to(device))
+            # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+            time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
+            
+            if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
+                # Check if wrapped encoder is KAN_MAMMOTE variant
+                wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
+                is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            else:
+                # Direct encoder check
+                is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            
+            if is_kan_mammote:
+                # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+                t_abs = torch.from_numpy(neighbor_times).float().to(device)  # Absolute neighbor times
+                t_rel = torch.from_numpy(neighbor_delta_times).float().to(device)  # Relative time differences
+                neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
+                
+                # Ensure correct shape: (batch_size, num_neighbors, time_feat_dim)
+                if neighbor_time_features.dim() == 2:
+                    # If output is (batch_size * num_neighbors, time_feat_dim), reshape it
+                    #print("Reshaping neighbor_time_features from 2D to 3D")
+                 
+                    neighbor_time_features = neighbor_time_features.view(neighbor_delta_times.shape[0], neighbor_delta_times.shape[1], -1)
+                    #print(f"Old Shape vs New shape: {neighbor_time_features.shape} vs {neighbor_delta_times.shape[0], neighbor_delta_times.shape[1], -1}")
+            else:
+                # Standard time encoders: Use relative time only (backward compatibility)
+                neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(neighbor_delta_times).float().to(device))
 
             # get edge features, shape (batch_size, num_neighbors, edge_feat_dim)
             neighbor_edge_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]
+            
+            # 🔍 DEBUG: Check tensor shapes before temporal convolution
+            '''print(f"🔍 TEMPORAL CONV DEBUG:")
+            print(f"   node_conv_features shape: {node_conv_features.shape}")
+            print(f"   node_time_features shape: {node_time_features.shape}")
+            print(f"   neighbor_node_conv_features shape: {neighbor_node_conv_features.shape}")
+            print(f"   neighbor_time_features shape: {neighbor_time_features.shape}")
+            print(f"   neighbor_edge_features shape: {neighbor_edge_features.shape}")'''
+            
             # temporal graph convolution
             # Tensor, output shape (batch_size, node_feat_dim + time_feat_dim)
             output, _ = self.temporal_conv_layers[current_layer_num - 1](node_features=node_conv_features,

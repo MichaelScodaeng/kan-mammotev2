@@ -3,6 +3,11 @@ import numpy as np
 import random
 import pandas as pd
 
+from torch.utils.data import Dataset, DataLoader
+import numpy as np
+import random
+import pandas as pd
+
 
 class CustomizedDataset(Dataset):
     def __init__(self, indices_list: list):
@@ -68,21 +73,15 @@ class Data:
         for i, time_id in enumerate(sorted(self.uni_time_ids)):
             self.time_to_int_map[time_id] = i+1
 
-def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, seed: int = 42, data_ratio: float = 1.0):
+def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float,seed: int=42,data_ratio:float=1.0):
     """
     generate data for link prediction task (inductive & transductive settings)
     :param dataset_name: str, dataset name
-    :param val_ratio: float, validation data ratio (applied to subsampled data)
-    :param test_ratio: float, test data ratio (applied to subsampled data)
-    :param seed: int, random seed for reproducible splits (default: 42)
-    :param data_ratio: float, ratio of full data to use BEFORE splitting (default: 1.0 = 100%)
+    :param val_ratio: float, validation data ratio
+    :param test_ratio: float, test data ratio
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data, (Data object)
     """
-    # Set random seed for reproducible splits
-    np.random.seed(seed)
-    random.seed(seed)
-    
     # Load data and train val test split
     graph_df = pd.read_csv('./processed_data/{}/ml_{}.csv'.format(dataset_name, dataset_name))
     edge_raw_features = np.load('./processed_data/{}/ml_{}.npy'.format(dataset_name, dataset_name))
@@ -101,29 +100,19 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
 
     assert NODE_FEAT_DIM == node_raw_features.shape[1] and EDGE_FEAT_DIM == edge_raw_features.shape[1], 'Unaligned feature dimensions after feature padding!'
 
-    # ✅ NEW: Apply data_ratio BEFORE splitting (if specified)
-    if data_ratio < 1.0:
-        print(f"\n🔄 Applying data_ratio={data_ratio} BEFORE splitting")
-        print(f"   Original data size: {len(graph_df):,} interactions")
-        
-        # Subsample while maintaining temporal order (take first N%)
-        subset_size = int(len(graph_df) * data_ratio)
-        graph_df = graph_df.iloc[:subset_size]
-        
-        print(f"   Subsampled data size: {subset_size:,} interactions ({data_ratio*100:.1f}%)")
-        print(f"   📌 Using seed={seed} for reproducible subsampling")
-    
-    # Extract data from (potentially subsampled) dataframe
+    # get the timestamp of validate and test set
+    val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
+
     src_node_ids = graph_df.u.values.astype(np.longlong)
     dst_node_ids = graph_df.i.values.astype(np.longlong)
     node_interact_times = graph_df.ts.values.astype(np.float64)
     edge_ids = graph_df.idx.values.astype(np.longlong)
     labels = graph_df.label.values
 
-    # get the timestamp of validate and test set (now based on subsampled data)
-    val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
-
     full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
+
+    # the setting of seed follows previous works
+    random.seed(2020)
 
     # union to get node set
     node_set = set(src_node_ids) | set(dst_node_ids)
@@ -132,15 +121,7 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     # compute nodes which appear at test time
     test_node_set = set(src_node_ids[node_interact_times > val_time]).union(set(dst_node_ids[node_interact_times > val_time]))
     # sample nodes which we keep as new nodes (to test inductiveness), so then we have to remove all their edges from training
-    # 🔧 FIX: Ensure we don't try to sample more nodes than available
-    desired_new_test_nodes = int(0.1 * num_total_unique_node_ids)
-    max_available_test_nodes = len(test_node_set)
-    actual_new_test_nodes = min(desired_new_test_nodes, max_available_test_nodes)
-    
-    if actual_new_test_nodes > 0:
-        new_test_node_set = set(random.sample(list(test_node_set), actual_new_test_nodes))
-    else:
-        new_test_node_set = set()  # Empty set if no test nodes available
+    new_test_node_set = set(random.sample(list(test_node_set), int(0.1 * num_total_unique_node_ids)))
 
     # mask for each source and destination to denote whether they are new test nodes
     new_test_source_mask = graph_df.u.map(lambda x: x in new_test_node_set).values
@@ -256,3 +237,4 @@ def get_node_classification_data(dataset_name: str, val_ratio: float, test_ratio
                      node_interact_times=node_interact_times[test_mask], edge_ids=edge_ids[test_mask], labels=labels[test_mask])
 
     return node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data
+

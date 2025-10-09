@@ -105,7 +105,26 @@ class GraphMixer(nn.Module):
         # Tensor, shape (batch_size, num_neighbors, edge_feat_dim)
         nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]
         # Tensor, shape (batch_size, num_neighbors, time_feat_dim)
-        nodes_neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - neighbor_times).float().to(self.device))
+        
+        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
+        
+        if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+            t_abs = torch.from_numpy(neighbor_times).float().to(self.device)  # Absolute neighbor times
+            t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - neighbor_times).float().to(self.device)  # Relative time differences
+            nodes_neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
+        else:
+            # Standard time encoders: Use relative time only (backward compatibility)
+            nodes_neighbor_time_features = self.time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - neighbor_times).float().to(self.device))
 
         # ndarray, set the time features to all zeros for the padded timestamp
         nodes_neighbor_time_features[torch.from_numpy(neighbor_node_ids == 0)] = 0.0

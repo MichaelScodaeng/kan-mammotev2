@@ -97,26 +97,62 @@ class KAN_MAMMOTE_Lite(nn.Module):
         """Initialize SM-Kernel from data statistics"""
         self.sm_kernel.initialize_from_data(delta_t_sample)
     
-    def forward(self, t_abs: torch.Tensor = None, t_rel: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, timestamps: torch.Tensor = None, t_abs: torch.Tensor = None, t_rel: torch.Tensor = None, debug: bool = False) -> torch.Tensor:
         """
-        Forward pass for stateless temporal encoding.
+        Forward pass for stateless temporal encoding with backward compatibility.
+        
+        Supports two calling conventions:
+        1. Legacy interface: forward(timestamps=...) - used by DyGFormer/other models
+        2. New interface: forward(t_abs=..., t_rel=...) - used by TGAT with wrapper
         
         Args:
+            timestamps: Legacy interface - typically relative time (delta_t)
             t_abs: Absolute timestamps, shape (B, S, 1) or (B, 1)
             t_rel: Relative timestamps (delta_t), shape (B, S, 1) or (B, 1)
+            debug: Enable detailed debugging output
         
         Returns:
             Temporal embeddings, shape (B, S, embedding_dim) or (B, embedding_dim)
         """
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"\n{'='*50}")
+            print(f"🔍 KAN-MAMMOTE Lite DEBUG")
+            print(f"{'='*50}")
+        
+        # Handle different calling conventions
+        if timestamps is not None:
+            # Legacy interface: Use timestamps as relative time
+            t_rel = timestamps
+            # Create dummy absolute time if needed
+            if self.use_dual_stream:
+                t_abs = torch.zeros_like(timestamps) + 1e-6
+        elif t_rel is not None:
+            # New interface: t_rel already provided
+            pass
+        else:
+            raise ValueError("Either 'timestamps' or 't_rel' must be provided")
+        
         if t_rel is None:
             raise ValueError("KAN-MAMMOTE Lite requires t_rel (relative time / delta_t)")
+        
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"📊 INPUT SHAPES:")
+            if t_abs is not None:
+                print(f"   t_abs shape: {t_abs.shape}")
+            print(f"   t_rel shape: {t_rel.shape}")
         
         # Encode relative time with SM-Kernel (always used)
         v_k = self.sm_kernel(t_rel)  # (B, [S], num_mixtures)
         
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🎯 SM-KERNEL OUTPUT: {v_k.shape}")
+        
         if self.use_dual_stream and t_abs is not None:
             # Encode absolute time with K-MOTE
             u_k = self.k_mote(t_abs)  # (B, [S], embedding_dim//2)
+            
+            if debug or hasattr(self, '_debug_mode'):
+                print(f"🎯 K-MOTE OUTPUT: {u_k.shape}")
             
             # Concatenate both streams
             combined = torch.cat([u_k, v_k], dim=-1)  # (B, [S], fusion_input_dim)
@@ -127,7 +163,22 @@ class KAN_MAMMOTE_Lite(nn.Module):
         # Fuse through MLP
         output = self.fusion(combined)  # (B, [S], embedding_dim)
         
+        if debug or hasattr(self, '_debug_mode'):
+            print(f"🎯 FINAL OUTPUT: {output.shape}")
+            print(f"{'='*50}\n")
+        
         return output
+    
+    def enable_debug_mode(self):
+        """Enable persistent debug mode"""
+        self._debug_mode = True
+        print("🔍 KAN-MAMMOTE Lite Debug Mode ENABLED")
+    
+    def disable_debug_mode(self):
+        """Disable persistent debug mode"""
+        if hasattr(self, '_debug_mode'):
+            delattr(self, '_debug_mode')
+        print("🔍 KAN-MAMMOTE Lite Debug Mode DISABLED")
     
     def count_parameters(self):
         """Count trainable parameters"""

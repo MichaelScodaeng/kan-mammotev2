@@ -74,7 +74,7 @@ from datetime import datetime
 models = ['TGAT', 'JODIE', 'TGN', 'DyGFormer', 'DyGMamba', 'TCL']  # 'CAWN', 'DyRep', 'GraphMixer'
 datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci', 
             'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
-time_encoders = ['original', 'lete', 'kan_mammote_dual_kmote','mercer', 'bochner', 'time2vec']
+time_encoders = ['original', 'lete', 'kan_mammote_dual_kmote','mercer', 'bochner', 'time2vec',"kan_mammote"]
 
 def parse_arguments():
     """Parse command line arguments"""

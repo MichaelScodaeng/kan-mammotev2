@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -j oe
-#PBS -q GPU-1A
+#PBS -q GPU-LA
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -17,4 +17,4 @@ conda activate kan_mammote
 
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_unified.py --models "TGN" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar > kanmammote_TGN.log 2>&1
+python experiment_unified.py --models "TGAT" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar > kanmammote_TGAT.log 2>&1

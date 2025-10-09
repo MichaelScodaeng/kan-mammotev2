@@ -113,7 +113,7 @@ class LeTE(BaseTimeEncoder):
         self.dim_spline = time_dim - self.dim_fourier
         self.layer_norm = layer_norm
         self.scale = scale
-        
+        #print("lete kuay")
         # Fourier component
         if self.dim_fourier > 0:
             self.w1_fourier = nn.Linear(1, self.dim_fourier)
@@ -146,7 +146,7 @@ class LeTE(BaseTimeEncoder):
                 param.requires_grad = False
 
     def forward(self, timestamps: torch.Tensor = None, time_deltas: torch.Tensor = None, 
-                t_abs: torch.Tensor = None, t_rel: torch.Tensor = None) -> torch.Tensor:
+                t_abs: torch.Tensor = None, t_rel: torch.Tensor = None, debug: bool = False) -> torch.Tensor:
         """
         Encode timestamps using learnable Fourier and spline components.
         Supports both single-stream (timestamps) and dual-stream (t_abs, t_rel) interfaces.
@@ -161,6 +161,7 @@ class LeTE(BaseTimeEncoder):
             Time encodings of shape (batch_size, time_dim) or (batch_size, seq_len, time_dim)
         """
         # Handle different input interfaces (prefer relative time if available)
+        #print("lete kuay forward")
         if t_rel is not None:
             input_tensor = t_rel.squeeze(-1) if t_rel.dim() > 2 else t_rel
         elif timestamps is not None:

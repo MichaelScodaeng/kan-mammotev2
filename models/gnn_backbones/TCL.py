@@ -177,7 +177,71 @@ class TCL(nn.Module):
         # Tensor, shape (batch_size, num_neighbors + 1, edge_feat_dim)
         nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(nodes_edge_ids)]
         # Tensor, shape (batch_size, num_neighbors + 1, time_feat_dim)
-        nodes_neighbor_time_features = time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - nodes_neighbor_times).float().to(self.device))
+        
+        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
+        
+        if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        
+        # 🔍 COMPREHENSIVE DEBUG OUTPUT (controlled by args.debug_encoder)
+        debug_enabled = hasattr(self, '_debug_encoder') and self._debug_encoder
+        if debug_enabled:
+            print(f"\n🏷️  TCL TIME ENCODER DEBUG:")
+            print(f"   Time encoder: {time_encoder_name}")
+            print(f"   KAN_MAMMOTE variant: {is_kan_mammote}")
+            print(f"   Batch size: {node_interact_times.shape[0]}")
+            print(f"   Sequence length: {nodes_neighbor_times.shape[1] if len(nodes_neighbor_times.shape) > 1 else 1}")
+            print(f"   node_interact_times range: [{node_interact_times.min():.1f}, {node_interact_times.max():.1f}]")
+            print(f"   nodes_neighbor_times range: [{nodes_neighbor_times.min():.1f}, {nodes_neighbor_times.max():.1f}]")
+        
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+            t_abs = torch.from_numpy(nodes_neighbor_times).float().to(self.device)  # Absolute neighbor times
+            t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - nodes_neighbor_times).float().to(self.device)  # Relative time differences
+            
+            if debug_enabled:
+                print(f"   🎯 DUAL-STREAM INPUT:")
+                print(f"      t_abs shape: {t_abs.shape}")
+                print(f"      t_rel shape: {t_rel.shape}")
+                print(f"      t_abs sample: {t_abs.flatten()[:5].cpu().numpy()}")
+                print(f"      t_rel sample: {t_rel.flatten()[:5].cpu().numpy()}")
+                print(f"   🔍 NON-ZERO ANALYSIS:")
+                
+                print(f"      t_abs non-zero count: {(t_abs != 0).sum().item()} / {t_abs.numel()}")
+                print(f"      t_rel non-zero count: {(t_rel != 0).sum().item()} / {t_rel.numel()}")
+                print(f"      t_abs unique values: {torch.unique(t_abs)[:10]}")
+                print(f"      t_rel unique values: {torch.unique(t_rel)[:10]}")
+                # Enable debug for time encoder if it supports it
+                if hasattr(time_encoder, 'enable_debug_mode'):
+                    time_encoder.enable_debug_mode()
+                    nodes_neighbor_time_features = time_encoder(t_abs=t_abs, t_rel=t_rel)
+                    time_encoder.disable_debug_mode()
+                else:
+                    nodes_neighbor_time_features = time_encoder(t_abs=t_abs, t_rel=t_rel)
+            else:
+                nodes_neighbor_time_features = time_encoder(t_abs=t_abs, t_rel=t_rel)
+        else:
+            # Standard time encoders: Use relative time only (backward compatibility)
+            timestamps = torch.from_numpy(node_interact_times[:, np.newaxis] - nodes_neighbor_times).float().to(self.device)
+            
+            if debug_enabled:
+                print(f"   🎯 SINGLE-STREAM INPUT:")
+                print(f"      timestamps shape: {timestamps.shape}")
+                print(f"      timestamps sample: {timestamps.flatten()[:5].cpu().numpy()}")
+            
+            nodes_neighbor_time_features = time_encoder(timestamps=timestamps)
+        
+        if debug_enabled:
+            print(f"   📤 OUTPUT:")
+            print(f"      nodes_neighbor_time_features shape: {nodes_neighbor_time_features.shape}")
+            print(f"      Output sample: {nodes_neighbor_time_features.flatten()[:5].detach().cpu().numpy()}")
+        
         assert nodes_neighbor_ids.shape[1] == self.depth_embedding.weight.shape[0]
         # Tensor, shape (num_neighbors + 1, node_feat_dim)
         nodes_neighbor_depth_features = self.depth_embedding(torch.tensor(range(nodes_neighbor_ids.shape[1])).to(self.device))

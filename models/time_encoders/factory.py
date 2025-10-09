@@ -61,8 +61,37 @@ class TimeEncoderWrapper(torch.nn.Module):
         super(TimeEncoderWrapper, self).__init__()
         self.encoder = encoder
         self.encoder_name = encoder.__class__.__name__
+        self._call_count = 0
+        self._debug_mode = False
+        
+    def enable_debug_mode(self):
+        """Enable debug mode for this wrapper and the underlying encoder"""
+        self._debug_mode = True
+        if hasattr(self.encoder, 'enable_debug_mode'):
+            self.encoder.enable_debug_mode()
+        print(f"🔍 TimeEncoderWrapper Debug Mode ENABLED for {self.encoder_name}")
+    
+    def disable_debug_mode(self):
+        """Disable debug mode"""
+        self._debug_mode = False
+        if hasattr(self.encoder, 'disable_debug_mode'):
+            self.encoder.disable_debug_mode()
+        print(f"🔍 TimeEncoderWrapper Debug Mode DISABLED for {self.encoder_name}")
         
     def forward(self, t_abs=None, t_rel=None, timestamps=None):
+        self._call_count += 1
+        
+        if self._debug_mode:
+            print(f"\n🔧 TimeEncoderWrapper Call #{self._call_count}")
+            print(f"   Encoder: {self.encoder_name}")
+            print(f"   Inputs provided:")
+            if t_abs is not None:
+                print(f"     t_abs: {t_abs.shape} | range: [{t_abs.min().item():.3f}, {t_abs.max().item():.3f}]")
+            if t_rel is not None:
+                print(f"     t_rel: {t_rel.shape} | range: [{t_rel.min().item():.3f}, {t_rel.max().item():.3f}]")
+            if timestamps is not None:
+                print(f"     timestamps: {timestamps.shape} | range: [{timestamps.min().item():.3f}, {timestamps.max().item():.3f}]")
+        
         import inspect
         
         result = None
@@ -72,12 +101,16 @@ class TimeEncoderWrapper(torch.nn.Module):
         # Strategy 1: Dual-stream interface (KAN-MAMMOTE)
         if 't_abs' in params and 't_rel' in params:
             if t_abs is not None and t_rel is not None:
-                result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
+                if self._debug_mode:
+                    print(f"   🎯 Using dual-stream interface: t_abs + t_rel")
+                result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel, debug=self._debug_mode)
             elif timestamps is not None:
                 # timestamps is usually delta_t, so treat as t_rel
                 t_rel_default = timestamps
                 t_abs_default = torch.zeros_like(timestamps)
-                result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default)
+                if self._debug_mode:
+                    print(f"   🎯 Using dual-stream interface: dummy t_abs + timestamps as t_rel")
+                result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default, debug=self._debug_mode)
         
         # Strategy 2: OriginalTimeEncoder uses relative time (delta_t)
         # It expects: forward(timestamps) where timestamps = delta_t (relative time)
@@ -85,12 +118,18 @@ class TimeEncoderWrapper(torch.nn.Module):
             # OriginalTimeEncoder uses RELATIVE time (t_rel), not absolute!
             # In TGAT context: delta_t = current_time - neighbor_time
             if t_rel is not None:
+                if self._debug_mode:
+                    print(f"   🎯 Using single-stream interface: t_rel")
                 # Use t_rel (this is the correct input for OriginalTimeEncoder)
                 result = self.encoder.forward(t_rel)
             elif timestamps is not None:
+                if self._debug_mode:
+                    print(f"   🎯 Using single-stream interface: timestamps")
                 # timestamps in TGAT is actually delta_t (relative time)
                 result = self.encoder.forward(timestamps)
             elif t_abs is not None:
+                if self._debug_mode:
+                    print(f"   ⚠️  Fallback: Using t_abs as timestamps (unexpected)")
                 # Fallback: if only t_abs provided, assume it's delta_t
                 # (this shouldn't happen in proper usage)
                 print(f"WARNING: OriginalTimeEncoder expects t_rel but got t_abs. Using t_abs as fallback.")
@@ -109,7 +148,12 @@ class TimeEncoderWrapper(torch.nn.Module):
             else:
                 raise ValueError("Must provide at least one time input")
             
+            if self._debug_mode:
+                print(f"   🎯 Using generic interface: {input_tensor.shape}")
             result = self.encoder.forward(input_tensor)
+        
+        if self._debug_mode and result is not None:
+            print(f"   📤 Output shape: {result.shape}")
         
         # Dimension fixing (keep existing logic)
         if result is not None:

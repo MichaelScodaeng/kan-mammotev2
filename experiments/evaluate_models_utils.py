@@ -18,7 +18,7 @@ from utils.DataLoader import Data
 
 def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_sampler: NeighborSampler, evaluate_idx_data_loader: DataLoader,
                                    evaluate_neg_edge_sampler: NegativeEdgeSampler, evaluate_data: Data, loss_func: nn.Module,
-                                   num_neighbors: int = 20, time_gap: int = 2000):
+                                   num_neighbors: int = 20, time_gap: int = 2000, disable_progress_bar: bool = False):
     """
     evaluate models on the link prediction task
     :param model_name: str, name of the model
@@ -30,6 +30,7 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
     :param loss_func: nn.Module, loss function
     :param num_neighbors: int, number of neighbors to sample for each node
     :param time_gap: int, time gap for neighbors to compute node features
+    :param disable_progress_bar: bool, whether to disable tqdm progress bar
     :return:
     """
     # Ensures the random sampler uses a fixed seed for evaluation (i.e. we always sample the same negatives for validation / test set)
@@ -45,7 +46,15 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
     with torch.no_grad():
         # store evaluate losses and metrics
         evaluate_losses, evaluate_metrics = [], [] 
-        evaluate_idx_data_loader_tqdm = tqdm(evaluate_idx_data_loader, dynamic_ncols=True, leave=False)
+        
+        # Conditional tqdm usage based on disable_progress_bar flag
+        if disable_progress_bar:
+            evaluate_idx_data_loader_tqdm = evaluate_idx_data_loader
+            use_tqdm = False
+        else:
+            evaluate_idx_data_loader_tqdm = tqdm(evaluate_idx_data_loader, dynamic_ncols=True, leave=False)
+            use_tqdm = True
+            
         for batch_idx, evaluate_data_indices in enumerate(evaluate_idx_data_loader_tqdm):
             evaluate_data_indices = evaluate_data_indices.numpy()
             batch_src_node_ids, batch_dst_node_ids, batch_node_interact_times, batch_edge_ids = \
@@ -171,7 +180,9 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
 
             evaluate_metrics.append(get_link_prediction_metrics(predicts=predicts, labels=labels))
 
-            evaluate_idx_data_loader_tqdm.set_description(f'evaluate for the {batch_idx + 1}-th batch, evaluate loss: {loss.item()}')
+            # Update progress description only if tqdm is enabled
+            if use_tqdm:
+                evaluate_idx_data_loader_tqdm.set_description(f'evaluate for the {batch_idx + 1}-th batch, evaluate loss: {loss.item()}')
 
     return evaluate_losses, evaluate_metrics
 

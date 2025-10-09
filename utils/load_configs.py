@@ -57,7 +57,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
     parser.add_argument('--num_runs', type=int, default=3, help='number of runs')
-    parser.add_argument('--test_interval_epochs', type=int, default=1, help='how many epochs to perform testing once')
+    parser.add_argument('--test_interval_epochs', type=int, default=5, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
     parser.add_argument('--max_interaction_times', type=int, default=10,
@@ -86,6 +86,10 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Arguments specific to KAN-MAMMOTE
     
+    # Debug arguments
+    parser.add_argument('--debug_encoder', action='store_true', default=False,
+                        help='Enable comprehensive debugging for time encoders (especially KAN-MAMMOTE)')
+    
     # Checkpoint and resuming arguments
     parser.add_argument('--resume_from_checkpoint', type=str, default=None,
                         help='path to checkpoint file to resume training from')
@@ -108,6 +112,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     try:
         args = parser.parse_args()
         args.device = f'cuda:{args.gpu}' if torch.cuda.is_available() and args.gpu >= 0 else 'cpu'
+        print(f'Using device: {args.device}')
     except:
         parser.print_help()
         sys.exit()

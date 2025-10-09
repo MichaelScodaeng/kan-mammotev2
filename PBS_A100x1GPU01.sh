@@ -26,4 +26,4 @@ python --version
 nvidia-smi -a > nvidia-smi.log
 
 # Run your experiment
-python experiment_unified.py --single_encoder "lete" --disable_progress_bar > experiment_lete_a100_01.log 2>&1
+python experiment_unified.py --models "TCL" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar > kanmammote_TCL.log 2>&1

@@ -1,0 +1,1992 @@
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='wikipedia', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/wikipedia/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=9228, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=9228, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: wikipedia
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 157474 interactions, involving 9227 different nodes
+The training dataset has 76106 interactions, involving 5875 different nodes
+The validation dataset has 23621 interactions, involving 3256 different nodes
+The test dataset has 23621 interactions, involving 3564 different nodes
+The new node validation dataset has 12032 interactions, involving 2193 different nodes
+The new node test dataset has 12391 interactions, involving 2572 different nodes
+922 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 157,474 edges
+   Train data: 76,106 edges (48.3%)
+   Val data: 23,621 edges (15.0%)
+   Test data: 23,621 edges (15.0%)
+   Expected batches: 381
+   ✅ All splits proportionally scaled with ratio 0.48:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/wikipedia/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034753.csv
+   Val metrics: val_metrics_20251009_034753.csv
+   New node val metrics: new_node_val_metrics_20251009_034753.csv
+   Test metrics: test_metrics_20251009_034753.csv
+   New node test metrics: new_node_test_metrics_20251009_034753.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034753.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034753.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='reddit', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/reddit/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=10985, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: reddit
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 672447 interactions, involving 10984 different nodes
+The training dataset has 396854 interactions, involving 9654 different nodes
+The validation dataset has 100867 interactions, involving 9839 different nodes
+The test dataset has 100867 interactions, involving 9615 different nodes
+The new node validation dataset has 18318 interactions, involving 3090 different nodes
+The new node test dataset has 20189 interactions, involving 3104 different nodes
+1098 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 672,447 edges
+   Train data: 396,854 edges (59.0%)
+   Val data: 100,867 edges (15.0%)
+   Test data: 100,867 edges (15.0%)
+   Expected batches: 1985
+   ✅ All splits proportionally scaled with ratio 0.59:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/reddit/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034807.csv
+   Val metrics: val_metrics_20251009_034807.csv
+   New node val metrics: new_node_val_metrics_20251009_034807.csv
+   Test metrics: test_metrics_20251009_034807.csv
+   New node test metrics: new_node_test_metrics_20251009_034807.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034807.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034807.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='mooc', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/mooc/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=7145, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=7145, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.2, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: mooc
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 411749 interactions, involving 7144 different nodes
+The training dataset has 211255 interactions, involving 6002 different nodes
+The validation dataset has 61762 interactions, involving 2599 different nodes
+The test dataset has 61763 interactions, involving 2412 different nodes
+The new node validation dataset has 24978 interactions, involving 2043 different nodes
+The new node test dataset has 27632 interactions, involving 1989 different nodes
+714 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 411,749 edges
+   Train data: 211,255 edges (51.3%)
+   Val data: 61,762 edges (15.0%)
+   Test data: 61,763 edges (15.0%)
+   Expected batches: 1057
+   ✅ All splits proportionally scaled with ratio 0.51:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/mooc/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034816.csv
+   Val metrics: val_metrics_20251009_034816.csv
+   New node val metrics: new_node_val_metrics_20251009_034816.csv
+   Test metrics: test_metrics_20251009_034816.csv
+   New node test metrics: new_node_test_metrics_20251009_034816.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034816.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034816.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='lastfm', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.3, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/lastfm/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1981, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1981, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.3, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: lastfm
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 1293103 interactions, involving 1980 different nodes
+The training dataset has 719779 interactions, involving 1615 different nodes
+The validation dataset has 193965 interactions, involving 1714 different nodes
+The test dataset has 193966 interactions, involving 1753 different nodes
+The new node validation dataset has 55676 interactions, involving 1622 different nodes
+The new node test dataset has 95285 interactions, involving 1658 different nodes
+198 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 1,293,103 edges
+   Train data: 719,779 edges (55.7%)
+   Val data: 193,965 edges (15.0%)
+   Test data: 193,966 edges (15.0%)
+   Expected batches: 3599
+   ✅ All splits proportionally scaled with ratio 0.56:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/lastfm/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034829.csv
+   Val metrics: val_metrics_20251009_034829.csv
+   New node val metrics: new_node_val_metrics_20251009_034829.csv
+   Test metrics: test_metrics_20251009_034829.csv
+   New node test metrics: new_node_test_metrics_20251009_034829.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034829.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034829.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='enron', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/enron/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=185, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: enron
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 125235 interactions, involving 184 different nodes
+The training dataset has 77880 interactions, involving 157 different nodes
+The validation dataset has 18786 interactions, involving 155 different nodes
+The test dataset has 18785 interactions, involving 141 different nodes
+The new node validation dataset has 5054 interactions, involving 115 different nodes
+The new node test dataset has 3977 interactions, involving 116 different nodes
+18 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 125,235 edges
+   Train data: 77,880 edges (62.2%)
+   Val data: 18,786 edges (15.0%)
+   Test data: 18,785 edges (15.0%)
+   Expected batches: 390
+   ✅ All splits proportionally scaled with ratio 0.62:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/enron/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034838.csv
+   Val metrics: val_metrics_20251009_034838.csv
+   New node val metrics: new_node_val_metrics_20251009_034838.csv
+   Test metrics: test_metrics_20251009_034838.csv
+   New node test metrics: new_node_test_metrics_20251009_034838.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034838.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034838.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='SocialEvo', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/SocialEvo/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=75, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=75, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: SocialEvo
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 2099519 interactions, involving 74 different nodes
+The training dataset has 1181729 interactions, involving 67 different nodes
+The validation dataset has 314930 interactions, involving 64 different nodes
+The test dataset has 314924 interactions, involving 62 different nodes
+The new node validation dataset has 75284 interactions, involving 61 different nodes
+The new node test dataset has 70040 interactions, involving 62 different nodes
+7 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 2,099,519 edges
+   Train data: 1,181,729 edges (56.3%)
+   Val data: 314,930 edges (15.0%)
+   Test data: 314,924 edges (15.0%)
+   Expected batches: 5909
+   ✅ All splits proportionally scaled with ratio 0.56:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/SocialEvo/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034854.csv
+   Val metrics: val_metrics_20251009_034854.csv
+   New node val metrics: new_node_val_metrics_20251009_034854.csv
+   Test metrics: test_metrics_20251009_034854.csv
+   New node test metrics: new_node_test_metrics_20251009_034854.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034854.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034854.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='uci', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/uci/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1900, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.4, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: uci
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 59835 interactions, involving 1899 different nodes
+The training dataset has 31167 interactions, involving 1340 different nodes
+The validation dataset has 8975 interactions, involving 1036 different nodes
+The test dataset has 8976 interactions, involving 847 different nodes
+The new node validation dataset has 4869 interactions, involving 807 different nodes
+The new node test dataset has 6082 interactions, involving 691 different nodes
+189 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 59,835 edges
+   Train data: 31,167 edges (52.1%)
+   Val data: 8,975 edges (15.0%)
+   Test data: 8,976 edges (15.0%)
+   Expected batches: 156
+   ✅ All splits proportionally scaled with ratio 0.52:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/uci/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034902.csv
+   Val metrics: val_metrics_20251009_034902.csv
+   New node val metrics: new_node_val_metrics_20251009_034902.csv
+   Test metrics: test_metrics_20251009_034902.csv
+   New node test metrics: new_node_test_metrics_20251009_034902.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034902.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034902.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='CanParl', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.0, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/CanParl/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=735, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=735, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.0, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: CanParl
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 74478 interactions, involving 734 different nodes
+The training dataset has 45865 interactions, involving 612 different nodes
+The validation dataset has 11809 interactions, involving 344 different nodes
+The test dataset has 10113 interactions, involving 342 different nodes
+The new node validation dataset has 5028 interactions, involving 343 different nodes
+The new node test dataset has 5185 interactions, involving 342 different nodes
+73 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 74,478 edges
+   Train data: 45,865 edges (61.6%)
+   Val data: 11,809 edges (15.9%)
+   Test data: 10,113 edges (13.6%)
+   Expected batches: 230
+   ✅ All splits proportionally scaled with ratio 0.62:0.16:0.14
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/CanParl/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034908.csv
+   Val metrics: val_metrics_20251009_034908.csv
+   New node val metrics: new_node_val_metrics_20251009_034908.csv
+   Test metrics: test_metrics_20251009_034908.csv
+   New node test metrics: new_node_test_metrics_20251009_034908.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034908.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034908.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='Contacts', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/Contacts/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=693, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: Contacts
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 2426279 interactions, involving 692 different nodes
+The training dataset has 1396338 interactions, involving 616 different nodes
+The validation dataset has 364005 interactions, involving 632 different nodes
+The test dataset has 363780 interactions, involving 629 different nodes
+The new node validation dataset has 56391 interactions, involving 599 different nodes
+The new node test dataset has 69818 interactions, involving 586 different nodes
+69 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 2,426,279 edges
+   Train data: 1,396,338 edges (57.6%)
+   Val data: 364,005 edges (15.0%)
+   Test data: 363,780 edges (15.0%)
+   Expected batches: 6982
+   ✅ All splits proportionally scaled with ratio 0.58:0.15:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/Contacts/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034924.csv
+   Val metrics: val_metrics_20251009_034924.csv
+   New node val metrics: new_node_val_metrics_20251009_034924.csv
+   Test metrics: test_metrics_20251009_034924.csv
+   New node test metrics: new_node_test_metrics_20251009_034924.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034924.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034924.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='Flights', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/Flights/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=13170, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=13170, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: Flights
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 1927145 interactions, involving 13169 different nodes
+The training dataset has 1062843 interactions, involving 11205 different nodes
+The validation dataset has 279399 interactions, involving 10844 different nodes
+The test dataset has 287824 interactions, involving 10906 different nodes
+The new node validation dataset has 60650 interactions, involving 6892 different nodes
+The new node test dataset has 64463 interactions, involving 6972 different nodes
+1316 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 1,927,145 edges
+   Train data: 1,062,843 edges (55.2%)
+   Val data: 279,399 edges (14.5%)
+   Test data: 287,824 edges (14.9%)
+   Expected batches: 5315
+   ✅ All splits proportionally scaled with ratio 0.55:0.14:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/Flights/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034941.csv
+   Val metrics: val_metrics_20251009_034941.csv
+   New node val metrics: new_node_val_metrics_20251009_034941.csv
+   Test metrics: test_metrics_20251009_034941.csv
+   New node test metrics: new_node_test_metrics_20251009_034941.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034941.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034941.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='UNtrade', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.4, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/UNtrade/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=256, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=256, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.4, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: UNtrade
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 507497 interactions, involving 255 different nodes
+The training dataset has 298421 interactions, involving 228 different nodes
+The validation dataset has 78721 interactions, involving 230 different nodes
+The test dataset has 61595 interactions, involving 228 different nodes
+The new node validation dataset has 15364 interactions, involving 228 different nodes
+The new node test dataset has 12291 interactions, involving 227 different nodes
+25 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 507,497 edges
+   Train data: 298,421 edges (58.8%)
+   Val data: 78,721 edges (15.5%)
+   Test data: 61,595 edges (12.1%)
+   Expected batches: 1493
+   ✅ All splits proportionally scaled with ratio 0.59:0.16:0.12
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/UNtrade/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_034950.csv
+   Val metrics: val_metrics_20251009_034950.csv
+   New node val metrics: new_node_val_metrics_20251009_034950.csv
+   Test metrics: test_metrics_20251009_034950.csv
+   New node test metrics: new_node_test_metrics_20251009_034950.csv
+   Test periodic metrics: test_periodic_metrics_20251009_034950.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_034950.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='UNvote', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.1, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/UNvote/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=202, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=202, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: UNvote
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 1035742 interactions, involving 201 different nodes
+The training dataset has 597911 interactions, involving 180 different nodes
+The validation dataset has 135298 interactions, involving 194 different nodes
+The test dataset has 155119 interactions, involving 194 different nodes
+The new node validation dataset has 26570 interactions, involving 194 different nodes
+The new node test dataset has 31513 interactions, involving 194 different nodes
+20 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 1,035,742 edges
+   Train data: 597,911 edges (57.7%)
+   Val data: 135,298 edges (13.1%)
+   Test data: 155,119 edges (15.0%)
+   Expected batches: 2990
+   ✅ All splits proportionally scaled with ratio 0.58:0.13:0.15
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/UNvote/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_035001.csv
+   Val metrics: val_metrics_20251009_035001.csv
+   New node val metrics: new_node_val_metrics_20251009_035001.csv
+   Test metrics: test_metrics_20251009_035001.csv
+   New node test metrics: new_node_test_metrics_20251009_035001.csv
+   Test periodic metrics: test_periodic_metrics_20251009_035001.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_035001.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='USLegis', batch_size=200, model_name='JODIE', gpu=0, num_neighbors=10, sample_neighbor_strategy='uniform', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, num_layers=1, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, time_window_mode='fixed_proportion', time_encoder_type='kan_mammote_dual_kmote', expert_dim=128, num_mixtures=16, sort_neighbors_by_time=False, patch_size=1, channel_embedding_dim=50, max_input_sequence_length=32, learning_rate=0.0001, dropout=0.2, gamma=0.5, num_epochs=100, optimizer='Adam', weight_decay=0.0, patience=20, val_ratio=0.15, test_ratio=0.15, num_runs=3, test_interval_epochs=5, negative_sample_strategy='random', max_interaction_times=10, load_best_configs=True, data_ratio=1.0, seed=0, save_model_name_suffix='', ablation_dir='', mamba_d_state=256, mamba_d_conv=4, mamba_expand=2, mamba_headdim=64, resume_from_checkpoint=None, save_checkpoints=True, checkpoint_interval=5, start_from_seed=0, max_checkpoints_to_keep=3, checkpoint_strategy='smart', validate_checkpoints=True, disable_progress_bar=True, device='cuda:0', save_model_name='JODIE_kan_mammote_dual_kmote_seed0')
+INFO:root:Metrics will be saved to: ./saved_metrics/JODIE/USLegis/JODIE_kan_mammote_dual_kmote_seed0
+INFO:root:time encoder type: kan_mammote_dual_kmote
+INFO:root:Time encoder will be injected into JODIE model
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=226, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=226, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.2, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Warming up time encoder...
+
+🔍 DEBUGGING DATA LOADING:
+   Time encoder: kan_mammote_dual_kmote
+   Dataset: USLegis
+   Val ratio: 0.15
+   Test ratio: 0.15
+   Batch size: 200
+   Load best configs: True
+   Data ratio: 1.0
+   Seed: 42
+The dataset has 60396 interactions, involving 225 different nodes
+The training dataset has 38735 interactions, involving 177 different nodes
+The validation dataset has 10005 interactions, involving 113 different nodes
+The test dataset has 4950 interactions, involving 100 different nodes
+The new node validation dataset has 4999 interactions, involving 113 different nodes
+The new node test dataset has 3410 interactions, involving 100 different nodes
+22 nodes were used for the inductive testing, i.e. are never seen during training
+
+📊 DATA SPLIT SIZES (after data_ratio=1.0):
+   Full data: 60,396 edges
+   Train data: 38,735 edges (64.1%)
+   Val data: 10,005 edges (16.6%)
+   Test data: 4,950 edges (8.2%)
+   Expected batches: 194
+   ✅ All splits proportionally scaled with ratio 0.64:0.17:0.08
+📊 MetricsLogger initialized:
+   Save directory: ./saved_metrics/JODIE/USLegis/JODIE_kan_mammote_dual_kmote_seed0
+   Train metrics: train_metrics_20251009_035008.csv
+   Val metrics: val_metrics_20251009_035008.csv
+   New node val metrics: new_node_val_metrics_20251009_035008.csv
+   Test metrics: test_metrics_20251009_035008.csv
+   New node test metrics: new_node_test_metrics_20251009_035008.csv
+   Test periodic metrics: test_periodic_metrics_20251009_035008.csv
+   New node test periodic metrics: new_node_test_periodic_metrics_20251009_035008.csv
+Available encoders: ['original', 'time_encoder', 'default', 'kan_mammote', 'kan_mammote_dual_kmote', 'dual_stream_baseline', 'kan_mammote_lite', 'mercer', 'lete', 'bochner', 'time2vec', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only']
+Requested encoder: kan_mammote_dual_kmote
+INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).
+INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.
+KAN-MAMMOTE Dual K-MOTE parameters:
+  - embedding_dim: 100
+  - expert_dim: 128
+  - num_mixtures: 16 (for fusion architecture)
+  - mamba_d_state: 256
+  - mamba_d_conv: 4
+  - mamba_expand: 2
+  - use_kmote_for_relative: True (dual K-MOTE mode)
+⚠️  WARNING: num_mixtures (16) != expert_dim (128)
+🔧 Setting num_mixtures = expert_dim = 128 for architectural consistency
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using K-MOTE for relative time encoding (dual K-MOTE mode)
+Initialized K-MOTE with LayerNorm, Gating Temperature=1.0.
+🔧 Using ControllableMamba2 (with FiLM modulation)
+Mamba2 parameters:
+  nheads: 16
+  d_state: 256
+  d_conv: 4
+  expand: 2
+  headdim: 16
+  embedding_dim: 100
+  use_kmote_for_relative: True
+Initialized Enhanced KAN-MAMMOTE Framework with shock wavelet.
+INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).
+
+============================================================
+🔥 Warming up KAN-MAMMOTE (ControllableMamba2)...
+============================================================
+Traceback (most recent call last):
+  File "/home/s2516027/kan-mammotev2/experiments/train_link_prediction.py", line 430, in <module>
+    time_encoder.warmup(device=args.device, num_iterations=3)
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 158, in warmup
+    _ = self.forward(dummy_t_abs, dummy_t_rel)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/kan_mammote.py", line 199, in forward
+    u_k = self.k_mote_abs(t_abs)  # (B, S, expert_dim)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/kan-mammotev2/models/time_encoders/k_mote.py", line 281, in forward
+    gating_logits = self.gating_network(t)
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/container.py", line 219, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/kan_mammote/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and cuda:0! (when checking argument for argument mat1 in method wrapper_CUDA_addmm)
+🎯 Running experiments for time encoder: kan_mammote_dual_kmote
+
+🚀 Starting Time Encoder Experiments
+Time Encoder: kan_mammote_dual_kmote
+Models: ['JODIE']
+Datasets: ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci', 'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
+Runs per experiment: 3
+Timeout: 12.0 hours
+Log Directory: experiment_logs/kan_mammote_dual_kmote
+Run Directory: experiment_logs/kan_mammote_dual_kmote/kan_mammote_dual_kmote_20251009_034738
+Status File: experiment_logs/kan_mammote_dual_kmote/experiment_status_kan_mammote_dual_kmote.json
+Progress File: experiment_logs/kan_mammote_dual_kmote/kan_mammote_dual_kmote_20251009_034738/experiment_progress_kan_mammote_dual_kmote_20251009_034738.log
+
+================================================================================
+EXPERIMENT SUMMARY - KAN_MAMMOTE_DUAL_KMOTE
+================================================================================
+Time Encoder: kan_mammote_dual_kmote
+Total possible experiments: 78
+Completed experiments: 0
+Incomplete experiments: 3
+Remaining experiments: 75
+
+⚠️  Incomplete (3):
+   kan_mammote_dual_kmote_DyGFormer_wikipedia
+   kan_mammote_dual_kmote_DyGMamba_wikipedia
+   kan_mammote_dual_kmote_TGAT_wikipedia
+================================================================================
+--------------------------------------------------------------------------------
+📋 Experiments to run: 13
+--------------------------------------------------------------------------------
+
+[1/13] Processing: kan_mammote_dual_kmote_JODIE_wikipedia
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name wikipedia --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:47:38
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_wikipedia
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_wikipedia
+Return code: 1
+
+📊 Progress: 0 completed, 12 remaining
+
+
+[2/13] Processing: kan_mammote_dual_kmote_JODIE_reddit
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name reddit --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:47:57
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_reddit
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_reddit
+Return code: 1
+
+📊 Progress: 0 completed, 11 remaining
+
+
+[3/13] Processing: kan_mammote_dual_kmote_JODIE_mooc
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name mooc --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:48:09
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_mooc
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_mooc
+Return code: 1
+
+📊 Progress: 0 completed, 10 remaining
+
+
+[4/13] Processing: kan_mammote_dual_kmote_JODIE_lastfm
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name lastfm --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:48:18
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_lastfm
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_lastfm
+Return code: 1
+
+📊 Progress: 0 completed, 9 remaining
+
+
+[5/13] Processing: kan_mammote_dual_kmote_JODIE_enron
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name enron --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:48:33
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_enron
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_enron
+Return code: 1
+
+📊 Progress: 0 completed, 8 remaining
+
+
+[6/13] Processing: kan_mammote_dual_kmote_JODIE_SocialEvo
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name SocialEvo --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:48:39
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_SocialEvo
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_SocialEvo
+Return code: 1
+
+📊 Progress: 0 completed, 7 remaining
+
+
+[7/13] Processing: kan_mammote_dual_kmote_JODIE_uci
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name uci --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:48:57
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_uci
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_uci
+Return code: 1
+
+📊 Progress: 0 completed, 6 remaining
+
+
+[8/13] Processing: kan_mammote_dual_kmote_JODIE_CanParl
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name CanParl --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:49:04
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_CanParl
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_CanParl
+Return code: 1
+
+📊 Progress: 0 completed, 5 remaining
+
+
+[9/13] Processing: kan_mammote_dual_kmote_JODIE_Contacts
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name Contacts --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:49:09
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_Contacts
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_Contacts
+Return code: 1
+
+📊 Progress: 0 completed, 4 remaining
+
+
+[10/13] Processing: kan_mammote_dual_kmote_JODIE_Flights
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name Flights --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:49:28
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_Flights
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_Flights
+Return code: 1
+
+📊 Progress: 0 completed, 3 remaining
+
+
+[11/13] Processing: kan_mammote_dual_kmote_JODIE_UNtrade
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name UNtrade --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:49:44
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_UNtrade
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_UNtrade
+Return code: 1
+
+📊 Progress: 0 completed, 2 remaining
+
+
+[12/13] Processing: kan_mammote_dual_kmote_JODIE_UNvote
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name UNvote --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:49:52
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_UNvote
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_UNvote
+Return code: 1
+
+📊 Progress: 0 completed, 1 remaining
+
+
+[13/13] Processing: kan_mammote_dual_kmote_JODIE_USLegis
+🚀 Starting new training from seed 0
+Command: python experiments/train_link_prediction.py --model_name JODIE --dataset_name USLegis --time_encoder_type kan_mammote_dual_kmote --num_runs 3 --load_best_configs --save_checkpoints --checkpoint_strategy smart --max_checkpoints_to_keep 3 --validate_checkpoints --disable_progress_bar
+Timestamp: 2025-10-09 03:50:04
+--------------------------------------------------------------------------------
+Marked as incomplete: kan_mammote_dual_kmote_JODIE_USLegis
+--------------------------------------------------------------------------------
+❌ Error occurred while running: kan_mammote_dual_kmote_JODIE_USLegis
+Return code: 1
+
+📊 Progress: 0 completed, 0 remaining
+
+
+🏁 Experiment batch completed!
+
+================================================================================
+EXPERIMENT SUMMARY - KAN_MAMMOTE_DUAL_KMOTE
+================================================================================
+Time Encoder: kan_mammote_dual_kmote
+Total possible experiments: 78
+Completed experiments: 0
+Incomplete experiments: 53
+Remaining experiments: 25
+
+⚠️  Incomplete (53):
+   kan_mammote_dual_kmote_DyGFormer_CanParl
+   kan_mammote_dual_kmote_DyGFormer_Contacts
+   kan_mammote_dual_kmote_DyGFormer_SocialEvo
+   kan_mammote_dual_kmote_DyGFormer_enron
+   kan_mammote_dual_kmote_DyGFormer_lastfm
+   kan_mammote_dual_kmote_DyGFormer_mooc
+   kan_mammote_dual_kmote_DyGFormer_reddit
+   kan_mammote_dual_kmote_DyGFormer_uci
+   kan_mammote_dual_kmote_DyGFormer_wikipedia
+   kan_mammote_dual_kmote_DyGMamba_CanParl
+   kan_mammote_dual_kmote_DyGMamba_Contacts
+   kan_mammote_dual_kmote_DyGMamba_SocialEvo
+   kan_mammote_dual_kmote_DyGMamba_enron
+   kan_mammote_dual_kmote_DyGMamba_lastfm
+   kan_mammote_dual_kmote_DyGMamba_mooc
+   kan_mammote_dual_kmote_DyGMamba_reddit
+   kan_mammote_dual_kmote_DyGMamba_uci
+   kan_mammote_dual_kmote_DyGMamba_wikipedia
+   kan_mammote_dual_kmote_JODIE_CanParl
+   kan_mammote_dual_kmote_JODIE_Contacts
+   kan_mammote_dual_kmote_JODIE_Flights
+   kan_mammote_dual_kmote_JODIE_SocialEvo
+   kan_mammote_dual_kmote_JODIE_UNtrade
+   kan_mammote_dual_kmote_JODIE_UNvote
+   kan_mammote_dual_kmote_JODIE_USLegis
+   kan_mammote_dual_kmote_JODIE_enron
+   kan_mammote_dual_kmote_JODIE_lastfm
+   kan_mammote_dual_kmote_JODIE_mooc
+   kan_mammote_dual_kmote_JODIE_reddit
+   kan_mammote_dual_kmote_JODIE_uci
+   kan_mammote_dual_kmote_JODIE_wikipedia
+   kan_mammote_dual_kmote_TCL_CanParl
+   kan_mammote_dual_kmote_TCL_Contacts
+   kan_mammote_dual_kmote_TCL_SocialEvo
+   kan_mammote_dual_kmote_TCL_enron
+   kan_mammote_dual_kmote_TCL_lastfm
+   kan_mammote_dual_kmote_TCL_mooc
+   kan_mammote_dual_kmote_TCL_reddit
+   kan_mammote_dual_kmote_TCL_uci
+   kan_mammote_dual_kmote_TCL_wikipedia
+   kan_mammote_dual_kmote_TGAT_wikipedia
+   kan_mammote_dual_kmote_TGN_CanParl
+   kan_mammote_dual_kmote_TGN_Contacts
+   kan_mammote_dual_kmote_TGN_Flights
+   kan_mammote_dual_kmote_TGN_SocialEvo
+   kan_mammote_dual_kmote_TGN_UNtrade
+   kan_mammote_dual_kmote_TGN_UNvote
+   kan_mammote_dual_kmote_TGN_enron
+   kan_mammote_dual_kmote_TGN_lastfm
+   kan_mammote_dual_kmote_TGN_mooc
+   kan_mammote_dual_kmote_TGN_reddit
+   kan_mammote_dual_kmote_TGN_uci
+   kan_mammote_dual_kmote_TGN_wikipedia
+================================================================================
+📊 Experiment report generated: experiment_logs/kan_mammote_dual_kmote/experiment_report_kan_mammote_dual_kmote_20251009_035009.txt
+📊 Detailed report saved to: experiment_logs/kan_mammote_dual_kmote/experiment_report_kan_mammote_dual_kmote_20251009_035009.txt
+
+📁 Log organization:
+   - Encoder directory: experiment_logs/kan_mammote_dual_kmote
+   - Current run: experiment_logs/kan_mammote_dual_kmote/kan_mammote_dual_kmote_20251009_035009
+   - Status file: experiment_logs/kan_mammote_dual_kmote/experiment_status_kan_mammote_dual_kmote.json
+   - Report: experiment_logs/kan_mammote_dual_kmote/experiment_report_kan_mammote_dual_kmote_20251009_035009.txt
+
+✨ Experiments for kan_mammote_dual_kmote completed successfully!

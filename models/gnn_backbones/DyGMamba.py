@@ -349,6 +349,7 @@ class DyGMamba(nn.Module):
         max_interaction_times = self.max_interaction_times
 
         padded_time = np.ones((len(src_node_ids), max_interaction_times)).astype(np.longlong) * 1e10
+        padded_abs_time = np.ones((len(src_node_ids), max_interaction_times)).astype(np.float32) * 1e-6
 
         for idx in range(len(src_node_ids)):
             find_interact = np.where(src_nodes_neighbor_ids_list[idx] == dst_node_ids[idx], src_nodes_neighbor_ids_list[idx], 0)
@@ -357,16 +358,45 @@ class DyGMamba(nn.Module):
                 continue
             else:
                 unique_ts = np.unique(src_nodes_neighbor_times_list[idx][find_interact_index[0]])
+                
+                # For relative time (inter-interaction gaps) - original logic
                 find_idx_back = np.concatenate((unique_ts, [src_node_interact_times[idx].item()]))
                 find_idx_front = np.concatenate(([0.0], unique_ts))
                 time_diff = find_idx_back - find_idx_front
+                
+                # For absolute time (actual interaction timestamps)
+                interaction_times = np.concatenate((unique_ts, [src_node_interact_times[idx].item()]))
+                
                 if time_diff.shape[0] - 1 < max_interaction_times:
+                    # Relative time (gaps)
                     padded_time[idx][-time_diff.shape[0]+1:] = time_diff[1:]
+                    # Absolute time (timestamps)
+                    padded_abs_time[idx][-interaction_times.shape[0]:] = interaction_times
                 else:
+                    # Relative time (gaps)
                     padded_time[idx][:] = time_diff[-max_interaction_times:]
+                    # Absolute time (timestamps)
+                    padded_abs_time[idx][:] = interaction_times[-max_interaction_times:]
 
-
-        padded_time_diff_emb = time_encoder(timestamps=torch.from_numpy(padded_time).float().to(self.device))
+        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface for time difference embedding
+        time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
+        
+        if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Use real absolute times and inter-interaction gaps
+            t_abs = torch.from_numpy(padded_abs_time).float().to(self.device)    # ✅ Real interaction timestamps
+            t_rel = torch.from_numpy(padded_time).float().to(self.device)        # ✅ Inter-interaction gaps
+            padded_time_diff_emb = time_encoder(t_abs=t_abs, t_rel=t_rel)
+        else:
+            # Standard time encoders: Use relative time only (backward compatibility)
+            padded_time_diff_emb = time_encoder(timestamps=torch.from_numpy(padded_time).float().to(self.device))
 
         return padded_time_diff_emb
 
@@ -386,7 +416,26 @@ class DyGMamba(nn.Module):
         # Tensor, shape (batch_size, max_seq_length, edge_feat_dim)
         padded_nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(padded_nodes_edge_ids)]
         # Tensor, shape (batch_size, max_seq_length, time_feat_dim)
-        padded_nodes_neighbor_time_features = time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - padded_nodes_neighbor_times).float().to(self.device))
+        
+        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
+        
+        if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
+            # Check if wrapped encoder is KAN_MAMMOTE variant
+            wrapped_encoder_name = time_encoder.encoder.__class__.__name__
+            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        else:
+            # Direct encoder check
+            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+        
+        if is_kan_mammote:
+            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+            t_abs = torch.from_numpy(padded_nodes_neighbor_times).float().to(self.device)  # Absolute neighbor times
+            t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - padded_nodes_neighbor_times).float().to(self.device)  # Relative time differences
+            padded_nodes_neighbor_time_features = time_encoder(t_abs=t_abs, t_rel=t_rel)
+        else:
+            # Standard time encoders: Use relative time only (backward compatibility)
+            padded_nodes_neighbor_time_features = time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - padded_nodes_neighbor_times).float().to(self.device))
 
         # ndarray, set the time features to all zeros for the padded timestamp
         padded_nodes_neighbor_time_features[torch.from_numpy(padded_nodes_neighbor_ids == 0)] = 0.0
