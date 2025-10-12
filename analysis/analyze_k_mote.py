@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
+from tqdm import tqdm
 
 # Add the parent directory to Python path to import models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,7 +26,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model(model, t_data, y_true, epochs=10000, lr=2e-4):
+def train_model(model, t_data, y_true, max_epochs=10000, lr=2e-4, patience=500, min_delta=1e-6):
     """ฟังก์ชันสำหรับเทรนโมเดลเพื่อ fit ข้อมูล"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -36,45 +37,76 @@ def train_model(model, t_data, y_true, epochs=10000, lr=2e-4):
     if y_true.dim() == 1:
         y_true = y_true.unsqueeze(-1)
 
-    for epoch in range(epochs):
-        model.train()
-        y_pred = model(t_data)
-        
-        # Check for NaN/Inf in predictions
-        if torch.isnan(y_pred).any() or torch.isinf(y_pred).any():
-            print(f"WARNING: NaN/Inf detected in predictions at epoch {epoch+1}")
-            # Try to recover
-            for param in model.parameters():
-                if torch.isnan(param).any() or torch.isinf(param).any():
-                    param.data.normal_(0, 0.01)
-            continue
-        
-        # Ensure consistent dimensions - squeeze extra dimensions from model output
-        if y_pred.dim() > y_true.dim():
-            y_pred = y_pred.squeeze(-1)
-        
-        loss = loss_fn(y_pred, y_true)
-        
-        # Check for NaN/Inf in loss
-        if torch.isnan(loss) or torch.isinf(loss):
-            print(f"WARNING: NaN/Inf loss at epoch {epoch+1}, skipping update")
-            continue
-        
-        optimizer.zero_grad()
-        loss.backward()
-        
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
-        optimizer.step()
-        
-        if (epoch + 1) % 500 == 0:
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}")
+    best_loss = float('inf')
+    patience_counter = 0
+    loss_history = []
+
+    with tqdm(range(max_epochs), desc="Training Model", leave=False) as pbar:
+        for epoch in pbar:
+            model.train()
+            y_pred = model(t_data)
             
-        # Early stopping if loss becomes too large
-        if loss.item() > 1e6:
-            print(f"Loss exploded at epoch {epoch+1}, stopping training")
-            break
+            # Check for NaN/Inf in predictions
+            if torch.isnan(y_pred).any() or torch.isinf(y_pred).any():
+                print(f"WARNING: NaN/Inf detected in predictions at epoch {epoch+1}")
+                # Try to recover
+                for param in model.parameters():
+                    if torch.isnan(param).any() or torch.isinf(param).any():
+                        param.data.normal_(0, 0.01)
+                continue
+            
+            # Ensure consistent dimensions - squeeze extra dimensions from model output
+            if y_pred.dim() > y_true.dim():
+                y_pred = y_pred.squeeze(-1)
+            
+            loss = loss_fn(y_pred, y_true)
+            
+            # Check for NaN/Inf in loss
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"WARNING: NaN/Inf loss at epoch {epoch+1}, skipping update")
+                continue
+            
+            optimizer.zero_grad()
+            loss.backward()
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
+            optimizer.step()
+            
+            current_loss = loss.item()
+            loss_history.append(current_loss)
+            
+            # Check for improvement
+            if current_loss < best_loss - min_delta:
+                best_loss = current_loss
+                patience_counter = 0
+            else:
+                patience_counter += 1
+            
+            # Update progress bar
+            pbar.set_postfix({
+                'Loss': f'{current_loss:.6f}',
+                'Best': f'{best_loss:.6f}',
+                'Patience': f'{patience_counter}/{patience}'
+            })
+            
+            # Early stopping
+            if patience_counter >= patience:
+                print(f"Converged at epoch {epoch+1} (patience reached)")
+                break
+                
+            # Additional convergence check
+            if epoch > 100:
+                recent_losses = loss_history[-50:]
+                if max(recent_losses) - min(recent_losses) < min_delta:
+                    print(f"Converged at epoch {epoch+1} (loss stabilized)")
+                    break
+            
+            # Early stopping if loss becomes too large
+            if current_loss > 1e6:
+                print(f"Loss exploded at epoch {epoch+1}, stopping training")
+                break
 
 def plot_fit(ax, t, y_true, model, title):
     """ฟังก์ชันสำหรับพล็อตผลลัพธ์การ fit"""
@@ -147,7 +179,6 @@ def run_fitting_analysis():
         "B-Spline Expert": SingleExpertModel(SplineKANLayer, basis_function='b_spline'),
         "Fourier Expert": SingleExpertModel(FourierKANLayer),
         "Wavelet Expert": SingleExpertModel(WaveletKANLayer, wavelet_type='shock'),  # Use more stable wavelet
-        "RBF Expert": SingleExpertModel(SplineKANLayer, basis_function='rbf'),
         "Full K-MOTE": KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
     }
     
@@ -194,8 +225,9 @@ def run_fitting_analysis():
         plt.savefig(f'analysis_figures/expert_performance_{safe_filename}.png', dpi=300, bbox_inches='tight')
         plt.show()
 
-def train_model_with_loss_return(model, t_data, y_true, epochs=10000, lr=2e-4):
-    """Train model and return final loss"""
+def train_model_with_loss_return(model, t_data, y_true, max_epochs=8000, lr=2e-4, 
+                               patience=300, min_delta=1e-6):
+    """Train model until convergence and return final loss and training info"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
     
@@ -204,43 +236,76 @@ def train_model_with_loss_return(model, t_data, y_true, epochs=10000, lr=2e-4):
     if y_true.dim() == 1:
         y_true = y_true.unsqueeze(-1)
 
-    for epoch in range(epochs):
-        model.train()
-        y_pred = model(t_data)
-        
-        # Check for NaN/Inf in predictions
-        if torch.isnan(y_pred).any() or torch.isinf(y_pred).any():
-            print(f"    WARNING: NaN/Inf detected in predictions at epoch {epoch+1}")
-            # Try to recover by resetting problematic parameters
-            for param in model.parameters():
-                if torch.isnan(param).any() or torch.isinf(param).any():
-                    param.data.normal_(0, 0.01)
-            continue
-        
-        # Ensure consistent dimensions - squeeze extra dimensions from model output
-        if y_pred.dim() > y_true.dim():
-            y_pred = y_pred.squeeze(-1)
+    best_loss = float('inf')
+    patience_counter = 0
+    loss_history = []
+    
+    # Use tqdm for progress bar
+    with tqdm(range(max_epochs), desc="Training", leave=False) as pbar:
+        for epoch in pbar:
+            model.train()
+            y_pred = model(t_data)
             
-        loss = loss_fn(y_pred, y_true)
-        
-        # Check for NaN/Inf in loss
-        if torch.isnan(loss) or torch.isinf(loss):
-            print(f"    WARNING: NaN/Inf loss at epoch {epoch+1}, skipping update")
-            continue
-        
-        optimizer.zero_grad()
-        loss.backward()
-        
-        # Gradient clipping to prevent explosion
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
-        optimizer.step()
-        
-        if (epoch + 1) % 1000 == 0:
-            print(f"    Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}")
+            # Check for NaN/Inf in predictions
+            if torch.isnan(y_pred).any() or torch.isinf(y_pred).any():
+                print(f"    WARNING: NaN/Inf detected in predictions at epoch {epoch+1}")
+                # Try to recover by resetting problematic parameters
+                for param in model.parameters():
+                    if torch.isnan(param).any() or torch.isinf(param).any():
+                        param.data.normal_(0, 0.01)
+                continue
+            
+            # Ensure consistent dimensions - squeeze extra dimensions from model output
+            if y_pred.dim() > y_true.dim():
+                y_pred = y_pred.squeeze(-1)
+                
+            loss = loss_fn(y_pred, y_true)
+            
+            # Check for NaN/Inf in loss
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"    WARNING: NaN/Inf loss at epoch {epoch+1}, skipping update")
+                continue
+            
+            optimizer.zero_grad()
+            loss.backward()
+            
+            # Gradient clipping to prevent explosion
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
+            optimizer.step()
+            
+            current_loss = loss.item()
+            loss_history.append(current_loss)
+            
+            # Check for improvement
+            if current_loss < best_loss - min_delta:
+                best_loss = current_loss
+                patience_counter = 0
+            else:
+                patience_counter += 1
+            
+            # Update progress bar
+            pbar.set_postfix({
+                'Loss': f'{current_loss:.6f}',
+                'Best': f'{best_loss:.6f}',
+                'Patience': f'{patience_counter}/{patience}'
+            })
+            
+            # Early stopping
+            if patience_counter >= patience:
+                print(f"    Converged at epoch {epoch+1} (patience reached)")
+                break
+                
+            # Additional convergence check: if loss is very stable
+            if epoch > 100:
+                recent_losses = loss_history[-50:]
+                if max(recent_losses) - min(recent_losses) < min_delta:
+                    print(f"    Converged at epoch {epoch+1} (loss stabilized)")
+                    break
     
     # Final safety check
-    final_loss = loss.item() if not (torch.isnan(loss) or torch.isinf(loss)) else float('inf')
+    final_loss = best_loss if best_loss != float('inf') else float('inf')
+    print(f"    Final Loss: {final_loss:.6f} (converged in {epoch+1} epochs)")
     return final_loss
 
 
