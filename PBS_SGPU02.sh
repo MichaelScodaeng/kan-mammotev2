@@ -20,4 +20,4 @@ source ~/.bashrc
 conda activate kan_mammote
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_unified.py --models "DyGMamba" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar > kanmammote_DyGMamba.log 2>&1
+python experiment_unified.py --models "DyGMamba" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar --num_runs 1 > kanmammote_DyGMamba.log 2>&1

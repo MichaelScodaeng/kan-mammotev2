@@ -442,8 +442,15 @@ if __name__ == "__main__":
         else:
             save_model_folder = f"./saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}"
         
-        shutil.rmtree(save_model_folder, ignore_errors=True)
-        os.makedirs(save_model_folder, exist_ok=True)
+        # CRITICAL FIX: Only clear directory if NOT resuming from checkpoint
+        if args.resume_from_checkpoint and os.path.exists(args.resume_from_checkpoint):
+            logger.info(f"🔄 Resuming from checkpoint - preserving model directory: {save_model_folder}")
+            # Ensure directory exists but don't delete existing checkpoints
+            os.makedirs(save_model_folder, exist_ok=True)
+        else:
+            logger.info(f"🚀 Starting fresh training - clearing model directory: {save_model_folder}")
+            shutil.rmtree(save_model_folder, ignore_errors=True)
+            os.makedirs(save_model_folder, exist_ok=True)
 
         early_stopping = EarlyStopping(patience=args.patience, save_model_folder=save_model_folder,
                                        save_model_name=args.save_model_name, logger=logger, model_name=args.model_name)
@@ -489,46 +496,58 @@ if __name__ == "__main__":
                 args.resume_from_checkpoint = None
 
         # Load checkpoint if available
-        if args.resume_from_checkpoint and os.path.exists(args.resume_from_checkpoint):
-            try:
-                logger.info(f'Loading checkpoint: {args.resume_from_checkpoint}')
-                checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu', weights_only=False)
-                start_epoch = checkpoint['epoch']
-                
-                # Load model and optimizer state
-                model.load_state_dict(checkpoint['model_state_dict'])
-                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-                
-                # Restore other training state
-                if 'random_state' in checkpoint:
-                    torch.set_rng_state(checkpoint['random_state'])
-                
-                # Restore best average precision (handle legacy 'best_acc' name)
-                best_average_precision = checkpoint.get('best_average_precision', checkpoint.get('best_acc', 0.0))
-                
-                # Restore early stopping state if available
-                if 'early_stopping_counter' in checkpoint:
-                    early_stopping.counter = checkpoint['early_stopping_counter']
-                    # Restore best_metrics if available
-                    if 'early_stopping_best_metrics' in checkpoint:
-                        early_stopping.best_metrics = checkpoint['early_stopping_best_metrics']
-                    # Legacy compatibility for old checkpoints with best_score
-                    elif 'early_stopping_best_score' in checkpoint:
-                        # Convert single score to metrics dict format (best effort)
-                        early_stopping.best_metrics = {'average_precision': checkpoint['early_stopping_best_score']}
-                
-                checkpoint_loaded = True
-                
-                logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_average_precision: {best_average_precision:.4f}')
-                
-            except Exception as e:
-                logger.error(f'Failed to load checkpoint {args.resume_from_checkpoint}: {e}')
+        if args.resume_from_checkpoint:
+            logger.info(f'🔍 Checkpoint debugging in train_link_prediction.py:')
+            logger.info(f'   Checkpoint path argument: {args.resume_from_checkpoint}')
+            logger.info(f'   Working directory: {os.getcwd()}')
+            logger.info(f'   File exists check: {os.path.exists(args.resume_from_checkpoint)}')
+            logger.info(f'   Absolute path: {os.path.abspath(args.resume_from_checkpoint)}')
+            logger.info(f'   Absolute exists: {os.path.exists(os.path.abspath(args.resume_from_checkpoint))}')
+            
+            if os.path.exists(args.resume_from_checkpoint):
+                try:
+                    logger.info(f'Loading checkpoint: {args.resume_from_checkpoint}')
+                    checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu', weights_only=False)
+                    start_epoch = checkpoint['epoch']
+                    
+                    # Load model and optimizer state
+                    model.load_state_dict(checkpoint['model_state_dict'])
+                    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                    
+                    # Restore other training state
+                    if 'random_state' in checkpoint:
+                        torch.set_rng_state(checkpoint['random_state'])
+                    
+                    # Restore best average precision (handle legacy 'best_acc' name)
+                    best_average_precision = checkpoint.get('best_average_precision', checkpoint.get('best_acc', 0.0))
+                    
+                    # Restore early stopping state if available
+                    if 'early_stopping_counter' in checkpoint:
+                        early_stopping.counter = checkpoint['early_stopping_counter']
+                        # Restore best_metrics if available
+                        if 'early_stopping_best_metrics' in checkpoint:
+                            early_stopping.best_metrics = checkpoint['early_stopping_best_metrics']
+                        # Legacy compatibility for old checkpoints with best_score
+                        elif 'early_stopping_best_score' in checkpoint:
+                            # Convert single score to metrics dict format (best effort)
+                            early_stopping.best_metrics = {'average_precision': checkpoint['early_stopping_best_score']}
+                    
+                    checkpoint_loaded = True
+                    
+                    logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_average_precision: {best_average_precision:.4f}')
+                    
+                except Exception as e:
+                    logger.error(f'Failed to load checkpoint {args.resume_from_checkpoint}: {e}')
+                    logger.info('Starting fresh training')
+                    start_epoch = 0
+                    best_average_precision = 0.0
+                    checkpoint_loaded = False
+            else:
+                logger.error(f'Checkpoint path not found: {args.resume_from_checkpoint}')
                 logger.info('Starting fresh training')
                 start_epoch = 0
                 best_average_precision = 0.0
-                checkpoint_loaded = False
-
-        # Adaptive checkpoint interval based on strategy
+                checkpoint_loaded = False        # Adaptive checkpoint interval based on strategy
         if hasattr(args, 'checkpoint_strategy') and args.save_checkpoints:
             if args.checkpoint_strategy == 'frequent':
                 args.checkpoint_interval = 5

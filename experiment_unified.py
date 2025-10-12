@@ -515,7 +515,7 @@ def find_incomplete_seed_checkpoint(model_name, dataset_name, time_encoder_type,
                             required_fields = ['epoch', 'model_state_dict', 'optimizer_state_dict']
                             if all(field in checkpoint for field in required_fields):
                                 print(f"✅ Found valid checkpoint: {checkpoint_path} (epoch {epoch})")
-                                return checkpoint_path, epoch
+                                return os.path.abspath(checkpoint_path), epoch
                             else:
                                 print(f"⚠️  Checkpoint missing required fields: {checkpoint_path}")
                                 continue
@@ -562,9 +562,9 @@ def find_checkpoint_file(model_name, dataset_name, time_encoder_type):
         if not checkpoint_files:
             return None
     
-    # Return the most recent checkpoint
+    # Return the most recent checkpoint as ABSOLUTE PATH
     checkpoint_files.sort(key=os.path.getmtime, reverse=True)
-    return checkpoint_files[0]
+    return os.path.abspath(checkpoint_files[0])
 
 def check_training_completion(model_name, dataset_name, time_encoder_type):
     """Check if training was completed by looking for final results (encoder-aware)."""
@@ -911,7 +911,15 @@ if __name__ == "__main__":
         
         # Add checkpoint resuming if available
         if resume_from_checkpoint and checkpoint_file:
-            command.extend(['--resume_from_checkpoint', checkpoint_file])
+            # Convert to absolute path and verify existence
+            abs_checkpoint_path = os.path.abspath(checkpoint_file)
+            print(f"🔍 Checkpoint debugging:")
+            print(f"   Original path: {checkpoint_file}")
+            print(f"   Absolute path: {abs_checkpoint_path}")
+            print(f"   File exists: {os.path.exists(abs_checkpoint_path)}")
+            print(f"   Working dir: {os.getcwd()}")
+            
+            command.extend(['--resume_from_checkpoint', abs_checkpoint_path])
             print(f"🔄 Resuming from checkpoint at seed {start_from_seed}")
         else:
             if start_from_seed > 0:
