@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import logging
-
+from pathlib import Path
 
 class EarlyStopping(object):
 
@@ -68,7 +68,16 @@ class EarlyStopping(object):
         :param model: nn.Module
         :return:
         """
+        
         self.logger.info(f"save model {self.save_model_path}")
+        file_path = Path(self.save_model_path)
+        folder_path = file_path.with_suffix('')  # removes .pkl
+        if not folder_path.exists():
+            folder_path.mkdir(parents=True, exist_ok=True)
+            print(f"Folder created at: {folder_path}")
+        else:
+            print(f"Folder already exists at: {folder_path}")
+        
         torch.save(model.state_dict(), self.save_model_path)
         if self.model_name in ['JODIE', 'DyRep', 'TGN']:
             torch.save(model[0].memory_bank.node_raw_messages, self.save_model_nonparametric_data_path)
