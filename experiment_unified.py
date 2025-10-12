@@ -99,7 +99,7 @@ def parse_arguments():
                         help='Print commands without executing them')
     parser.add_argument('--num_epochs', type=int, default=None,
                         help='Override number of training epochs; if omitted, uses best-config default')
-    
+    parser.add_argument("--data_ratio", type=float, default=1.0)
     # Add failure handling arguments
     parser.add_argument('--force_restart', action='store_true',
                         help='Force restart of incomplete/failed experiments from scratch (ignores checkpoints)')
@@ -890,6 +890,7 @@ if __name__ == "__main__":
             '--checkpoint_strategy', 'smart',  # Use smart checkpointing
             '--max_checkpoints_to_keep', '3',  # Keep last 3 checkpoints
             '--validate_checkpoints'  # Enable checkpoint validation
+            
         ]
 
         # If epochs override provided, pass it through; otherwise rely on best-config defaults

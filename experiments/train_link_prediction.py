@@ -449,8 +449,9 @@ if __name__ == "__main__":
             os.makedirs(save_model_folder, exist_ok=True)
         else:
             logger.info(f"🚀 Starting fresh training - clearing model directory: {save_model_folder}")
-            shutil.rmtree(save_model_folder, ignore_errors=True)
-            os.makedirs(save_model_folder, exist_ok=True)
+            logger.info("NO I'm joking, I'm not deleting your files :)")
+            #shutil.rmtree(save_model_folder, ignore_errors=True)
+            #os.makedirs(save_model_folder, exist_ok=True)
 
         early_stopping = EarlyStopping(patience=args.patience, save_model_folder=save_model_folder,
                                        save_model_name=args.save_model_name, logger=logger, model_name=args.model_name)
