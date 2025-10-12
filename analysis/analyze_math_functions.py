@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 import os
 import sys
 from tqdm import tqdm
@@ -121,6 +122,35 @@ def plot_fit(ax, t, y_true, model, title, show_legend=True):
     
     return ax
 
+def save_prediction_data(t, y_true, model, func_name, model_name):
+    """Save actual vs prediction data to CSV for later visualization"""
+    model.eval()
+    with torch.no_grad():
+        t_input = t.unsqueeze(0).unsqueeze(-1)
+        y_pred = model(t_input).squeeze()
+    
+    # Create safe filenames
+    safe_func_name = func_name.replace(' ', '_').replace('=', '').replace('/', '_').replace('[','').replace(']','').replace('(','').replace(')','')
+    safe_model_name = model_name.replace(' ', '_').replace('-', '_')
+    
+    # Create prediction data directory
+    pred_dir = 'analysis_figures_math/prediction_data'
+    os.makedirs(pred_dir, exist_ok=True)
+    
+    # Save data
+    filename = f'{pred_dir}/{safe_func_name}_{safe_model_name}_predictions.csv'
+    
+    data = {
+        'time': t.cpu().numpy(),
+        'actual': y_true.cpu().numpy(),
+        'predicted': y_pred.cpu().numpy()
+    }
+    
+    df = pd.DataFrame(data)
+    df.to_csv(filename, index=False)
+    
+    return filename
+
 
 # --- Mathematical Function Definitions ---
 
@@ -221,6 +251,9 @@ def run_math_function_analysis():
             
             # Plot the fit - no title needed as we have row/column labels
             plot_fit(axes[i, j], t, y_true, unnorm_model, "", show_legend=(i==0 and j==0))
+            
+            # Save actual vs prediction data for this function/model combination
+            save_prediction_data(t, y_true, unnorm_model, func_name, model_name)
     
     # Create a custom legend at the bottom
     legend_elements = [
