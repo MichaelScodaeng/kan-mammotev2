@@ -18,4 +18,4 @@ conda activate kan_mammote
 
 nvidia-smi -a > nvidia-smi.log
 # Run your experiment
-python experiment_unified.py --single_encoder "original" --disable_progress_bar > experiment_original_1.log 2>&1
+python experiment_unified.py --single_encoder "original" --disable_progress_bar --num_runs 1 > experiment_original_1.log 2>&1

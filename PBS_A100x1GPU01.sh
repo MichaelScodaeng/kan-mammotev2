@@ -25,5 +25,12 @@ which python
 python --version
 nvidia-smi -a > nvidia-smi.log
 
+# Debug checkpoint existence before running experiment  
+echo "=== CHECKPOINT DEBUGGING ==="
+echo "Working directory: $(pwd)"
+echo "Looking for existing checkpoints..."
+find ./saved_models -name "*kan_mammote_dual_kmote*" -name "*checkpoint*" -type f | head -5
+echo "=============================="
+
 # Run your experiment
-python experiment_unified.py --models "TCL" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar > kanmammote_TCL.log 2>&1
+python experiment_unified.py --models "TCL" --single_encoder "kan_mammote_dual_kmote" --disable_progress_bar --num_runs 1 > kanmammote_TCL.log 2>&1
