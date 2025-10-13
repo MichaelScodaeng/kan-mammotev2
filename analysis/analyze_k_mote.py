@@ -225,7 +225,7 @@ def run_fitting_analysis():
         plt.savefig(f'analysis_figures/expert_performance_{safe_filename}.png', dpi=300, bbox_inches='tight')
         plt.show()
 
-def train_model_with_loss_return(model, t_data, y_true, max_epochs=20000, lr=2e-5, 
+def train_model_with_loss_return(model, t_data, y_true, max_epochs=20000, lr=1e-4, 
                                patience=300, min_delta=1e-7):
     """Train model until convergence and return final loss and training info"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
