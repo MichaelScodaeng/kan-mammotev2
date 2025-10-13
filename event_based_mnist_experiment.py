@@ -253,8 +253,41 @@ class TimeEncoderClassifier(nn.Module):
         elif encoder_type == 'kan_mammote_lite':
             return KAN_MAMMOTE_Lite(
                 embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
                 num_mixtures=kwargs.get('num_mixtures', 12),
-                wavelet_type=kwargs.get('wavelet_type', 'shock')
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='linear_mlp'  # Default fusion
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_concat':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='linear_mlp'  # Concatenate → MLP → Linear
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_weighted':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='weighted_sum'  # Weighted Sum → Linear
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_attention':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='cross_attention'  # Cross-Attention → Linear
             )
             
         elif encoder_type == 'kan_mammote_full':
@@ -283,7 +316,9 @@ class TimeEncoderClassifier(nn.Module):
         """Check if encoder needs both absolute and relative time"""
         dual_time_encoders = [
             'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
-            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full', 'kan_mammote_dual_kmote'
+            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_lite_concat',
+            'kan_mammote_lite_weighted', 'kan_mammote_lite_attention', 
+            'kan_mammote_full', 'kan_mammote_dual_kmote'
         ]
         return encoder_type in dual_time_encoders
     
@@ -360,7 +395,9 @@ def get_available_encoders():
     """Get list of available encoders based on imports"""
     # lstm_only is always available (no external dependency)
     encoders = ['lstm_only', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
-                'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full', 'kan_mammote_dual_kmote']
+                'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_lite_concat',
+                'kan_mammote_lite_weighted', 'kan_mammote_lite_attention', 
+                'kan_mammote_full', 'kan_mammote_dual_kmote']
     
     if LETE_AVAILABLE:
         encoders.append('lete')
@@ -778,8 +815,8 @@ def main():
                         help='Maximum events per sequence (default: None = use all, matching paper)')
     
     # Training parameters
-    parser.add_argument('--epochs', type=int, default=50,
-                        help='Number of training epochs (default: 50)')
+    parser.add_argument('--epochs', type=int, default=200,
+                        help='Number of training epochs (default: 200)')
     parser.add_argument('--batch_size', type=int, default=512,
                         help='Batch size (default: 512)')
     parser.add_argument('--embedding_dim', type=int, default=32,

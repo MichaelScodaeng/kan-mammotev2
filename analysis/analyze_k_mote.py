@@ -26,7 +26,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model(model, t_data, y_true, max_epochs=10000, lr=2e-4, patience=500, min_delta=1e-6):
+def train_model(model, t_data, y_true, max_epochs=10000, lr=5e-5, patience=500, min_delta=1e-6):
     """ฟังก์ชันสำหรับเทรนโมเดลเพื่อ fit ข้อมูล"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -225,8 +225,8 @@ def run_fitting_analysis():
         plt.savefig(f'analysis_figures/expert_performance_{safe_filename}.png', dpi=300, bbox_inches='tight')
         plt.show()
 
-def train_model_with_loss_return(model, t_data, y_true, max_epochs=8000, lr=2e-4, 
-                               patience=300, min_delta=1e-6):
+def train_model_with_loss_return(model, t_data, y_true, max_epochs=20000, lr=2e-5, 
+                               patience=300, min_delta=1e-7):
     """Train model until convergence and return final loss and training info"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -330,7 +330,7 @@ def run_interpretability_analysis():
     
     print("[INFO] Training K-MOTE on mixed pattern data...")
     k_mote_model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')  # Use stable wavelet
-    train_model(k_mote_model, t_mixed, y_mixed, epochs=10000, lr=2e-4)
+    train_model(k_mote_model, t_mixed, y_mixed, max_epochs=10000, lr=2e-4)
     
     # 2. ดึงค่า prediction และ gating weights ออกมา
     k_mote_model.eval()
@@ -483,7 +483,7 @@ def run_expert_capability_matrix():
             model = expert_factory()
             
             # Train and get final loss
-            final_loss = train_model_with_loss_return(model, t, y_data, epochs=10000, lr=2e-4)
+            final_loss = train_model_with_loss_return(model, t, y_data, max_epochs=10000, lr=2e-4)
             results_matrix[dataset_name][expert_name] = final_loss
             
             print(f"Loss: {final_loss:.6f}")
@@ -573,10 +573,10 @@ if __name__ == '__main__':
     run_fitting_analysis()
     
     # Part 2: Mixed pattern gating analysis  
-    run_interpretability_analysis()
+    #run_interpretability_analysis()
     
     # Part 3: Comprehensive capability matrix
-    run_expert_capability_matrix()
+    #run_expert_capability_matrix()
     
     print("\n✨ Analysis Complete! ")
     print("📋 Summary:")

@@ -463,7 +463,7 @@ def run_synthetic_pattern_analysis():
     create_comprehensive_visualizations(datasets, reconstruction_data, t)
     
     # Save results
-    save_results(all_results)
+    save_results(all_results, reconstruction_data)
     
     # Generate summary
     generate_analysis_summary(all_results)
@@ -659,7 +659,7 @@ def create_detailed_pattern_plots(reconstruction_data, t):
                    dpi=300, bbox_inches='tight')
         plt.show()
 
-def save_results(all_results):
+def save_results(all_results, reconstruction_data):
     """Save results to CSV files"""
     print("\n💾 Saving results to CSV files...")
     
@@ -689,10 +689,40 @@ def save_results(all_results):
     summary_df = pd.DataFrame(summary_data)
     summary_df.to_csv(summary_file, index=False)
     
+    # Save actual vs prediction CSV files for each model/dataset combination
+    print("\n💾 Saving actual vs prediction data for each model...")
+    prediction_files = []
+    
+    for dataset_name, data in reconstruction_data.items():
+        time_data = data['time']
+        actual_data = data['original']
+        
+        for model_name, model_data in data['results'].items():
+            if 'prediction' in model_data:
+                prediction_data = model_data['prediction']
+                
+                # Create prediction DataFrame
+                pred_df = pd.DataFrame({
+                    'time': time_data,
+                    'actual': actual_data,
+                    'prediction': prediction_data,
+                    'residual': actual_data - prediction_data
+                })
+                
+                # Safe filename
+                safe_dataset = dataset_name.lower().replace(' ', '_').replace('-', '_')
+                safe_model = model_name.lower().replace(' ', '_').replace('-', '_')
+                pred_file = f'analysis_results_synthetic/actual_vs_pred_{safe_dataset}_{safe_model}_{timestamp}.csv'
+                
+                pred_df.to_csv(pred_file, index=False)
+                prediction_files.append(pred_file)
+                print(f"  ✅ {dataset_name} - {model_name}: {pred_file}")
+    
     print(f"✅ Main results saved to: {main_file}")
     print(f"✅ Summary saved to: {summary_file}")
+    print(f"✅ {len(prediction_files)} prediction files saved")
     
-    return main_file, summary_file
+    return main_file, summary_file, prediction_files
 
 def generate_analysis_summary(all_results):
     """Generate and print analysis summary"""
