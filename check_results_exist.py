@@ -1,0 +1,430 @@
+import subprocess
+import itertools
+import os
+import time
+import argparse
+import sys
+import logging
+import glob
+import json
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from typing import List, Dict, Tuple, Optional
+from pathlib import Path
+
+# All configurations - same as test_integration.py
+ALL_TIME_ENCODERS = ['mercer', 'time2vec', 'lete', 'kan_mammote_dual_kmote', 'original']
+ALL_MODELS = ['TGAT', 'JODIE', 'TGN', 'DyGFormer', 'DyGMamba', 'TCL']  # Exclude CAWN
+ALL_DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
+                'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
+ALL_NEG_STRATEGIES = ['random', 'historical', 'inductive']
+
+# Quick test configurations
+QUICK_DATASETS = ['wikipedia', 'reddit', 'mooc']
+QUICK_MODELS = ['TGAT', 'TGN', 'DyGMamba']
+QUICK_ENCODERS = ['mercer', 'kan_mammote_dual_kmote']
+
+
+def check_evaluation_results_exist(model: str, dataset: str, encoder: str, neg_strategy: str = None) -> Tuple[bool, List[str], Dict]:
+    """Check if evaluation results already exist for the given combination"""
+    
+    # Check for existing evaluation results with the specific pattern:
+    # ./saved_results/{model}/{dataset}/{model}_{encoder}_seed{X}_{timestamp}.json
+    result_pattern = f"./saved_results/{model}/{dataset}/{model}_{encoder}_seed0_*.json"
+    
+    existing_results = glob.glob(result_pattern)
+    
+    result_info = {
+        'pattern': result_pattern,
+        'count': len(existing_results),
+        'files': existing_results
+    }
+    
+    if existing_results:
+        # Check if results contain actual evaluation metrics
+        return 1,True,True
+    
+    return 0, [], False
+
+
+def create_completion_matrix(combinations: List, check_func, matrix_name: str, output_dir: str) -> pd.DataFrame:
+    """Create a completion matrix and save as CSV"""
+    
+    print(f"\n📊 Creating {matrix_name} completion matrix...")
+    
+    # Extract unique values for each dimension
+    if matrix_name == "Model-Dataset":
+        row_items = sorted(list(set([combo[0] for combo in combinations])))  # models
+        col_items = sorted(list(set([combo[1] for combo in combinations])))  # datasets
+        get_row = lambda combo: combo[0]
+        get_col = lambda combo: combo[1]
+    elif matrix_name == "Model-Encoder":
+        row_items = sorted(list(set([combo[0] for combo in combinations])))  # models  
+        col_items = sorted(list(set([combo[2] for combo in combinations])))  # encoders
+        get_row = lambda combo: combo[0]
+        get_col = lambda combo: combo[2]
+    elif matrix_name == "Dataset-Encoder":
+        row_items = sorted(list(set([combo[1] for combo in combinations])))  # datasets
+        col_items = sorted(list(set([combo[2] for combo in combinations])))  # encoders
+        get_row = lambda combo: combo[1]
+        get_col = lambda combo: combo[2]
+    else:
+        raise ValueError(f"Unknown matrix_name: {matrix_name}")
+    
+    # Initialize matrix with 0s
+    matrix = pd.DataFrame(0, index=row_items, columns=col_items)
+    
+    # Fill matrix based on completion status
+    for combo in combinations:
+        model, dataset, encoder, neg_strategy = combo
+        row_key = get_row(combo)
+        col_key = get_col(combo)
+        
+        completed, files, info = check_func(model, dataset, encoder, neg_strategy)
+        
+        if completed:
+            matrix.loc[row_key, col_key] = 1
+    
+    # Save to CSV
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, f"{matrix_name.lower().replace('-', '_')}_completion.csv")
+    matrix.to_csv(csv_path)
+    
+    print(f"   💾 Saved to: {csv_path}")
+    print(f"   ✅ Completed: {matrix.sum().sum()}/{matrix.size} ({matrix.sum().sum()/matrix.size*100:.1f}%)")
+    
+    return matrix
+
+
+def create_time_encoder_completion_matrix(time_encoder: str, models: List[str], datasets: List[str], 
+                                        neg_strategies: List[str], check_func, output_dir: str) -> pd.DataFrame:
+    """
+    Create a completion matrix for a specific time encoder showing models vs datasets.
+    
+    Args:
+        time_encoder: Specific time encoder to analyze
+        models: List of models to check
+        datasets: List of datasets to check  
+        neg_strategies: List of negative strategies (used for checking but not in matrix)
+        check_func: Function to check completion status
+        output_dir: Directory to save the matrix
+    
+    Returns:
+        DataFrame with models as rows, datasets as columns, completion status as values
+    """
+    
+    print(f"\n🎯 Creating completion matrix for time encoder: {time_encoder}")
+    print(f"   Models: {len(models)}")
+    print(f"   Datasets: {len(datasets)}")
+    
+    # Initialize matrix with 0s (not completed)
+    matrix = pd.DataFrame(0, index=sorted(models), columns=sorted(datasets))
+    
+    # Check each model-dataset combination for the specific time encoder
+    total_combinations = len(models) * len(datasets)
+    completed_combinations = 0
+    
+    for model in models:
+        for dataset in datasets:
+            # Check if any neg_strategy has completed results for this combination
+            completed = False
+            for neg_strategy in neg_strategies:
+                is_completed, files, info = check_func(model, dataset, time_encoder, neg_strategy)
+                if is_completed:
+                    completed = True
+                    break
+            
+            if completed:
+                matrix.loc[model, dataset] = 1
+                completed_combinations += 1
+    
+    # Calculate completion statistics
+    completion_rate = completed_combinations / total_combinations * 100 if total_combinations > 0 else 0
+    
+    # Save to CSV
+    os.makedirs(output_dir, exist_ok=True)
+    csv_filename = f"time_encoder_{time_encoder}_completion.csv"
+    csv_path = os.path.join(output_dir, csv_filename)
+    matrix.to_csv(csv_path)
+    
+    print(f"   💾 Saved to: {csv_path}")
+    print(f"   ✅ Completed: {completed_combinations}/{total_combinations} ({completion_rate:.1f}%)")
+    
+    # Print summary by model
+    print(f"\n📊 Completion by Model for {time_encoder}:")
+    for model in sorted(models):
+        model_completed = matrix.loc[model].sum()
+        model_total = len(datasets)
+        model_rate = model_completed / model_total * 100 if model_total > 0 else 0
+        print(f"   {model:12s}: {model_completed:3d}/{model_total:3d} ({model_rate:5.1f}%)")
+    
+    # Print summary by dataset
+    print(f"\n📊 Completion by Dataset for {time_encoder}:")
+    for dataset in sorted(datasets):
+        dataset_completed = matrix[dataset].sum()
+        dataset_total = len(models)
+        dataset_rate = dataset_completed / dataset_total * 100 if dataset_total > 0 else 0
+        print(f"   {dataset:12s}: {dataset_completed:3d}/{dataset_total:3d} ({dataset_rate:5.1f}%)")
+    
+    return matrix
+
+
+def generate_summary_stats(combinations: List, check_func, output_dir: str) -> Dict:
+    """Generate detailed summary statistics"""
+    
+    print(f"\n📈 Generating summary statistics...")
+    
+    total_combinations = len(combinations)
+    completed_combinations = 0
+    failed_combinations = []
+    completed_combinations_list = []
+    
+    model_stats = {}
+    dataset_stats = {}
+    encoder_stats = {}
+    
+    for combo in combinations:
+        model, dataset, encoder, neg_strategy = combo
+        
+        completed, files, info = check_func(model, dataset, encoder, neg_strategy)
+        
+        if completed:
+            completed_combinations += 1
+            completed_combinations_list.append(combo)
+        else:
+            failed_combinations.append(combo)
+        
+        # Update stats by category
+        if model not in model_stats:
+            model_stats[model] = {'total': 0, 'completed': 0}
+        model_stats[model]['total'] += 1
+        if completed:
+            model_stats[model]['completed'] += 1
+            
+        if dataset not in dataset_stats:
+            dataset_stats[dataset] = {'total': 0, 'completed': 0}
+        dataset_stats[dataset]['total'] += 1
+        if completed:
+            dataset_stats[dataset]['completed'] += 1
+            
+        if encoder not in encoder_stats:
+            encoder_stats[encoder] = {'total': 0, 'completed': 0}
+        encoder_stats[encoder]['total'] += 1
+        if completed:
+            encoder_stats[encoder]['completed'] += 1
+    
+    # Calculate completion rates
+    for stats in [model_stats, dataset_stats, encoder_stats]:
+        for key in stats:
+            total = stats[key]['total']
+            completed = stats[key]['completed']
+            stats[key]['completion_rate'] = completed / total if total > 0 else 0
+    
+    summary = {
+        'total_combinations': total_combinations,
+        'completed_combinations_count': completed_combinations,
+        'completion_rate': completed_combinations / total_combinations if total_combinations > 0 else 0,
+        'failed_combinations_count': len(failed_combinations),
+        'model_stats': model_stats,
+        'dataset_stats': dataset_stats,
+        'encoder_stats': encoder_stats,
+        'failed_combinations': failed_combinations,
+        'completed_combinations': completed_combinations_list
+    }
+    
+    # Save detailed stats to JSON
+    os.makedirs(output_dir, exist_ok=True)
+    stats_path = os.path.join(output_dir, "completion_summary.json")
+    with open(stats_path, 'w') as f:
+        json.dump(summary, f, indent=2, default=str)
+    
+    # Save stats tables to CSV
+    pd.DataFrame(model_stats).T.to_csv(os.path.join(output_dir, "model_completion_stats.csv"))
+    pd.DataFrame(dataset_stats).T.to_csv(os.path.join(output_dir, "dataset_completion_stats.csv"))
+    pd.DataFrame(encoder_stats).T.to_csv(os.path.join(output_dir, "encoder_completion_stats.csv"))
+    
+    return summary
+
+
+def print_summary_report(summary: Dict):
+    """Print a nice summary report"""
+    
+    print(f"\n{'='*80}")
+    print(f"📋 EXPERIMENT COMPLETION SUMMARY REPORT")
+    print(f"{'='*80}")
+    
+    print(f"\n🎯 OVERALL COMPLETION:")
+    print(f"   Total Combinations: {summary['total_combinations']:,}")
+    print(f"   Completed: {summary['completed_combinations_count']:,}")
+    print(f"   Failed/Missing: {summary['failed_combinations_count']:,}")
+    print(f"   Completion Rate: {summary['completion_rate']*100:.1f}%")
+    
+    print(f"\n🏷️  BY MODEL:")
+    for model, stats in sorted(summary['model_stats'].items()):
+        rate = stats['completion_rate'] * 100
+        print(f"   {model:12s}: {stats['completed']:3d}/{stats['total']:3d} ({rate:5.1f}%)")
+    
+    print(f"\n📊 BY DATASET:")
+    for dataset, stats in sorted(summary['dataset_stats'].items()):
+        rate = stats['completion_rate'] * 100
+        print(f"   {dataset:12s}: {stats['completed']:3d}/{stats['total']:3d} ({rate:5.1f}%)")
+    
+    print(f"\n🔧 BY ENCODER:")
+    for encoder, stats in sorted(summary['encoder_stats'].items()):
+        rate = stats['completion_rate'] * 100
+        print(f"   {encoder:20s}: {stats['completed']:3d}/{stats['total']:3d} ({rate:5.1f}%)")
+    
+    # Show some failed combinations
+    if summary['failed_combinations']:
+        print(f"\n❌ SAMPLE MISSING COMBINATIONS (first 10):")
+        for i, combo in enumerate(summary['failed_combinations'][:10]):
+            model, dataset, encoder, neg_strategy = combo
+            print(f"   {i+1:2d}. {model} + {dataset} + {encoder} + {neg_strategy}")
+        
+        if len(summary['failed_combinations']) > 10:
+            print(f"   ... and {len(summary['failed_combinations'])-10} more")
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Check completion status of all experiment combinations')
+    parser.add_argument('--quick', action='store_true',
+                        help='Check quick test combinations only')
+    parser.add_argument('--models', nargs='+', choices=ALL_MODELS,
+                        help='Check specific models only')
+    parser.add_argument('--datasets', nargs='+', choices=ALL_DATASETS,
+                        help='Check specific datasets only')
+    parser.add_argument('--encoders', nargs='+', choices=ALL_TIME_ENCODERS,
+                        help='Check specific encoders only')
+    parser.add_argument('--time_encoder', type=str, choices=ALL_TIME_ENCODERS,
+                        help='Generate completion matrix for specific time encoder (models vs datasets)')
+    parser.add_argument('--neg_strategies', nargs='+', choices=ALL_NEG_STRATEGIES,
+                        help='Check specific negative sampling strategies only')
+    parser.add_argument('--output_dir', type=str, default='completion_analysis',
+                        help='Directory to save CSV reports (default: completion_analysis)')
+    parser.add_argument('--verbose', action='store_true',
+                        help='Show detailed output for each combination')
+    
+    return parser.parse_args()
+
+
+def get_combinations(args):
+    """Get combinations to check based on arguments"""
+    if args.quick:
+        models = args.models or QUICK_MODELS
+        datasets = args.datasets or QUICK_DATASETS
+        encoders = args.encoders or QUICK_ENCODERS
+        neg_strategies = args.neg_strategies or ALL_NEG_STRATEGIES
+    else:
+        models = args.models or ALL_MODELS
+        datasets = args.datasets or ALL_DATASETS
+        encoders = args.encoders or ALL_TIME_ENCODERS
+        neg_strategies = args.neg_strategies or ALL_NEG_STRATEGIES
+    
+    return models, datasets, encoders, neg_strategies
+if __name__ == "__main__":
+    args = parse_arguments()
+    
+    print("🔍 Experiment Completion Analysis")
+    print(f"Analysis started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f" Output directory: {args.output_dir}")
+    
+    models, datasets, encoders, neg_strategies = get_combinations(args)
+    
+    print(f"\nAnalysis Configuration:")
+    print(f"  Models: {models}")
+    print(f"  Datasets: {datasets}")
+    print(f"  Encoders: {encoders}")
+    print(f"  Negative Strategies: {neg_strategies}")
+    print(f"  Quick Mode: {args.quick}")
+    
+    # Generate all combinations
+    all_combinations = list(itertools.product(models, datasets, encoders, neg_strategies))
+    total_combinations = len(all_combinations)
+    
+    print(f"\nTotal Combinations to Check: {total_combinations:,}")
+    
+    # Check if we're doing time_encoder specific analysis
+    if args.time_encoder:
+        print(f"\n🎯 Time Encoder Specific Analysis: {args.time_encoder}")
+        
+        # Generate time-encoder specific completion matrix
+        time_encoder_matrix = create_time_encoder_completion_matrix(
+            time_encoder=args.time_encoder,
+            models=models,
+            datasets=datasets,
+            neg_strategies=neg_strategies,
+            check_func=check_evaluation_results_exist,
+            output_dir=args.output_dir
+        )
+        
+        print(f"\n✅ Time encoder analysis completed!")
+        print(f"📁 Generated file: {args.output_dir}/time_encoder_{args.time_encoder}_completion.csv")
+        sys.exit(0)
+    
+    if args.verbose:
+        print(f"\n🔍 Checking each combination...")
+    
+    # Check completion status
+    print(f"\n📊 Analyzing completion status...")
+    
+    # Generate completion matrices
+    matrices = {}
+    
+    # For matrix generation, we'll check unique model-dataset-encoder combinations
+    # (ignoring neg_strategy since one result file covers all neg strategies)
+    unique_combinations = list(itertools.product(models, datasets, encoders, ['combined']))
+    
+    matrices['model_dataset'] = create_completion_matrix(
+        unique_combinations, 
+        check_evaluation_results_exist, 
+        "Model-Dataset", 
+        args.output_dir
+    )
+    
+    matrices['model_encoder'] = create_completion_matrix(
+        unique_combinations,
+        check_evaluation_results_exist,
+        "Model-Encoder", 
+        args.output_dir
+    )
+    
+    matrices['dataset_encoder'] = create_completion_matrix(
+        unique_combinations,
+        check_evaluation_results_exist,
+        "Dataset-Encoder",
+        args.output_dir
+    )
+    
+    # Generate summary statistics
+    summary = generate_summary_stats(unique_combinations, check_evaluation_results_exist, args.output_dir)
+    
+    # Print summary report
+    print_summary_report(summary)
+    
+    print(f"\n📁 Generated Files:")
+    print(f"   📊 CSV Matrices:")
+    print(f"      - {args.output_dir}/model_dataset_completion.csv")
+    print(f"      - {args.output_dir}/model_encoder_completion.csv") 
+    print(f"      - {args.output_dir}/dataset_encoder_completion.csv")
+    print(f"   📈 Statistics:")
+    print(f"      - {args.output_dir}/completion_summary.json")
+    print(f"      - {args.output_dir}/model_completion_stats.csv")
+    print(f"      - {args.output_dir}/dataset_completion_stats.csv")
+    print(f"      - {args.output_dir}/encoder_completion_stats.csv")
+    
+    print(f"\n✅ Analysis completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Optional: Show some specific missing combinations if verbose
+    if args.verbose and summary['failed_combinations']:
+        print(f"\n🔍 Detailed Missing Combinations:")
+        for i, combo in enumerate(summary['failed_combinations']):
+            model, dataset, encoder, _ = combo
+            completed, files, info = check_evaluation_results_exist(model, dataset, encoder)
+            print(f"   {i+1:3d}. {model:12s} + {dataset:12s} + {encoder:20s}")
+            if args.verbose:
+                print(f"        Pattern: {info['pattern']}")
+                print(f"        Found files: {info['count']}")
+                if info['count'] > 0:
+                    print(f"        Valid results: {info['valid_count']}")
+                print()

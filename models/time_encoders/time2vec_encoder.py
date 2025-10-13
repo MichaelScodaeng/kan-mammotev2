@@ -109,7 +109,7 @@ class Model(nn.Module):
         x = self.fc1(x)
         return x
     
-def t2v(tau, f, out_features, w, b, w0, b0, arg=None):
+def t2v(tau, f, out_features, w, b, w0, b0, arg=None,dygmamba=True):
     """
     Core Time2Vec transformation function.
     """
@@ -118,7 +118,11 @@ def t2v(tau, f, out_features, w, b, w0, b0, arg=None):
     else:
         v1 = f(torch.matmul(tau, w) + b)
     v2 = torch.matmul(tau, w0) + b0
-    return torch.cat([v1, v2], -1)
+    output = torch.cat([v1, v2], -1)
+    if dygmamba:
+        return torch.nn.functional.layer_norm(output, output.shape[-1:])
+    else:
+        return output
 
 class SineActivation(nn.Module):
     """Time2Vec with sine activation."""

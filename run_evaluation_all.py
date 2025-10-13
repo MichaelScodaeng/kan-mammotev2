@@ -8,7 +8,8 @@ This script runs evaluation on all combinations of:
 - Datasets
 - Negative sampling strategies
 
-It only evaluates combinations where trained models exist, skipping incomplete ones.
+It only evaluates combinations where BOTH trained models AND existing results exist.
+This allows re-running evaluations or additional analysis on completed experiments.
 Results are saved as CSV files with detailed completion tracking.
 
 Usage:
@@ -443,14 +444,21 @@ def main():
                 combinations_to_skip.append((model, dataset, encoder, neg_strategy))
                 print(f"❌ Would skip: {model}-{dataset}-{encoder}-{neg_strategy} (No trained model)")
                 continue
+            
+            # Check if evaluation results already exist
+            results_exist, existing_results = check_evaluation_results_exist(model, dataset, encoder, neg_strategy)
+            if not results_exist:
+                combinations_to_skip.append((model, dataset, encoder, neg_strategy))
+                print(f"❌ Would skip: {model}-{dataset}-{encoder}-{neg_strategy} (No existing results)")
+                continue
                 
-            # If model exists, we can evaluate (regardless of existing results)
+            # Only evaluate if BOTH model AND results exist
             combinations_to_run.append((model, dataset, encoder, neg_strategy))
-            print(f"✅ Would evaluate: {model}-{dataset}-{encoder}-{neg_strategy}")
+            print(f"✅ Would evaluate: {model}-{dataset}-{encoder}-{neg_strategy} (Both model and results exist)")
         
         print(f"\nDRY RUN SUMMARY:")
-        print(f"  Would evaluate: {len(combinations_to_run)}")
-        print(f"  Would skip (no model): {len(combinations_to_skip)}")
+        print(f"  Would evaluate: {len(combinations_to_run)} (have both model and results)")
+        print(f"  Would skip: {len(combinations_to_skip)} (missing model or results)")
         print(f"  Total: {len(combinations_to_run) + len(combinations_to_skip)}")
         return
 
@@ -473,8 +481,16 @@ def main():
             status.add_skipped(model, dataset, encoder, neg_strategy, "No trained model found")
             continue
         
-        # If model exists, we can run evaluation
-        # (Even if results exist, we can re-evaluate to update or verify results)
+        # Check if evaluation results already exist
+        results_exist, existing_results = check_evaluation_results_exist(model, dataset, encoder, neg_strategy)
+        
+        if not results_exist:
+            print(f"   ⏭️  Skipping: No existing results found")
+            status.add_skipped(model, dataset, encoder, neg_strategy, "No existing results found")
+            continue
+        
+        # Only run evaluation if BOTH model AND results exist
+        print(f"   🎯 Both model and results exist - proceeding with evaluation")
         
         if args.verbose:
             print(f"   📁 Found models: {[os.path.basename(f) for f in found_models[:3]]}")
