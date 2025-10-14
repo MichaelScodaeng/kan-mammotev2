@@ -79,13 +79,14 @@ class EventBasedMNIST(Dataset):
     Convert MNIST images to event sequences based on pixel brightness threshold.
     Each event is a pixel position that exceeds the threshold.
     """
-    def __init__(self, root, train=True, threshold=0.9, max_events=None, transform=None, download=True):
+    def __init__(self, root, train=True, threshold=0.9, max_events=None, transform=None, download=True, normalize_positions=True):
         super(EventBasedMNIST, self).__init__()
         
         # Load MNIST dataset
         self.mnist = datasets.MNIST(root=root, train=train, transform=transform, download=download)
         self.threshold = threshold
         self.max_events = max_events  # None = use all events (matching paper)
+        self.normalize_positions = normalize_positions  # Normalize pixel positions to [0,1]
         
         # Convert images to event sequences
         self.event_sequences = []
@@ -124,7 +125,13 @@ class EventBasedMNIST(Dataset):
         return len(self.event_sequences)
     
     def __getitem__(self, idx):
-        return self.event_sequences[idx], self.labels[idx]
+        sequence = self.event_sequences[idx]
+        
+        # Normalize pixel positions to [0, 1] range to fix gradient scaling issues
+        if self.normalize_positions:
+            sequence = sequence.float() / 783.0  # 28*28-1 = 783 (max valid index)
+        
+        return sequence, self.labels[idx]
 
 
 def collate_fn(batch):
@@ -267,7 +274,7 @@ class TimeEncoderClassifier(nn.Module):
                 num_mixtures=kwargs.get('num_mixtures', 12),
                 wavelet_type=kwargs.get('wavelet_type', 'shock'),
                 use_dual_kmote=kwargs.get('use_dual_kmote', True),
-                fusion_type='linear_mlp'  # Concatenate → MLP → Linear
+                fusion_type='concatenation'  # Simple concatenation (fixed bug!)
             )
             
         elif encoder_type == 'kan_mammote_lite_weighted':
@@ -460,21 +467,36 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
                 'Acc': f'{100.*train_correct/train_total:.2f}%'
             })
             
-            # ===== DEBUG: Check gradients on first epoch =====
+            # ===== IMPROVED GRADIENT MONITORING =====
             if epoch == 0 and batch_idx == 0:
                 total_grad_norm = 0
                 param_count = 0
+                small_grad_count = 0
+                zero_grad_count = 0
+                gradient_threshold = 1e-8  # More reasonable threshold
+                
                 for name, param in model.named_parameters():
                     if param.grad is not None:
                         grad_norm = param.grad.norm().item()
                         total_grad_norm += grad_norm
                         param_count += 1
-                        if 'time_encoder' in name and grad_norm < 1e-6:
-                            print(f"⚠️  Very small gradient for {name}: {grad_norm:.2e}")
+                        
+                        if grad_norm == 0.0:
+                            zero_grad_count += 1
+                        elif grad_norm < gradient_threshold:
+                            small_grad_count += 1
+                            if 'time_encoder' in name:
+                                print(f"⚠️  Very small gradient for {name}: {grad_norm:.2e}")
                 
                 avg_grad_norm = total_grad_norm / param_count if param_count > 0 else 0
+                small_grad_ratio = (small_grad_count + zero_grad_count) / param_count if param_count > 0 else 0
+                
                 print(f"🔍 DEBUG - Average gradient norm: {avg_grad_norm:.6f}")
-            # ===== END DEBUG =====
+                print(f"📊 Gradient health: {small_grad_count} small + {zero_grad_count} zero / {param_count} total ({100*small_grad_ratio:.1f}% unhealthy)")
+                
+                if small_grad_ratio > 0.5:
+                    print("❌ WARNING: >50% of gradients are very small or zero - possible vanishing gradients!")
+            # ===== END IMPROVED GRADIENT MONITORING =====
         
         # Validation phase
         model.eval()
@@ -536,13 +558,14 @@ def run_experiment(encoder_name, args, models_dir='.'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    # Create datasets
+    # Create datasets with input normalization (fixes gradient scaling issues)
     train_dataset = EventBasedMNIST(
         root='./data', 
         train=True, 
         threshold=args.threshold,
         max_events=args.max_events,
-        download=True
+        download=True,
+        normalize_positions=True  # ✅ Enable position normalization
     )
     
     val_dataset = EventBasedMNIST(
@@ -550,7 +573,8 @@ def run_experiment(encoder_name, args, models_dir='.'):
         train=False, 
         threshold=args.threshold,
         max_events=args.max_events,
-        download=True
+        download=True,
+        normalize_positions=True  # ✅ Enable position normalization
     )
     
     # Create data loaders
