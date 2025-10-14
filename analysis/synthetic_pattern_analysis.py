@@ -102,13 +102,13 @@ except ImportError as e:
 os.makedirs('analysis_figures_synthetic', exist_ok=True)
 os.makedirs('analysis_results_synthetic', exist_ok=True)
 
-# Shared training configuration
+# Training configuration following paper's reconstruction task
 SHARED_TRAINING_CONFIG = {
-    'learning_rate': 5e-4,  # Higher LR to help models escape local minima
-    'patience': 100,  # Reduced patience for faster iteration
+    'learning_rate': 1e-3,  # Standard learning rate for reconstruction tasks
+    'patience': 200,  # Allow more patience for convergence
     'min_delta': 1e-6,
-    'max_epochs': 3000,  # Reasonable epochs for synthetic pattern analysis
-    'weight_decay': 1e-6,  # Reduced weight decay
+    'max_epochs': 2000,  # Sufficient epochs for pattern learning
+    'weight_decay': 1e-4,  # Standard weight decay
     'grad_clip_norm': 1.0,
 }
 
@@ -141,40 +141,51 @@ class TimeEncoderWrapper(nn.Module):
         return self.encoder(x)
 
 
-class TimeEncoderDecoder(nn.Module):
+class PaperReconstructionModel(nn.Module):
     """
-    Proper time encoder with d-dimensional embedding + MLP decoder
+    Reconstruction model following the exact paper methodology (Section G.4)
     
-    Architecture: Time Input → Time Encoder → 64D Embedding → MLP Decoder → 1D Output
-                     t     →      φ(t)     →   [e1,...,e64]  →     f()    →    y
+    Architecture: Time Input → Time Encoder → d-dim Embedding → Linear Decoder → 1D Output
+                     t     →      φ(t)     →   [e1,...,ed]  →   Linear   →    y
     
-    This follows the standard methodology in time encoding papers where:
-    1. Time encoder maps time to high-dimensional representation (64D)
-    2. MLP decoder maps the representation to task output (1D)
+    Key differences from before:
+    1. ALL models use the SAME simple linear decoder (fair comparison)
+    2. Time encoders process INDIVIDUAL timestamps (not sequences)
+    3. Same embedding dimension for all encoders
     """
-    def __init__(self, time_encoder, embedding_dim=64, output_dim=1, decoder_hidden_dim=32):
+    def __init__(self, time_encoder, embedding_dim=64):
         super().__init__()
         self.time_encoder = time_encoder
         self.embedding_dim = embedding_dim
-        self.output_dim = output_dim
         
-        # Simplified MLP Decoder: 64D → 16D → 1D (easier to train)
-        self.decoder = nn.Sequential(
-            nn.Linear(embedding_dim, 16),
-            nn.GELU(),  # GELU instead of ReLU for smoother gradients
-            nn.Linear(16, output_dim)
-        )
+        # Paper uses simple linear decoder for ALL models
+        self.decoder = nn.Linear(embedding_dim, 1)
         
         # Initialize decoder weights
-        self._init_decoder_weights()
+        nn.init.xavier_uniform_(self.decoder.weight)
+        nn.init.zeros_(self.decoder.bias)
     
-    def _init_decoder_weights(self):
-        """Initialize decoder weights for stable training"""
-        for m in self.decoder.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
+    def forward(self, t):
+        """
+        Forward pass following paper methodology
+        
+        Args:
+            t: Individual timestamps, shape (N,) or (N, 1)
+            
+        Returns:
+            reconstruction: Output, shape (N, 1)
+        """
+        # Ensure timestamps are individual (not sequences)
+        if t.dim() == 2 and t.shape[-1] == 1:
+            t = t.squeeze(-1)  # (N,)
+        
+        # Encode individual timestamps
+        embeddings = self.time_encoder(t)  # (N, embedding_dim)
+        
+        # Simple linear decoding (same for all models)
+        reconstruction = self.decoder(embeddings)  # (N, 1)
+        
+        return reconstruction
     
     def forward(self, t):
         """
@@ -200,9 +211,14 @@ class TimeEncoderDecoder(nn.Module):
             return self.time_encoder(t)
 
 
-class KANMAMMOTEDecoder(nn.Module):
-    """Wrapper for KAN-MAMMOTE with proper decode methodology"""
-    def __init__(self, embedding_dim=64, expert_dim=16, num_mixtures=16, wavelet_type='shock', output_dim=1):
+class KANMAMMOTEIndividualEncoder(nn.Module):
+    """
+    KAN-MAMMOTE wrapper for INDIVIDUAL timestamp processing (not sequences)
+    
+    This wrapper makes KAN-MAMMOTE compatible with the paper's methodology
+    where each timestamp is processed independently.
+    """
+    def __init__(self, embedding_dim=64, expert_dim=16, num_mixtures=16, wavelet_type='shock'):
         super().__init__()
         # Create KAN-MAMMOTE encoder
         self.kan_mammote_encoder = KANMAMMOTETimeEncoder(
@@ -211,20 +227,43 @@ class KANMAMMOTEDecoder(nn.Module):
             num_mixtures=num_mixtures,
             wavelet_type=wavelet_type
         )
+        self.embedding_dim = embedding_dim
+    
+    def forward(self, t):
+        """
+        Process individual timestamps (not sequences) for fair comparison
         
-        # Simplified decoder
-        self.decoder = nn.Sequential(
-            nn.Linear(embedding_dim, 16),
-            nn.GELU(),
-            nn.Linear(16, output_dim)
-        )
+        Args:
+            t: Individual timestamps, shape (N,)
+        Returns:
+            embeddings: Individual embeddings, shape (N, embedding_dim)
+        """
+        # Convert individual timestamps to batch format
+        if t.dim() == 1:
+            batch_size = t.shape[0]
+            # Create single-timestep sequences for each timestamp
+            t_abs = t.unsqueeze(-1).unsqueeze(-1)  # (N, 1, 1)
+            # Use small constant relative time for individual timestamps
+            t_rel = torch.ones_like(t_abs) * 0.1  # (N, 1, 1)
+        else:
+            raise ValueError("Expected 1D timestamps for individual processing")
         
-        # Initialize decoder weights
-        for m in self.decoder.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
+        # Process each timestamp individually through KAN-MAMMOTE
+        embeddings = []
+        for i in range(batch_size):
+            # Single timestamp as sequence of length 1
+            single_t_abs = t_abs[i:i+1]  # (1, 1, 1)
+            single_t_rel = t_rel[i:i+1]  # (1, 1, 1)
+            
+            # Get embedding from KAN-MAMMOTE
+            emb = self.kan_mammote_encoder(t_abs=single_t_abs, t_rel=single_t_rel)  # (1, 1, embedding_dim)
+            emb = emb.squeeze(0).squeeze(0)  # (embedding_dim,)
+            embeddings.append(emb)
+        
+        # Stack to batch
+        embeddings = torch.stack(embeddings)  # (N, embedding_dim)
+        
+        return embeddings
     
     def forward(self, t):
         """
@@ -350,58 +389,224 @@ class SingleExpertDecoder(nn.Module):
         with torch.no_grad():
             return self.expert(x)
 
+
+class StandaloneBSplineEncoder(nn.Module):
+    """
+    Proper B-Spline time encoder (not K-MOTE internal component)
+    
+    This is a standalone time encoder that uses B-spline basis functions
+    to encode timestamps, designed for direct use (not as K-MOTE component).
+    """
+    def __init__(self, input_dim=1, output_dim=64):
+        super().__init__()
+        self.output_dim = output_dim
+        
+        # B-spline basis functions
+        self.num_basis = 16
+        self.basis_centers = nn.Parameter(torch.linspace(-2, 2, self.num_basis))
+        self.basis_widths = nn.Parameter(torch.ones(self.num_basis) * 0.5)
+        
+        # Projection to output dimension
+        self.projection = nn.Sequential(
+            nn.Linear(self.num_basis, output_dim // 2),
+            nn.ReLU(),
+            nn.Linear(output_dim // 2, output_dim)
+        )
+        
+        # Proper initialization
+        self._init_weights()
+    
+    def _init_weights(self):
+        for m in self.projection.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.zeros_(m.bias)
+    
+    def forward(self, t):
+        # Handle input format
+        if t.dim() == 1:
+            t = t.unsqueeze(-1)  # (N, 1)
+        
+        # Normalize time to reasonable range for B-splines
+        t_norm = torch.tanh(t * 0.01)  # Keep in [-1, 1], gentler scaling
+        
+        # Compute B-spline basis functions
+        distances = torch.abs(t_norm - self.basis_centers.unsqueeze(0))  # (N, num_basis)
+        basis_values = torch.exp(-distances / (torch.abs(self.basis_widths.unsqueeze(0)) + 1e-6))  # (N, num_basis)
+        
+        # Normalize basis values
+        basis_values = basis_values / (basis_values.sum(dim=-1, keepdim=True) + 1e-6)
+        
+        # Project to output dimension
+        output = self.projection(basis_values)  # (N, output_dim)
+        
+        return output
+
+
+class StandaloneFourierEncoder(nn.Module):
+    """
+    Proper Fourier time encoder
+    
+    Uses learnable Fourier features to encode temporal patterns,
+    designed as a standalone time encoder.
+    """
+    def __init__(self, input_dim=1, output_dim=64):
+        super().__init__()
+        self.output_dim = output_dim
+        
+        # Fourier frequencies - half for sin, half for cos
+        self.num_freqs = output_dim // 2
+        self.frequencies = nn.Parameter(torch.randn(self.num_freqs) * 0.01)  # Smaller initial frequencies
+        self.phases = nn.Parameter(torch.randn(self.num_freqs) * 2 * torch.pi)
+        
+        # Learnable amplitude scaling
+        self.amplitudes = nn.Parameter(torch.ones(self.num_freqs) * 0.1)  # Smaller initial amplitudes
+        
+    def forward(self, t):
+        # Handle input format
+        if t.dim() == 1:
+            t = t.unsqueeze(-1)  # (N, 1)
+        
+        # Normalize time for better numerical stability
+        t_norm = t * 0.01  # Scale down significantly
+        
+        # Compute Fourier features
+        angles = t_norm * self.frequencies.unsqueeze(0) + self.phases.unsqueeze(0)  # (N, num_freqs)
+        
+        # Sin and cosine components with learnable amplitudes
+        sin_features = torch.sin(angles) * torch.sigmoid(self.amplitudes.unsqueeze(0))  # (N, num_freqs)
+        cos_features = torch.cos(angles) * torch.sigmoid(self.amplitudes.unsqueeze(0))  # (N, num_freqs)
+        
+        # Concatenate for full output dimension
+        if self.output_dim % 2 == 0:
+            output = torch.cat([sin_features, cos_features], dim=-1)  # (N, output_dim)
+        else:
+            # Handle odd output dimensions
+            extra_feature = torch.tanh(t_norm.squeeze(-1))  # (N,)
+            output = torch.cat([sin_features, cos_features, extra_feature.unsqueeze(-1)], dim=-1)
+        
+        return output
+
+
+class StandaloneWaveletEncoder(nn.Module):
+    """
+    Proper Wavelet time encoder
+    
+    Uses Mexican Hat wavelets to capture localized temporal features,
+    designed as a standalone time encoder.
+    """
+    def __init__(self, input_dim=1, output_dim=64):
+        super().__init__()
+        self.output_dim = output_dim
+        
+        # Wavelet parameters - distributed across different scales and locations
+        self.num_wavelets = 16
+        self.centers = nn.Parameter(torch.linspace(-3, 3, self.num_wavelets))
+        self.scales = nn.Parameter(torch.ones(self.num_wavelets) * 0.5)  # Smaller initial scales
+        
+        # Projection layer
+        self.projection = nn.Sequential(
+            nn.Linear(self.num_wavelets, output_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),  # Add dropout for regularization
+            nn.Linear(output_dim // 2, output_dim)
+        )
+        
+        self._init_weights()
+    
+    def _init_weights(self):
+        for m in self.projection.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight, gain=0.1)  # Smaller initial weights
+                nn.init.zeros_(m.bias)
+    
+    def forward(self, t):
+        # Handle input format
+        if t.dim() == 1:
+            t = t.unsqueeze(-1)  # (N, 1)
+        
+        # Normalize time for wavelets
+        t_norm = t * 0.01  # Scale down for stability
+        
+        # Compute Mexican Hat wavelet features
+        shifted_t = (t_norm - self.centers.unsqueeze(0)) / (torch.abs(self.scales.unsqueeze(0)) + 1e-6)
+        
+        # Mexican Hat wavelet: ψ(t) = (1 - t²) * exp(-t²/2)
+        wavelet_values = (1 - shifted_t**2) * torch.exp(-0.5 * shifted_t**2)  # (N, num_wavelets)
+        
+        # Normalize wavelet responses
+        wavelet_values = wavelet_values / (torch.abs(wavelet_values).sum(dim=-1, keepdim=True) + 1e-6)
+        
+        # Project to output dimension
+        output = self.projection(wavelet_values)  # (N, output_dim)
+        
+        return output
+
 # --- Synthetic Data Generators ---
 
-def generate_periodic_data(t, noise_level=0.1):
-    """Generate synthetic periodic data with multiple harmonics"""
+def generate_periodic_data(t, noise_level=0.05):
+    """
+    Generate synthetic periodic data similar to paper's Figure 11
+    
+    Clear periodic patterns that FTE should handle well but others may struggle
+    """
     # Ensure t is on the correct device
     t = t.to(device)
     
-    # Multiple harmonic components
-    component1 = 2.0 * torch.sin(2 * torch.pi * t / 10)  # Main frequency
-    component2 = 1.0 * torch.sin(2 * torch.pi * t / 5)   # Higher harmonic
-    component3 = 0.5 * torch.cos(2 * torch.pi * t / 20)  # Lower harmonic
-    component4 = 0.3 * torch.sin(2 * torch.pi * t / 3)   # High frequency
+    # Normalize time to [0, 4π] for clear periodicity
+    t_norm = (t - t.min()) / (t.max() - t.min()) * 4 * torch.pi
+    
+    # Main periodic components (similar to paper's periodic pattern)
+    component1 = 3.0 * torch.sin(t_norm)  # Main frequency
+    component2 = 1.5 * torch.sin(2 * t_norm + torch.pi/4)   # Second harmonic
+    component3 = 0.8 * torch.cos(3 * t_norm)  # Third harmonic
     
     # Combine components
-    signal = component1 + component2 + component3 + component4
+    signal = component1 + component2 + component3
     
-    # Add noise
+    # Add controlled noise
     if noise_level > 0:
         noise = torch.randn_like(signal) * noise_level * signal.std()
         signal = signal + noise
     
     return signal
 
-def generate_non_periodic_data(t, noise_level=0.1):
-    """Generate synthetic non-periodic data with various irregular patterns"""
+def generate_non_periodic_data(t, noise_level=0.05):
+    """
+    Generate synthetic non-periodic data similar to paper's Figure 11
+    
+    Complex non-periodic patterns that should challenge FTE but be handled by LeTE
+    """
     # Ensure t is on the correct device
     t = t.to(device)
     
-    # Exponential decay components
-    decay1 = 3.0 * torch.exp(-0.1 * t) * torch.cos(0.5 * t)
-    decay2 = 2.0 * torch.exp(-0.05 * (t - 50)) * torch.where(t > 50, 1.0, 0.0)
+    # Normalize time to [0, 1] for consistent patterns
+    t_norm = (t - t.min()) / (t.max() - t.min())
     
-    # Step functions and jumps
-    steps = torch.zeros_like(t)
-    steps[t > 30] += 1.5
-    steps[t > 80] -= 2.0
-    steps[t > 120] += 1.0
+    # Non-periodic components (similar to paper's non-periodic pattern)
+    # Exponential decay with oscillation
+    decay_component = 4.0 * torch.exp(-3 * t_norm) * torch.sin(10 * t_norm)
     
-    # Random walk component
-    random_walk = torch.cumsum(torch.randn_like(t) * 0.1, dim=0)
+    # Step function at different points
+    step_component = torch.zeros_like(t_norm)
+    step_component[t_norm > 0.3] += 2.0
+    step_component[t_norm > 0.6] += -3.0
+    step_component[t_norm > 0.8] += 1.5
     
-    # Spike events
-    spikes = torch.zeros_like(t)
-    spike_times = [25, 65, 95, 135]
-    for spike_time in spike_times:
-        spike_mask = torch.abs(t - spike_time) < 2
-        spikes[spike_mask] = 2.0 * torch.exp(-0.5 * (t[spike_mask] - spike_time)**2)
+    # Smooth non-linear trend
+    trend_component = 2.0 * (t_norm ** 3 - 1.5 * t_norm ** 2 + 0.5 * t_norm)
+    
+    # Localized bursts
+    burst_component = torch.zeros_like(t_norm)
+    burst_locations = [0.2, 0.5, 0.7]
+    for loc in burst_locations:
+        mask = torch.abs(t_norm - loc) < 0.05
+        burst_component[mask] += 3.0 * torch.exp(-50 * (t_norm[mask] - loc)**2)
     
     # Combine components
-    signal = decay1 + decay2 + steps + random_walk * 0.5 + spikes
+    signal = decay_component + step_component + trend_component + burst_component
     
-    # Add noise
+    # Add controlled noise
     if noise_level > 0:
         noise = torch.randn_like(signal) * noise_level * signal.std()
         signal = signal + noise
@@ -429,22 +634,22 @@ def generate_mixed_data(t, noise_level=0.1):
 # --- Training Functions ---
 
 def train_model_convergence(model, t_data, y_true, model_name="Model"):
-    """Train model until convergence with shared hyperparameters"""
+    """Train model following paper methodology - individual timestamp processing"""
     config = SHARED_TRAINING_CONFIG
     optimizer = optim.Adam(model.parameters(), 
                           lr=config['learning_rate'], 
                           weight_decay=config['weight_decay'])
     loss_fn = nn.MSELoss()
     
-    # Reshape data for model input - unified interface
-    # All models now expect: (seq_len, 1) input and output (seq_len, 1)
+    # Paper methodology: individual timestamps (not sequences)
+    # Input: (N,) timestamps, Output: (N, 1) reconstructions
     if t_data.dim() == 1: 
-        t_input = t_data.unsqueeze(-1)  # (seq_len, 1)
+        t_input = t_data  # Keep as (N,) for individual processing
     else:
-        t_input = t_data
+        t_input = t_data.squeeze(-1)  # Convert to (N,)
         
     if y_true.dim() == 1: 
-        y_target = y_true.unsqueeze(-1)  # (seq_len, 1)
+        y_target = y_true.unsqueeze(-1)  # (N, 1) for loss computation
     else:
         y_target = y_true
 
@@ -463,31 +668,31 @@ def train_model_convergence(model, t_data, y_true, model_name="Model"):
         for epoch in pbar:
             model.train()
             
-            # All models now use unified standard forward interface
-            y_pred = model(t_input)
+            # Forward pass: individual timestamps → reconstructions
+            y_pred = model(t_input)  # (N,) → (N, 1)
             
-            # Ensure compatible dimensions for loss calculation
-            if y_pred.dim() > y_target.dim():
-                y_pred = y_pred.squeeze()
-            if y_pred.dim() != y_target.dim():
-                if y_target.dim() == 1 and y_pred.dim() == 2:
-                    y_target = y_target.unsqueeze(0)
-                elif y_target.dim() == 2 and y_pred.dim() == 1:
-                    y_pred = y_pred.unsqueeze(0)
+            # Ensure y_pred matches y_target dimensions
+            if y_pred.dim() == 2 and y_pred.shape[1] == 1:
+                pass  # Already (N, 1)
+            elif y_pred.dim() == 1:
+                y_pred = y_pred.unsqueeze(-1)  # (N,) → (N, 1)
             
             # Debug: Check prediction statistics on first epoch
             if epoch == 0:
+                y_pred_flat = y_pred.squeeze() if y_pred.dim() > 1 else y_pred
+                y_target_flat = y_target.squeeze() if y_target.dim() > 1 else y_target
+                
                 y_pred_stats = {
-                    'mean': y_pred.mean().item(),
-                    'std': y_pred.std().item(),
-                    'min': y_pred.min().item(),
-                    'max': y_pred.max().item()
+                    'mean': y_pred_flat.mean().item(),
+                    'std': y_pred_flat.std().item(),
+                    'min': y_pred_flat.min().item(),
+                    'max': y_pred_flat.max().item()
                 }
                 y_target_stats = {
-                    'mean': y_target.mean().item(),
-                    'std': y_target.std().item(),
-                    'min': y_target.min().item(),
-                    'max': y_target.max().item()
+                    'mean': y_target_flat.mean().item(),
+                    'std': y_target_flat.std().item(),
+                    'min': y_target_flat.min().item(),
+                    'max': y_target_flat.max().item()
                 }
                 print(f"    🔍 {model_name} - Epoch 0 Stats:")
                 print(f"      y_pred: mean={y_pred_stats['mean']:.4f}, std={y_pred_stats['std']:.4f}")
@@ -557,23 +762,27 @@ def train_model_convergence(model, t_data, y_true, model_name="Model"):
     return training_info
 
 def evaluate_reconstruction(model, t_data, y_true, model_name="Model"):
-    """Evaluate model reconstruction quality"""
+    """Evaluate model reconstruction quality following paper methodology"""
     model.eval()
     with torch.no_grad():
-        # Handle input formatting - unified interface
+        # Paper methodology: individual timestamps
         if t_data.dim() == 1:
-            t_input = t_data.unsqueeze(-1)  # (seq_len, 1)
+            t_input = t_data  # Keep as (N,)
         else:
-            t_input = t_data
+            t_input = t_data.squeeze(-1)  # Convert to (N,)
         
-        # All models now use unified standard forward interface
-        y_pred = model(t_input)
+        # Forward pass: individual timestamps → reconstructions
+        y_pred = model(t_input)  # (N,) → (N, 1)
         
-        # Ensure compatible dimensions
+        # Flatten for metrics calculation
         if y_pred.dim() > 1:
             y_pred = y_pred.squeeze()
         if y_pred.dim() == 0:
             y_pred = y_pred.unsqueeze(0)
+        if y_true.dim() > 1:
+            y_true = y_true.squeeze()
+        if y_true.dim() == 0:
+            y_true = y_true.unsqueeze(0)
         
         # Calculate metrics
         mse = nn.MSELoss()(y_pred, y_true).item()
@@ -607,87 +816,89 @@ def evaluate_reconstruction(model, t_data, y_true, model_name="Model"):
 
 def create_models():
     """
-    Create all models to be tested using proper encode→decode methodology
+    Create models following the EXACT paper methodology (Section G.4)
     
-    All models now follow: Time (1D) → Encoder (64D) → Decoder → Output (1D)
+    All models follow: Individual Timestamps → Time Encoder → d-dim → Linear Decoder → 1D
+    - SAME linear decoder for all models (fair comparison)
+    - Individual timestamp processing (not sequences)
+    - Same embedding dimension for all encoders
     """
     models = {}
     EMBEDDING_DIM = 64  # Standard embedding dimension
     
-    print(f"🔧 Creating models with {EMBEDDING_DIM}D embeddings + MLP decoders...")
+    print(f"🔧 Creating models following paper methodology (Section G.4)...")
+    print(f"📋 All models: Individual timestamps → {EMBEDDING_DIM}D encoder → Linear decoder")
     
-    # K-MOTE individual experts with encode→decode
+    # Create proper standalone expert encoders (not K-MOTE internal components)
+    print("📋 Creating standalone expert encoders (NOT K-MOTE internal components)")
+    
+    models['B-Spline Expert'] = lambda: PaperReconstructionModel(
+        time_encoder=StandaloneBSplineEncoder(input_dim=1, output_dim=EMBEDDING_DIM),
+        embedding_dim=EMBEDDING_DIM
+    )
+    models['Fourier Expert'] = lambda: PaperReconstructionModel(
+        time_encoder=StandaloneFourierEncoder(input_dim=1, output_dim=EMBEDDING_DIM),
+        embedding_dim=EMBEDDING_DIM
+    )
+    models['Wavelet Expert'] = lambda: PaperReconstructionModel(
+        time_encoder=StandaloneWaveletEncoder(input_dim=1, output_dim=EMBEDDING_DIM),
+        embedding_dim=EMBEDDING_DIM
+    )
+    
+    # K-MOTE full system (only if available)
     if KMOTE_AVAILABLE:
-        models['B-Spline Expert'] = lambda: SingleExpertDecoder(
-            SplineKANLayer, 
-            embedding_dim=EMBEDDING_DIM,
-            basis_function='b_spline'
-        )
-        models['Fourier Expert'] = lambda: SingleExpertDecoder(
-            FourierKANLayer,
-            embedding_dim=EMBEDDING_DIM
-        )
-        models['Wavelet Expert'] = lambda: SingleExpertDecoder(
-            WaveletKANLayer,
-            embedding_dim=EMBEDDING_DIM, 
-            wavelet_type='shock'
-        )
-        
-        # K-MOTE full system with decode
-        kmote_encoder = lambda: KMOTE(input_dim=1, output_dim=EMBEDDING_DIM, wavelet_type='shock')
-        models['K-MOTE'] = lambda: TimeEncoderDecoder(
-            time_encoder=kmote_encoder(),
+        models['K-MOTE'] = lambda: PaperReconstructionModel(
+            time_encoder=KMOTE(input_dim=1, output_dim=EMBEDDING_DIM, wavelet_type='shock'),
             embedding_dim=EMBEDDING_DIM
         )
     else:
-        print("⚠️ K-MOTE not available, skipping K-MOTE variants...")
+        print("⚠️ K-MOTE not available, skipping K-MOTE full system...")
     
-    # KAN-MAMMOTE with encode→decode
+    # KAN-MAMMOTE with individual timestamp processing
     if KAN_MAMMOTE_AVAILABLE:
         if device.type == 'cuda':
-            models['KAN-MAMMOTE'] = lambda: KANMAMMOTEDecoder(
-                embedding_dim=EMBEDDING_DIM,
-                expert_dim=64,  # Must be multiple of 16
-                num_mixtures=16,
-                wavelet_type='shock'
+            models['KAN-MAMMOTE'] = lambda: PaperReconstructionModel(
+                time_encoder=KANMAMMOTEIndividualEncoder(
+                    embedding_dim=EMBEDDING_DIM,
+                    expert_dim=64,  # Must be multiple of 16
+                    num_mixtures=16,
+                    wavelet_type='shock'
+                ),
+                embedding_dim=EMBEDDING_DIM
             )
         else:
             print("⚠️ KAN-MAMMOTE requires CUDA, but only CPU available. Skipping...")
     else:
         print("⚠️ KAN-MAMMOTE not available, skipping...")
     
-    # Baseline encoders with encode→decode methodology
+    # Baseline encoders - all use same methodology
     if ORIGINAL_AVAILABLE:
-        original_encoder = lambda: OriginalTimeEncoder(time_dim=EMBEDDING_DIM)
-        models['Original'] = lambda: TimeEncoderDecoder(
-            time_encoder=original_encoder(),
+        models['Original'] = lambda: PaperReconstructionModel(
+            time_encoder=OriginalTimeEncoder(time_dim=EMBEDDING_DIM),
             embedding_dim=EMBEDDING_DIM
         )
     else:
         print("⚠️ Original encoder not available, skipping...")
         
     if MERCER_AVAILABLE:
-        mercer_encoder = lambda: MercerTimeEncoder(time_dim=EMBEDDING_DIM)
-        models['Mercer'] = lambda: TimeEncoderDecoder(
-            time_encoder=mercer_encoder(),
+        models['Mercer'] = lambda: PaperReconstructionModel(
+            time_encoder=MercerTimeEncoder(time_dim=EMBEDDING_DIM),
             embedding_dim=EMBEDDING_DIM
         )
     else:
         print("⚠️ Mercer encoder not available, skipping...")
         
     if TIME2VEC_AVAILABLE:
-        time2vec_encoder = lambda: Time2VecEncoder(time_dim=EMBEDDING_DIM)
-        models['Time2Vec'] = lambda: TimeEncoderDecoder(
-            time_encoder=time2vec_encoder(),
+        models['Time2Vec'] = lambda: PaperReconstructionModel(
+            time_encoder=Time2VecEncoder(time_dim=EMBEDDING_DIM),
             embedding_dim=EMBEDDING_DIM
         )
     else:
         print("⚠️ Time2Vec encoder not available, skipping...")
         
     if LETE_AVAILABLE:
-        lete_encoder = lambda: LeTE(time_dim=EMBEDDING_DIM)
-        models['LeTE'] = lambda: TimeEncoderDecoder(
-            time_encoder=lete_encoder(),
+        models['LeTE'] = lambda: PaperReconstructionModel(
+            time_encoder=LeTE(time_dim=EMBEDDING_DIM),
             embedding_dim=EMBEDDING_DIM
         )
     else:
@@ -697,7 +908,8 @@ def create_models():
         print("❌ No models available! Check your imports.")
         sys.exit(1)
     
-    print(f"✅ Created {len(models)} models with encode→decode methodology")
+    print(f"✅ Created {len(models)} models following paper methodology")
+    print(f"🔧 All models use SAME linear decoder for fair comparison")
     return models
 
 # --- Main Analysis Function ---
