@@ -43,9 +43,48 @@ def check_evaluation_results_exist(model: str, dataset: str, encoder: str, neg_s
     
     if existing_results:
         # Check if results contain actual evaluation metrics
-        return 1,True,True
+        return 1, True, True
     
     return 0, [], False
+
+
+def get_metrics_from_result_file(model: str, dataset: str, encoder: str) -> Optional[Dict]:
+    """Extract test metrics from result JSON file for the given combination"""
+    
+    result_pattern = f"./saved_results/{model}/{dataset}/{model}_{encoder}_seed0_*.json"
+    existing_results = glob.glob(result_pattern)
+    
+    if not existing_results:
+        return None
+    
+    # Use the first (most recent) result file if multiple exist
+    result_file = existing_results[0]
+    
+    try:
+        with open(result_file, 'r') as f:
+            data = json.load(f)
+        
+        # Extract the test metrics
+        metrics = {}
+        
+        if "test metrics" in data:
+            metrics["test_metrics"] = data["test metrics"]
+        
+        if "new node test metrics" in data:
+            metrics["new_node_test_metrics"] = data["new node test metrics"]
+        
+        # Also include validation metrics for completeness
+        if "validate metrics" in data:
+            metrics["validate_metrics"] = data["validate metrics"]
+            
+        if "new node validate metrics" in data:
+            metrics["new_node_validate_metrics"] = data["new node validate metrics"]
+        
+        return metrics if metrics else None
+        
+    except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
+        print(f"Warning: Could not read metrics from {result_file}: {e}")
+        return None
 
 
 def create_completion_matrix(combinations: List, check_func, matrix_name: str, output_dir: str) -> pd.DataFrame:
@@ -95,6 +134,98 @@ def create_completion_matrix(combinations: List, check_func, matrix_name: str, o
     print(f"   ✅ Completed: {matrix.sum().sum()}/{matrix.size} ({matrix.sum().sum()/matrix.size*100:.1f}%)")
     
     return matrix
+
+
+def create_time_encoder_metrics_matrix(time_encoder: str, models: List[str], datasets: List[str], 
+                                     output_dir: str) -> pd.DataFrame:
+    """
+    Create a metrics matrix for a specific time encoder showing models vs datasets with actual metrics values.
+    
+    Args:
+        time_encoder: Specific time encoder to analyze
+        models: List of models to check
+        datasets: List of datasets to check  
+        output_dir: Directory to save the matrix
+    
+    Returns:
+        DataFrame with models as rows, datasets as columns, metrics as values
+    """
+    
+    print(f"\n🎯 Creating metrics matrix for time encoder: {time_encoder}")
+    print(f"   Models: {len(models)}")
+    print(f"   Datasets: {len(datasets)}")
+    
+    # Create a more complex data structure to store metrics
+    metrics_data = {}
+    
+    for model in sorted(models):
+        metrics_data[model] = {}
+        for dataset in sorted(datasets):
+            metrics = get_metrics_from_result_file(model, dataset, time_encoder)
+            if metrics:
+                # Convert metrics to a more flat structure for CSV
+                flattened_metrics = {}
+                for metric_type, metric_values in metrics.items():
+                    if isinstance(metric_values, dict):
+                        for metric_name, metric_value in metric_values.items():
+                            flattened_metrics[f"{metric_type}_{metric_name}"] = metric_value
+                    else:
+                        flattened_metrics[metric_type] = metric_values
+                metrics_data[model][dataset] = flattened_metrics
+            else:
+                metrics_data[model][dataset] = None
+    
+    # Create separate DataFrames for different metrics
+    metric_types = set()
+    for model_data in metrics_data.values():
+        for dataset_data in model_data.values():
+            if dataset_data:
+                metric_types.update(dataset_data.keys())
+    
+    # Create a DataFrame for each metric type
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for metric_type in sorted(metric_types):
+        df = pd.DataFrame(index=sorted(models), columns=sorted(datasets))
+        
+        for model in sorted(models):
+            for dataset in sorted(datasets):
+                if metrics_data[model][dataset] and metric_type in metrics_data[model][dataset]:
+                    df.loc[model, dataset] = metrics_data[model][dataset][metric_type]
+                else:
+                    df.loc[model, dataset] = None
+        
+        # Save individual metric DataFrame
+        csv_filename = f"time_encoder_{time_encoder}_{metric_type}_metrics.csv"
+        csv_path = os.path.join(output_dir, csv_filename)
+        df.to_csv(csv_path)
+        print(f"   💾 Saved {metric_type} metrics to: {csv_path}")
+    
+    # Also create a comprehensive JSON file with all metrics
+    json_filename = f"time_encoder_{time_encoder}_all_metrics.json"
+    json_path = os.path.join(output_dir, json_filename)
+    with open(json_path, 'w') as f:
+        json.dump(metrics_data, f, indent=2)
+    print(f"   💾 Saved all metrics to: {json_path}")
+    
+    # Create a summary completion matrix (same as before but for reference)
+    completion_matrix = pd.DataFrame(0, index=sorted(models), columns=sorted(datasets))
+    completed_combinations = 0
+    total_combinations = len(models) * len(datasets)
+    
+    for model in sorted(models):
+        for dataset in sorted(datasets):
+            if metrics_data[model][dataset] is not None:
+                completion_matrix.loc[model, dataset] = 1
+                completed_combinations += 1
+    
+    completion_csv_path = os.path.join(output_dir, f"time_encoder_{time_encoder}_completion_summary.csv")
+    completion_matrix.to_csv(completion_csv_path)
+    
+    completion_rate = completed_combinations / total_combinations * 100 if total_combinations > 0 else 0
+    print(f"   ✅ Completed: {completed_combinations}/{total_combinations} ({completion_rate:.1f}%)")
+    
+    return completion_matrix
 
 
 def create_time_encoder_completion_matrix(time_encoder: str, models: List[str], datasets: List[str], 
@@ -298,6 +429,8 @@ def parse_arguments():
                         help='Check specific encoders only')
     parser.add_argument('--time_encoder', type=str, choices=ALL_TIME_ENCODERS,
                         help='Generate completion matrix for specific time encoder (models vs datasets)')
+    parser.add_argument('--time_encoder_metrics', type=str, choices=ALL_TIME_ENCODERS,
+                        help='Generate metrics matrix for specific time encoder with actual metric values')
     parser.add_argument('--neg_strategies', nargs='+', choices=ALL_NEG_STRATEGIES,
                         help='Check specific negative sampling strategies only')
     parser.add_argument('--output_dir', type=str, default='completion_analysis',
@@ -360,6 +493,25 @@ if __name__ == "__main__":
         
         print(f"\n✅ Time encoder analysis completed!")
         print(f"📁 Generated file: {args.output_dir}/time_encoder_{args.time_encoder}_completion.csv")
+        sys.exit(0)
+    
+    # Check if we're doing time_encoder metrics analysis
+    if args.time_encoder_metrics:
+        print(f"\n🎯 Time Encoder Metrics Analysis: {args.time_encoder_metrics}")
+        
+        # Generate time-encoder specific metrics matrix
+        metrics_matrix = create_time_encoder_metrics_matrix(
+            time_encoder=args.time_encoder_metrics,
+            models=models,
+            datasets=datasets,
+            output_dir=args.output_dir
+        )
+        
+        print(f"\n✅ Time encoder metrics analysis completed!")
+        print(f"📁 Generated files in: {args.output_dir}/")
+        print(f"   - Individual metric CSV files")
+        print(f"   - time_encoder_{args.time_encoder_metrics}_all_metrics.json")
+        print(f"   - time_encoder_{args.time_encoder_metrics}_completion_summary.csv")
         sys.exit(0)
     
     if args.verbose:
