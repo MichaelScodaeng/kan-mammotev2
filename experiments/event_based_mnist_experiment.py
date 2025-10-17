@@ -61,6 +61,28 @@ try:
 except ImportError:
     LETE_AVAILABLE = False
 
+# Create LeTE Relative Time variant
+class LeTERelativeTime(nn.Module):
+    """LeTE variant that uses relative time differences instead of absolute positions"""
+    def __init__(self, time_dim):
+        super().__init__()
+        self.lete = LeTE(time_dim=time_dim)
+        
+    def forward(self, x):
+        """
+        Convert absolute positions to relative differences before LeTE encoding
+        Args:
+            x: (batch, seq_len) - absolute pixel positions
+        Returns:
+            embeddings: (batch, seq_len, time_dim)
+        """
+        # Convert absolute positions to relative differences
+        rel_times = torch.zeros_like(x)
+        rel_times[:, 1:] = x[:, 1:] - x[:, :-1]  # Differences between consecutive positions
+        rel_times[:, 0] = x[:, 0]  # First position remains absolute
+        
+        return self.lete(rel_times)
+
 try:
     from models.time_encoders.mercer_encoder import MercerTimeEncoder
     MERCER_AVAILABLE = True
@@ -221,6 +243,11 @@ class TimeEncoderClassifier(nn.Module):
             if not LETE_AVAILABLE:
                 raise ImportError("LeTE encoder not available")
             return LeTE(time_dim=embedding_dim)
+            
+        elif encoder_type == 'lete_relative':
+            if not LETE_AVAILABLE:
+                raise ImportError("LeTE encoder not available")
+            return LeTERelativeTime(time_dim=embedding_dim)
             
         elif encoder_type == 'mercer':
             if not MERCER_AVAILABLE:
@@ -398,6 +425,41 @@ class TimeEncoderClassifier(nn.Module):
         return output
 
 
+def resume_specific_encoder(experiment_dir, encoder_name, additional_epochs=50):
+    """
+    Resume training for a specific encoder from its latest checkpoint
+    
+    Args:
+        experiment_dir: Path to experiment directory containing checkpoints
+        encoder_name: Name of the encoder to resume
+        additional_epochs: Number of additional epochs to train
+    """
+    checkpoint_dir = os.path.join(experiment_dir, "checkpoints")
+    latest_checkpoint = find_latest_checkpoint(checkpoint_dir, encoder_name)
+    
+    if not latest_checkpoint:
+        print(f"❌ No checkpoint found for {encoder_name} in {checkpoint_dir}")
+        return None
+    
+    print(f"🔄 Resuming {encoder_name} from {latest_checkpoint}")
+    
+    # Load checkpoint to get training configuration
+    checkpoint = torch.load(latest_checkpoint, map_location='cpu')
+    completed_epochs = checkpoint['epoch'] + 1
+    
+    print(f"📊 Checkpoint info:")
+    print(f"  - Completed epochs: {completed_epochs}")
+    print(f"  - Best validation accuracy: {checkpoint['best_val_acc']:.2f}%")
+    print(f"  - Will train for {additional_epochs} more epochs")
+    
+    return {
+        'checkpoint_path': latest_checkpoint,
+        'completed_epochs': completed_epochs,
+        'best_val_acc': checkpoint['best_val_acc'],
+        'history': checkpoint['history']
+    }
+
+
 def get_available_encoders():
     """Get list of available encoders based on imports"""
     # lstm_only is always available (no external dependency)
@@ -408,6 +470,7 @@ def get_available_encoders():
     
     if LETE_AVAILABLE:
         encoders.append('lete')
+        encoders.append('lete_relative')
     if MERCER_AVAILABLE:
         encoders.append('mercer')
     if BOCHNER_AVAILABLE:
@@ -416,7 +479,69 @@ def get_available_encoders():
     return encoders
 
 
-def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.'):
+def save_checkpoint(model, optimizer, epoch, history, best_val_acc, encoder_name, checkpoint_dir):
+    """Save training checkpoint"""
+    checkpoint = {
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'history': history,
+        'best_val_acc': best_val_acc,
+        'encoder_name': encoder_name
+    }
+    
+    checkpoint_path = os.path.join(checkpoint_dir, f'checkpoint_{encoder_name}_epoch_{epoch}.pth')
+    torch.save(checkpoint, checkpoint_path)
+    
+    # Also save as latest checkpoint
+    latest_path = os.path.join(checkpoint_dir, f'checkpoint_{encoder_name}_latest.pth')
+    torch.save(checkpoint, latest_path)
+    
+    return checkpoint_path
+
+
+def load_checkpoint(checkpoint_path, model, optimizer=None):
+    """Load training checkpoint"""
+    print(f"📂 Loading checkpoint from: {checkpoint_path}")
+    
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    return {
+        'epoch': checkpoint['epoch'],
+        'history': checkpoint['history'],
+        'best_val_acc': checkpoint['best_val_acc'],
+        'encoder_name': checkpoint['encoder_name']
+    }
+
+
+def find_latest_checkpoint(checkpoint_dir, encoder_name):
+    """Find the latest checkpoint for a given encoder"""
+    latest_path = os.path.join(checkpoint_dir, f'checkpoint_{encoder_name}_latest.pth')
+    
+    if os.path.exists(latest_path):
+        return latest_path
+    
+    # Look for numbered checkpoints
+    checkpoint_files = []
+    if os.path.exists(checkpoint_dir):
+        for file in os.listdir(checkpoint_dir):
+            if file.startswith(f'checkpoint_{encoder_name}_epoch_') and file.endswith('.pth'):
+                epoch_num = int(file.split('_epoch_')[1].split('.pth')[0])
+                checkpoint_files.append((epoch_num, os.path.join(checkpoint_dir, file)))
+    
+    if checkpoint_files:
+        # Return the checkpoint with the highest epoch number
+        checkpoint_files.sort(key=lambda x: x[0], reverse=True)
+        return checkpoint_files[0][1]
+    
+    return None
+
+
+def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False):
     """Train the model and return training history (matching LeTE implementation)"""
     
     criterion = nn.CrossEntropyLoss()
@@ -430,11 +555,30 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
     }
     
     best_val_acc = 0.0
+    start_epoch = 0
+    
+    # Resume from checkpoint if requested
+    if resume_from_checkpoint and checkpoint_dir:
+        latest_checkpoint = find_latest_checkpoint(checkpoint_dir, encoder_name)
+        if latest_checkpoint:
+            checkpoint_data = load_checkpoint(latest_checkpoint, model, optimizer)
+            start_epoch = checkpoint_data['epoch'] + 1
+            history = checkpoint_data['history']
+            best_val_acc = checkpoint_data['best_val_acc']
+            print(f"🔄 Resumed from epoch {checkpoint_data['epoch']}, best val acc: {best_val_acc:.2f}%")
+        else:
+            print(f"⚠️  No checkpoint found for {encoder_name}, starting from scratch")
     
     print(f"\nTraining {encoder_name} encoder...")
     print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
+    if start_epoch > 0:
+        print(f"🔄 Resuming from epoch {start_epoch}")
     
-    for epoch in range(num_epochs):
+    # Create checkpoint directory if needed
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+    
+    for epoch in range(start_epoch, num_epochs):
         # Training phase
         model.train()
         train_loss = 0.0
@@ -537,19 +681,33 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
               f'Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.2f}%, '
               f'Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.2f}%')
         
+        # ✅ Save checkpoint every 10 epochs or if best model
+        save_checkpoint_now = False
+        
         # ✅ No early stopping - just save best model (matching LeTE)
         if epoch_val_acc > best_val_acc:
             best_val_acc = epoch_val_acc
+            save_checkpoint_now = True
             # Save best model in models directory
             model_save_path = os.path.join(models_dir, f'best_model_{encoder_name}.pth')
             torch.save(model.state_dict(), model_save_path)
             print(f"🔥 New best validation accuracy: {best_val_acc:.2f}%")
             print(f"💾 Model saved to: {model_save_path}")
+        
+        # Save checkpoint every 10 epochs or at the end
+        if checkpoint_dir and (save_checkpoint_now or (epoch + 1) % 10 == 0 or epoch == num_epochs - 1):
+            checkpoint_path = save_checkpoint(
+                model, optimizer, epoch, history, best_val_acc, encoder_name, checkpoint_dir
+            )
+            if save_checkpoint_now:
+                print(f"💾 Best checkpoint saved to: {checkpoint_path}")
+            elif (epoch + 1) % 10 == 0:
+                print(f"💾 Checkpoint saved to: {checkpoint_path}")
     
     return history, best_val_acc
 
 
-def run_experiment(encoder_name, args, models_dir='.'):
+def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
     """Run experiment for a specific encoder"""
     print(f"\n{'='*60}")
     print(f"Running experiment: {encoder_name}")
@@ -614,7 +772,8 @@ def run_experiment(encoder_name, args, models_dir='.'):
         # Train model
         history, best_val_acc = train_model(
             model, train_loader, val_loader, 
-            args.epochs, device, encoder_name, models_dir=models_dir
+            args.epochs, device, encoder_name, models_dir=models_dir, 
+            checkpoint_dir=checkpoint_dir, resume_from_checkpoint=args.resume_training
         )
         
         # ✅ Return best_val_acc (not final_val_acc) for fair comparison
@@ -870,7 +1029,56 @@ def main():
     parser.add_argument('--experiment_dir', type=str, default='mnist_experiments',
                         help='Directory to save all experiment outputs (default: mnist_experiments)')
     
+    # Checkpoint system
+    parser.add_argument('--resume_training', action='store_true',
+                        help='Resume training from latest checkpoint if available')
+    parser.add_argument('--resume_experiment', type=str,
+                        help='Resume training from specific experiment directory (e.g., mnist_experiments/run_20251017_143022)')
+    parser.add_argument('--resume_encoder', type=str,
+                        help='Resume training for specific encoder only (use with --resume_experiment)')
+    parser.add_argument('--additional_epochs', type=int, default=50,
+                        help='Additional epochs to train when resuming (default: 50)')
+    parser.add_argument('--checkpoint_every', type=int, default=10,
+                        help='Save checkpoint every N epochs (default: 10)')
+    parser.add_argument('--no_checkpoints', action='store_true',
+                        help='Disable checkpoint saving (not recommended for long training)')
+    
     args = parser.parse_args()
+    
+    # Handle resume experiment mode
+    if args.resume_experiment:
+        if not os.path.exists(args.resume_experiment):
+            print(f"❌ Experiment directory not found: {args.resume_experiment}")
+            return
+        
+        if args.resume_encoder:
+            # Resume specific encoder
+            print(f"🔄 Resuming encoder '{args.resume_encoder}' from experiment: {args.resume_experiment}")
+            checkpoint_info = resume_specific_encoder(args.resume_experiment, args.resume_encoder, args.additional_epochs)
+            if checkpoint_info:
+                print("✅ Use the following command to continue training:")
+                print(f"python {sys.argv[0]} --resume_training --experiment_dir {args.resume_experiment} --encoders {args.resume_encoder} --epochs {checkpoint_info['completed_epochs'] + args.additional_epochs}")
+            return
+        else:
+            # List available checkpoints
+            checkpoint_dir = os.path.join(args.resume_experiment, "checkpoints")
+            if os.path.exists(checkpoint_dir):
+                print(f"📁 Available checkpoints in {args.resume_experiment}:")
+                checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.endswith('.pth') and 'latest' in f]
+                encoders_with_checkpoints = []
+                for file in checkpoint_files:
+                    encoder_name = file.replace('checkpoint_', '').replace('_latest.pth', '')
+                    encoders_with_checkpoints.append(encoder_name)
+                    checkpoint_path = os.path.join(checkpoint_dir, file)
+                    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+                    print(f"  - {encoder_name}: Epoch {checkpoint['epoch']}, Best Val Acc: {checkpoint['best_val_acc']:.2f}%")
+                
+                print(f"\n💡 To resume a specific encoder, use:")
+                print(f"python {sys.argv[0]} --resume_experiment {args.resume_experiment} --resume_encoder <encoder_name>")
+                print(f"Available encoders: {', '.join(encoders_with_checkpoints)}")
+            else:
+                print(f"❌ No checkpoints directory found in {args.resume_experiment}")
+            return
     
     # Get available encoders
     available_encoders = get_available_encoders()
@@ -914,10 +1122,19 @@ def main():
     experiment_folder = os.path.join(args.experiment_dir, f"run_{timestamp}")
     models_dir = os.path.join(experiment_folder, "models")
     history_dir = os.path.join(experiment_folder, "epoch_history")
+    checkpoint_dir = os.path.join(experiment_folder, "checkpoints") if not args.no_checkpoints else None
     
     os.makedirs(models_dir, exist_ok=True)
     os.makedirs(history_dir, exist_ok=True)
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
     print(f"📁 Experiment folder: {experiment_folder}")
+    if checkpoint_dir:
+        print(f"💾 Checkpoints will be saved to: {checkpoint_dir}")
+        if args.resume_training:
+            print("🔄 Resume training mode enabled")
+    else:
+        print("⚠️  Checkpoint saving disabled")
     
     print(f"\n🧪 Event-Based MNIST Time Encoder Comparison")
     print(f"=" * 60)
@@ -932,7 +1149,7 @@ def main():
     
     for i, encoder_name in enumerate(encoders_to_test, 1):
         print(f"\n[{i}/{len(encoders_to_test)}] Testing {encoder_name}...")
-        result = run_experiment(encoder_name, args, models_dir=models_dir)
+        result = run_experiment(encoder_name, args, models_dir=models_dir, checkpoint_dir=checkpoint_dir)
         results.append(result)
     
     end_time = datetime.now()
