@@ -563,6 +563,7 @@ if __name__ == "__main__":
             elif args.checkpoint_strategy == 'minimal':
                 args.checkpoint_interval = max(20, args.num_epochs // 3)  # Only 3 checkpoints total
 
+        
         loss_func = nn.BCELoss()
         for epoch in range(start_epoch, args.num_epochs):
 
@@ -708,8 +709,36 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times)
                 else:
                     raise ValueError(f"Wrong value for model_name {args.model_name}!")
-
-                if args.model_name in ['DyGMamba']:
+                debug_mamba = False
+                if args.model_name in ['DyGMamba'] and debug_mamba == True:
+                    print(f"🔍 BATCH {batch_idx} - Computing embeddings...")
+                    batch_src_node_embeddings, batch_dst_node_embeddings, batch_time_diff_emb = \
+                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                          dst_node_ids=batch_dst_node_ids,
+                                                                          node_interact_times=batch_node_interact_times)
+                    
+                    print(f"🔍 Embeddings computed - src NaN: {torch.isnan(batch_src_node_embeddings).sum()}, dst NaN: {torch.isnan(batch_dst_node_embeddings).sum()}, time NaN: {torch.isnan(batch_time_diff_emb).sum()}")
+                    
+                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings, batch_neg_time_diff_emb = \
+                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                          dst_node_ids=batch_neg_dst_node_ids,
+                                                                          node_interact_times=batch_node_interact_times)
+                    
+                    print(f"🔍 Neg embeddings computed - src NaN: {torch.isnan(batch_neg_src_node_embeddings).sum()}, dst NaN: {torch.isnan(batch_neg_dst_node_embeddings).sum()}, time NaN: {torch.isnan(batch_neg_time_diff_emb).sum()}")
+                    
+                    # Compute probabilities with NaN tracking
+                    positive_logits = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1)
+                    print(f"🔍 Positive logits - min: {positive_logits.min():.4f}, max: {positive_logits.max():.4f}, NaN: {torch.isnan(positive_logits).sum()}")
+                    
+                    positive_probabilities = positive_logits.sigmoid()
+                    print(f"🔍 Positive probs (after sigmoid) - min: {positive_probabilities.min():.4f}, max: {positive_probabilities.max():.4f}, NaN: {torch.isnan(positive_probabilities).sum()}")
+                    
+                    negative_logits = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1)
+                    print(f"🔍 Negative logits - min: {negative_logits.min():.4f}, max: {negative_logits.max():.4f}, NaN: {torch.isnan(negative_logits).sum()}")
+                    
+                    negative_probabilities = negative_logits.sigmoid()
+                    print(f"🔍 Negative probs (after sigmoid) - min: {negative_probabilities.min():.4f}, max: {negative_probabilities.max():.4f}, NaN: {torch.isnan(negative_probabilities).sum()}")
+                elif args.model_name in ['DyGMamba'] and debug_mamba == False:
                     positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
                     negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
                 else:
@@ -717,10 +746,23 @@ if __name__ == "__main__":
                     negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings,
                                                     input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
 
+
                 predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
                 labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
-
+                """
+                if torch.any(torch.isnan(predicts)):
+                    print(f"❌ CRITICAL: NaN detected in final predicts tensor at batch {batch_idx}")
+                    print(f"   Positive probs NaN count: {torch.isnan(positive_probabilities).sum()}")
+                    print(f"   Negative probs NaN count: {torch.isnan(negative_probabilities).sum()}")
+                    predicts = torch.nan_to_num(predicts, nan=0.5)
+                
+                if torch.any(torch.isinf(predicts)):
+                    print(f"❌ CRITICAL: Inf detected in final predicts tensor at batch {batch_idx}")
+                    predicts = torch.clamp(predicts, min=eps, max=1.0-eps)
+                """
+                #print("input to loss: ", predicts, labels)
                 loss = loss_func(input=predicts, target=labels)
+                #print(loss)
                 train_losses.append(loss.item())
                 train_metrics.append(get_link_prediction_metrics(predicts=predicts, labels=labels))
 

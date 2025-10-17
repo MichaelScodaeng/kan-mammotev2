@@ -93,7 +93,7 @@ def parse_arguments():
                         help='Generate experiment report and exit')
     parser.add_argument('--num_runs', type=int, default=3,
                         help='Number of runs per experiment (default: 1)')
-    parser.add_argument('--timeout_hours', type=float, default=12.0,
+    parser.add_argument('--timeout_hours', type=float, default=600.0,
                         help='Timeout in hours per experiment (default: 12)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Print commands without executing them')

@@ -171,6 +171,11 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
                 negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings,
                                                     input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
 
+            # Clamp probabilities to prevent BCELoss assertion errors
+            """eps = 1e-7
+            positive_probabilities = torch.clamp(positive_probabilities, min=eps, max=1.0-eps)
+            negative_probabilities = torch.clamp(negative_probabilities, min=eps, max=1.0-eps)"""
+
             predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
             labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
 

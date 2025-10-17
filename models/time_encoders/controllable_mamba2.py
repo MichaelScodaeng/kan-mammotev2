@@ -48,6 +48,20 @@ class ControllableMamba2(Mamba2):
         # Unpack the gamma and beta modulators
         gamma, beta = temporal_modulators
         #print("shape of gamma, beta, dt_content:", gamma.shape, beta.shape, dt_content.shape)
+        # MEMORY FIX: Ensure tensors are contiguous and properly shaped
+        if gamma.shape != dt_content.shape:
+            # Handle dimension mismatch gracefully
+            if gamma.dim() == 3 and dt_content.dim() == 3:
+                if gamma.shape[-1] != dt_content.shape[-1]:
+                    # Expand or reduce gamma/beta to match dt_content
+                    target_dim = dt_content.shape[-1]
+                    if gamma.shape[-1] < target_dim:
+                        gamma = gamma.repeat(1, 1, target_dim // gamma.shape[-1])
+                        beta = beta.repeat(1, 1, target_dim // beta.shape[-1])
+                    else:
+                        gamma = gamma[..., :target_dim]
+                        beta = beta[..., :target_dim]
+        
         # Apply the affine transformation: y = gamma * x + beta
         dt_fused = gamma * dt_content + beta
         # --- END OF FiLM MODIFICATION ---
