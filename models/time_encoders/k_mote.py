@@ -121,29 +121,109 @@ class SplineKANLayer(nn.Module):
 
 class FourierKANLayer(nn.Module):
     """
-    An expert specializing in periodic patterns using a Fourier series expansion.
+    Ultra-memory-efficient Fourier expert with aggressive chunking and memory management.
     """
     def __init__(self, input_dim: int, output_dim: int, n_harmonics: int = 16):
         super().__init__()
+        self.input_dim = input_dim
         self.output_dim = output_dim
-        self.cos_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim))
-        self.sin_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim))
-        self.frequencies = nn.Parameter(torch.randn(input_dim, n_harmonics))
-        self.bias = nn.Parameter(torch.randn(output_dim))
+        self.n_harmonics = n_harmonics
+        
+        # KEEP SAME parameter structure for compatibility
+        self.cos_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
+        self.sin_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
+        self.frequencies = nn.Parameter(torch.randn(input_dim, n_harmonics) * 0.1)
+        self.bias = nn.Parameter(torch.zeros(output_dim))
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
-        if t.dim() == 2: t = t.unsqueeze(-1)
+        if t.dim() == 2: 
+            t = t.unsqueeze(-1)
         
-        t_expanded = t.unsqueeze(-1)
-        freqs = self.frequencies.unsqueeze(0).unsqueeze(0)
+        batch_size, seq_len, input_dim = t.shape
         
-        arg = freqs * t_expanded
+        # ULTRA-AGGRESSIVE MEMORY MANAGEMENT
+        # Calculate available memory and determine safe chunk size
+        if torch.cuda.is_available():
+            # Get available GPU memory
+            free_memory = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated()
+            # Use only 10% of free memory for safety
+            safe_memory = free_memory * 0.1
+            # Estimate memory per sample (very conservative)
+            memory_per_sample = input_dim * self.n_harmonics * self.output_dim * 8 * 4  # 4x safety factor
+            max_chunk_from_memory = max(1, int(safe_memory // memory_per_sample))
+            # Use very small chunks
+            chunk_size = min(32, max_chunk_from_memory, batch_size * seq_len)  # Max 32 samples per chunk
+        else:
+            chunk_size = 16  # Even smaller for CPU
+            
+        print(f"🔧 FourierKAN using chunk_size: {chunk_size}")
         
-        cos_term = torch.cos(arg).unsqueeze(-1) * self.cos_coeffs.unsqueeze(0).unsqueeze(0)
-        sin_term = torch.sin(arg).unsqueeze(-1) * self.sin_coeffs.unsqueeze(0).unsqueeze(0)
+        t_flat = t.view(-1, input_dim)  # (B*S, input_dim)
         
-        output = (cos_term + sin_term).sum(dim=(2, 3)) + self.bias
+        # Pre-allocate output on CPU first to save GPU memory
+        output_cpu = torch.zeros(t_flat.shape[0], self.output_dim, dtype=torch.float32)
+        
+        # Process in ultra-small chunks
+        for i in range(0, t_flat.shape[0], chunk_size):
+            end_idx = min(i + chunk_size, t_flat.shape[0])
+            t_chunk = t_flat[i:end_idx]  # (chunk_size, input_dim)
+            
+            # Force garbage collection before processing
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
+            try:
+                # Compute on this tiny chunk
+                t_expanded = t_chunk.unsqueeze(-1)  # (chunk_size, input_dim, 1)
+                freqs = self.frequencies.unsqueeze(0)  # (1, input_dim, n_harmonics)
+                
+                args = t_expanded * freqs  # (chunk_size, input_dim, n_harmonics)
+                
+                # Compute trigonometric functions
+                cos_vals = torch.cos(args)
+                sin_vals = torch.sin(args)
+                
+                # Compute output for this chunk
+                cos_output = torch.einsum('bih,iho->bo', cos_vals, self.cos_coeffs)
+                sin_output = torch.einsum('bih,iho->bo', sin_vals, self.sin_coeffs)
+                
+                chunk_result = cos_output + sin_output + self.bias
+                
+                # Move result to CPU immediately to free GPU memory
+                output_cpu[i:end_idx] = chunk_result.cpu()
+                
+                # Aggressive cleanup
+                del cos_vals, sin_vals, cos_output, sin_output, chunk_result, args, t_expanded
+                
+            except RuntimeError as e:
+                if "out of memory" in str(e):
+                    # Emergency fallback: process one sample at a time
+                    print(f"⚠️  Chunk size {chunk_size} too large, falling back to sample-by-sample")
+                    for j in range(i, end_idx):
+                        t_sample = t_flat[j:j+1]
+                        t_exp = t_sample.unsqueeze(-1)
+                        freqs = self.frequencies.unsqueeze(0)
+                        args = t_exp * freqs
+                        cos_vals = torch.cos(args)
+                        sin_vals = torch.sin(args)
+                        cos_out = torch.einsum('bih,iho->bo', cos_vals, self.cos_coeffs)
+                        sin_out = torch.einsum('bih,iho->bo', sin_vals, self.sin_coeffs)
+                        sample_result = cos_out + sin_out + self.bias
+                        output_cpu[j] = sample_result.cpu().squeeze()
+                        del cos_vals, sin_vals, cos_out, sin_out, sample_result, args, t_exp
+                        torch.cuda.empty_cache()
+                else:
+                    raise e
+            
+            # Force memory cleanup after each chunk
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        
+        # Move final result back to GPU and reshape
+        output = output_cpu.to(t.device).view(batch_size, seq_len, self.output_dim)
+        
         return output
+
 
 
 # --- Expert 3: Enhanced Wavelet KAN Layer (Unchanged) ---
