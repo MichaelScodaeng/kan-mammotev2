@@ -8,6 +8,8 @@
 cd "$PBS_O_WORKDIR"
 
 source ~/.bashrc
+module purge
+module load cuda/12.8u1
 conda activate kan_mammote
 
 # Task 1 on GPU 0
