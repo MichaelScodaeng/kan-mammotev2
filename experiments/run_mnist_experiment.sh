@@ -10,7 +10,7 @@ echo "============================================="
 EPOCHS=200
 BATCH_SIZE=512
 EMBEDDING_DIM=32
-ENCODERS="lete lete_relative kan_mammote_full"
+ENCODERS="lete lete_relative time2vec time2vec_relative mercer mercer_relative kan_mammote_dual_kmote lstm_only kmote_abs_only kmote_rel_only kan_mammote_lite_weighted kan_mammote_lite_attention kan_mammote_lite_concat"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -28,11 +28,11 @@ while [[ $# -gt 0 ]]; do
             done
             ;;
         --batch_size)
-            BATCH_SIZE="$2"
+            BATCH_SIZE="$512"
             shift 2
             ;;
         --embedding_dim)
-            EMBEDDING_DIM="$2"
+            EMBEDDING_DIM="$32"
             shift 2
             ;;
         --resume)

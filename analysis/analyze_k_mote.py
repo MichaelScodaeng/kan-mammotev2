@@ -7,6 +7,9 @@ import os
 import sys
 from tqdm import tqdm
 
+# Global training configuration
+MAX_EPOCHS = 10000
+
 # Add the parent directory to Python path to import models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -26,7 +29,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model(model, t_data, y_true, max_epochs=10000, lr=5e-5, patience=500, min_delta=1e-6):
+def train_model(model, t_data, y_true, max_epochs=MAX_EPOCHS, lr=2e-4, patience=500, min_delta=1e-6):
     """ฟังก์ชันสำหรับเทรนโมเดลเพื่อ fit ข้อมูล"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
@@ -126,6 +129,66 @@ def plot_fit(ax, t, y_true, model, title):
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.6)
 
+def plot_fit_with_gating(axes, t, y_true, model, title):
+    """ฟังก์ชันสำหรับพล็อตผลลัพธ์การ fit พร้อมกับ gating weights สำหรับ K-MOTE"""
+    model.eval()
+    with torch.no_grad():
+        t_input = t.unsqueeze(-1)
+        
+        # Check if model supports gating weights (K-MOTE)
+        if hasattr(model, 'gating_network'):
+            y_pred, gating_weights = model(t_input, return_weights=True)
+            
+            # Plot main fit
+            if y_pred.dim() > 1:
+                y_pred = y_pred.squeeze()
+            y_pred_np = y_pred.cpu().numpy()
+            
+            axes[0].plot(t.cpu().numpy(), y_true.cpu().numpy(), label='Ground Truth', linewidth=3, alpha=0.7)
+            axes[0].plot(t.cpu().numpy(), y_pred_np, label='K-MOTE Fit', linestyle='--', color='red')
+            axes[0].set_title(f"{title} - Model Fit")
+            axes[0].legend()
+            axes[0].grid(True, linestyle='--', alpha=0.6)
+            
+            # Plot gating weights
+            if gating_weights.dim() > 2:
+                gating_weights = gating_weights.squeeze()
+            gating_weights_np = gating_weights.cpu().numpy()
+            
+            expert_names = ['B-Spline', 'Fourier', 'Wavelet', 'RBF']
+            colors = ['green', 'blue', 'red', 'magenta']
+            
+            for i in range(gating_weights_np.shape[1]):
+                axes[1].plot(t.cpu().numpy(), gating_weights_np[:, i], 
+                           color=colors[i], linewidth=2, label=f'{expert_names[i]} Weight')
+            
+            axes[1].set_title(f"{title} - Expert Gating Weights")
+            axes[1].set_xlabel("Time (t)")
+            axes[1].set_ylabel("Expert Weight")
+            axes[1].legend()
+            axes[1].grid(True, linestyle='--', alpha=0.6)
+            
+            return gating_weights_np
+        else:
+            # Regular single expert plot
+            y_pred = model(t_input)
+            if y_pred.dim() > 1:
+                y_pred = y_pred.squeeze()
+            y_pred_np = y_pred.cpu().numpy()
+            
+            axes[0].plot(t.cpu().numpy(), y_true.cpu().numpy(), label='Ground Truth', linewidth=3, alpha=0.7)
+            axes[0].plot(t.cpu().numpy(), y_pred_np, label='Model Fit', linestyle='--', color='red')
+            axes[0].set_title(f"{title} - Model Fit")
+            axes[0].legend()
+            axes[0].grid(True, linestyle='--', alpha=0.6)
+            
+            # Empty second plot for consistency
+            axes[1].text(0.5, 0.5, 'No Gating\n(Single Expert)', ha='center', va='center', 
+                        transform=axes[1].transAxes, fontsize=12)
+            axes[1].set_title(f"{title} - No Gating Available")
+            
+            return None
+
 # สร้างข้อมูลสังเคราะห์ที่เหมาะกับแต่ละ expert
 def generate_smooth_trend_data(t):
     """Data that should favor B-Spline expert - smooth polynomial trends"""
@@ -179,18 +242,28 @@ def run_fitting_analysis():
         "B-Spline Expert": SingleExpertModel(SplineKANLayer, basis_function='b_spline'),
         "Fourier Expert": SingleExpertModel(FourierKANLayer),
         "Wavelet Expert": SingleExpertModel(WaveletKANLayer, wavelet_type='shock'),  # Use more stable wavelet
-        "Full K-MOTE": KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
+        "RBF Expert": SingleExpertModel(SplineKANLayer, basis_function='rbf'),
+        "Full K-MOTE (4 Experts)": KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
     }
     
     # 3. เทรนและพล็อตผลลัพธ์แต่ละแบบ
     for func_name, y_true in target_functions.items():
         print(f"\n[INFO] Testing on: {func_name}")
-        fig, axes = plt.subplots(1, len(models_to_test), figsize=(25, 5))
-        fig.suptitle(f'Expert Performance on: {func_name}', fontsize=16)
+        
+        # Create separate figures for individual experts and K-MOTE with gating
+        individual_experts = {k: v for k, v in models_to_test.items() if "K-MOTE" not in k}
+        
+        # Plot individual experts
+        if individual_experts:
+            fig1, axes1 = plt.subplots(1, len(individual_experts), figsize=(20, 5))
+            if len(individual_experts) == 1:
+                axes1 = [axes1]
+            fig1.suptitle(f'Individual Expert Performance on: {func_name}', fontsize=16)
         
         model_losses = {}
         
-        for i, (model_name, model_instance) in enumerate(models_to_test.items()):
+        # Train individual experts
+        for i, (model_name, model_instance) in enumerate(individual_experts.items()):
             print(f"  - Training {model_name}...")
             
             # สร้าง instance ใหม่ทุกครั้ง
@@ -202,14 +275,54 @@ def run_fitting_analysis():
                 model = SingleExpertModel(WaveletKANLayer, wavelet_type='shock')
             elif model_name == "RBF Expert":
                 model = SingleExpertModel(SplineKANLayer, basis_function='rbf')
-            else:  # Full K-MOTE
-                model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
                 
             # Train and record final loss
             final_loss = train_model_with_loss_return(model, t, y_true)
             model_losses[model_name] = final_loss
             
-            plot_fit(axes[i], t, y_true, model, f"{model_name}\nLoss: {final_loss:.4f}")
+            plot_fit(axes1[i], t, y_true, model, f"{model_name}\nLoss: {final_loss:.4f}")
+        
+        if individual_experts:
+            plt.tight_layout(rect=[0, 0, 1, 0.96])
+            safe_filename = func_name.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+            plt.savefig(f'analysis_figures/individual_experts_{safe_filename}.png', dpi=300, bbox_inches='tight')
+            plt.show()
+        
+        # Train and analyze K-MOTE with gating weights
+        kmote_models = {k: v for k, v in models_to_test.items() if "K-MOTE" in k}
+        for model_name, _ in kmote_models.items():
+            print(f"  - Training {model_name} with gating analysis...")
+            
+            model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
+            final_loss = train_model_with_loss_return(model, t, y_true)
+            model_losses[model_name] = final_loss
+            
+            # Create figure with gating analysis
+            fig2, axes2 = plt.subplots(2, 1, figsize=(12, 10))
+            fig2.suptitle(f'{model_name} Analysis on: {func_name}', fontsize=16)
+            
+            gating_weights = plot_fit_with_gating(axes2, t, y_true, model, f"Loss: {final_loss:.4f}")
+            
+            # Analyze gating patterns
+            if gating_weights is not None:
+                print(f"    📊 Expert Usage Analysis:")
+                expert_names = ['B-Spline', 'Fourier', 'Wavelet', 'RBF']
+                avg_weights = np.mean(gating_weights, axis=0)
+                for i, (name, weight) in enumerate(zip(expert_names, avg_weights)):
+                    print(f"      {name}: {weight:.3f} ({weight*100:.1f}%)")
+                
+                # Find dominant expert at key regions
+                dominant_expert_idx = np.argmax(gating_weights, axis=1)
+                dominant_expert_counts = np.bincount(dominant_expert_idx, minlength=4)
+                print(f"    📈 Dominant Expert Regions:")
+                for i, (name, count) in enumerate(zip(expert_names, dominant_expert_counts)):
+                    percentage = count / len(t) * 100
+                    print(f"      {name}: {count}/{len(t)} points ({percentage:.1f}%)")
+            
+            plt.tight_layout(rect=[0, 0, 1, 0.96])
+            safe_filename = func_name.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+            plt.savefig(f'analysis_figures/kmote_gating_{safe_filename}.png', dpi=300, bbox_inches='tight')
+            plt.show()
             
         # แสดงผลการเปรียบเทียบ loss
         print(f"  📊 Loss Comparison for {func_name}:")
@@ -217,15 +330,8 @@ def run_fitting_analysis():
         for rank, (name, loss) in enumerate(sorted_losses, 1):
             print(f"    {rank}. {name}: {loss:.6f}")
         print()
-            
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        
-        # Save figure
-        safe_filename = func_name.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
-        plt.savefig(f'analysis_figures/expert_performance_{safe_filename}.png', dpi=300, bbox_inches='tight')
-        plt.show()
 
-def train_model_with_loss_return(model, t_data, y_true, max_epochs=20000, lr=1e-4, 
+def train_model_with_loss_return(model, t_data, y_true, max_epochs=MAX_EPOCHS*2, lr=1e-4, 
                                patience=300, min_delta=1e-7):
     """Train model until convergence and return final loss and training info"""
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -330,7 +436,7 @@ def run_interpretability_analysis():
     
     print("[INFO] Training K-MOTE on mixed pattern data...")
     k_mote_model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')  # Use stable wavelet
-    train_model(k_mote_model, t_mixed, y_mixed, max_epochs=10000, lr=2e-4)
+    train_model(k_mote_model, t_mixed, y_mixed, max_epochs=20000, lr=2e-4)
     
     # 2. ดึงค่า prediction และ gating weights ออกมา
     k_mote_model.eval()
@@ -463,7 +569,7 @@ def run_expert_capability_matrix():
         "Fourier": lambda: SingleExpertModel(FourierKANLayer),
         "Shock Wavelet": lambda: SingleExpertModel(WaveletKANLayer, wavelet_type='shock'),  # Use stable wavelet
         "RBF": lambda: SingleExpertModel(SplineKANLayer, basis_function='rbf'),
-        "K-MOTE": lambda: KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
+        "K-MOTE (4 Experts)": lambda: KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
     }
     
     # Performance matrix
@@ -483,7 +589,7 @@ def run_expert_capability_matrix():
             model = expert_factory()
             
             # Train and get final loss
-            final_loss = train_model_with_loss_return(model, t, y_data, max_epochs=10000, lr=2e-4)
+            final_loss = train_model_with_loss_return(model, t, y_data, max_epochs=20000, lr=2e-4)
             results_matrix[dataset_name][expert_name] = final_loss
             
             print(f"Loss: {final_loss:.6f}")
@@ -573,10 +679,10 @@ if __name__ == '__main__':
     run_fitting_analysis()
     
     # Part 2: Mixed pattern gating analysis  
-    #run_interpretability_analysis()
+    run_interpretability_analysis()
     
     # Part 3: Comprehensive capability matrix
-    #run_expert_capability_matrix()
+    run_expert_capability_matrix()
     
     print("\n✨ Analysis Complete! ")
     print("📋 Summary:")

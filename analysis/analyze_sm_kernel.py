@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import numpy as np
+
+# Global training configuration
+MAX_EPOCHS = 3000
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # --- Import your SMKernelLayer ---
@@ -136,7 +140,7 @@ def prepare_data_for_sm_kernel(t_data):
     
     return delta_t_formatted
 
-def train_reconstructor(model, t_train, y_train, epochs=3000, lr=2e-4):
+def train_reconstructor(model, t_train, y_train, epochs=MAX_EPOCHS, lr=2e-4):
     """
     Trains the SMKernelReconstructor model on the training data.
     """
@@ -530,7 +534,7 @@ def run_bias_analysis():
     
     return results
 
-def train_reconstructor_simple(model, delta_t, y_true, epochs=1500, lr=2e-4):
+def train_reconstructor_simple(model, delta_t, y_true, epochs=MAX_EPOCHS//2, lr=2e-4):
     """Simplified training function for bias analysis"""
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     loss_fn = nn.MSELoss()

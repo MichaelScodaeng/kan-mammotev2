@@ -44,6 +44,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Add parent directory for imports
+# Global training configuration
+MAX_EPOCHS = 3000
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import all time encoders with graceful error handling
@@ -107,7 +110,7 @@ SHARED_TRAINING_CONFIG = {
     'learning_rate': 1e-3,  # Standard learning rate for reconstruction tasks
     'patience': 200,  # Allow more patience for convergence
     'min_delta': 1e-6,
-    'max_epochs': 2000,  # Sufficient epochs for pattern learning
+    'max_epochs': MAX_EPOCHS,  # Sufficient epochs for pattern learning
     'weight_decay': 1e-4,  # Standard weight decay
     'grad_clip_norm': 1.0,
 }

@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import os
 import sys
 
+# Global training configuration
+MAX_EPOCHS = 4000
+
 # Import the CombinedLeTE model from the LeTE.py file
 # Ensure LeTE.py is in the same directory or accessible via PYTHONPATH
 try:
@@ -51,7 +54,7 @@ class LeTERegressor(nn.Module):
 
 # --- Helper Functions (similar to previous analysis) ---
 
-def train_model_with_loss_return(model, t_data, y_true, epochs=4000, lr=2e-4):
+def train_model_with_loss_return(model, t_data, y_true, epochs=MAX_EPOCHS, lr=2e-4):
     """Train model and return final loss"""
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
     loss_fn = nn.MSELoss()
