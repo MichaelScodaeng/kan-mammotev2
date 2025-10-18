@@ -11,6 +11,9 @@ Tests include:
 4. Temporal Pattern Classification: Can it classify different temporal patterns?
 """
 
+# Global training configuration
+MAX_EPOCHS = 50
+
 import os
 import sys
 import argparse
@@ -368,7 +371,7 @@ class TemporalPatternModel(nn.Module):
 # Training and Evaluation Functions
 # ============================================================================
 
-def train_classification(model, train_loader, val_loader, device, epochs=50, lr=1e-3):
+def train_classification(model, train_loader, val_loader, device, epochs=MAX_EPOCHS, lr=1e-3):
     """Train a classification model."""
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     criterion = nn.BCELoss()
@@ -450,7 +453,7 @@ def train_classification(model, train_loader, val_loader, device, epochs=50, lr=
     return history, best_val_acc
 
 
-def train_regression(model, train_loader, val_loader, device, epochs=50, lr=1e-3):
+def train_regression(model, train_loader, val_loader, device, epochs=MAX_EPOCHS, lr=1e-3):
     """Train a regression model."""
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     criterion = nn.MSELoss()
@@ -506,7 +509,7 @@ def train_regression(model, train_loader, val_loader, device, epochs=50, lr=1e-3
     return history, best_val_mae
 
 
-def train_multiclass(model, train_loader, val_loader, device, epochs=50, lr=1e-3):
+def train_multiclass(model, train_loader, val_loader, device, epochs=MAX_EPOCHS, lr=1e-3):
     """Train a multi-class classification model."""
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss()

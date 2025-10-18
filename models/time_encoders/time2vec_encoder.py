@@ -109,7 +109,7 @@ class Model(nn.Module):
         x = self.fc1(x)
         return x
     
-def t2v(tau, f, out_features, w, b, w0, b0, arg=None,dygmamba=True):
+def t2v(tau, f, out_features, w, b, w0, b0, arg=None,dygmamba=False):
     """
     Core Time2Vec transformation function.
     """

@@ -18,6 +18,9 @@ import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+
+# Global training configuration
+MAX_EPOCHS = 5000
 import sys
 
 # Add parent directory for imports
@@ -43,7 +46,7 @@ class SingleExpertModel(nn.Module):
     def forward(self, x):
         return self.expert(x)
 
-def train_model_with_loss(model, t_data, y_true, epochs=5000, lr=1e-3):
+def train_model_with_loss(model, t_data, y_true, epochs=MAX_EPOCHS, lr=1e-3):
     """Train model and return final loss"""
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     loss_fn = nn.MSELoss()

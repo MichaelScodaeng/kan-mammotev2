@@ -29,9 +29,8 @@ class SplineKANLayer(nn.Module):
         self.grid_size = grid_size
         self.output_dim = output_dim
 
-        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
-        # self.input_projection = nn.Linear(input_dim, input_dim)
-        # ===== END REMOVE =====
+        # This layer learns to scale/shift the input for the LOCAL branch
+        self.input_projection = nn.Linear(input_dim, input_dim)
 
         # --- FIX: A powerful MLP to learn the GLOBAL trend ---
         hidden_dim = 32 # A small hidden layer
@@ -127,10 +126,8 @@ class SplineKANLayer(nn.Module):
         # 1. Calculate the global trend using the powerful MLP branch on the raw input
         global_output = self.global_branch(x)
 
-        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
-        # 2. Use input directly for local branch (preprocessing done at K-MOTE level)
-        x_proj = x  # No additional projection needed
-        # ===== END REMOVE =====
+        # 2. Project the input for the local branch to handle data scaling
+        x_proj = self.input_projection(x)
         
         # 3. Calculate the local correction using the specialized branch
         if self.basis_function == 'b_spline':
@@ -303,110 +300,61 @@ class WaveletKANLayer(nn.Module):
 
 class KMOTE(nn.Module):
     """
-    Final, architecturally correct K-MOTE.
-    This version fully aligns with the LeTE/Time2Vec design by expanding the
-    time dimension in the initial linear layer BEFORE it is passed to the experts.
+    Enhanced K-MOTE with conditional LayerNorm for stability and gating temperature
+    to encourage decisive expert selection.
+    
+    Version 2 includes fixed B-spline implementation following LeTE's approach.
     """
-    def __init__(self, input_dim: int, output_dim: int,
-                 wavelet_type: str = 'shock',
-                 use_layernorm: bool = True,
-                 use_scale: bool = True,
-                 gating_temp: float = 1.0):
+    def __init__(self, input_dim: int, output_dim: int, wavelet_type: str = 'shock', use_layernorm: bool = True,
+                 gating_temp: float = 1.0, version: str = 'v2'):
         super().__init__()
-        
-        # This architecture is designed for a 1D time input.
-        if input_dim != 1:
-            raise ValueError("K-MOTE requires input_dim=1 for the time input.")
-
         self.output_dim = output_dim
         self.temperature = gating_temp
-        self.use_scale = use_scale
+        self.version = version
 
-        # ===== CRITICAL CHANGE 1: The Initial Linear Transformation =====
-        # This layer now expands the 1D time input to the full output dimension.
-        # This is the 'w*t + b' step that creates the multi-channel time representation.
-        self.time_linear_transform = nn.Linear(input_dim, output_dim)
-        self._initialize_time_transform() # Apply the special initialization
-        # =============================================================
-
-        if use_scale:
-            self.scale = nn.Parameter(torch.ones(output_dim))
-
-        # ===== CRITICAL CHANGE 2: Experts now operate on high-dimensional input =====
-        # The input_dim for all experts is now `output_dim`, as they receive the
-        # already-transformed time vector.
+        # Use fixed B-spline implementation (v2) by default, but allow v1 for backward compatibility
+        if version == 'v1':
+            print("⚠️  WARNING: Using K-MOTE v1 with incorrect B-spline implementation for backward compatibility")
+            # Would need to implement backward compatible version here if needed
+            raise NotImplementedError("K-MOTE v1 compatibility not implemented. Use version='v2' for fixed B-splines.")
+        
         self.experts = nn.ModuleList([
-            SplineKANLayer(output_dim, output_dim, basis_function='b_spline', grid_size=8),
-            FourierKANLayer(output_dim, output_dim, n_harmonics=16),
-            WaveletKANLayer(output_dim, output_dim, n_wavelets=16, wavelet_type=wavelet_type),
-            SplineKANLayer(output_dim, output_dim, basis_function='rbf', grid_size=8)
+            SplineKANLayer(input_dim, output_dim, basis_function='b_spline', grid_size=8),  # Fixed B-spline
+            FourierKANLayer(input_dim, output_dim, n_harmonics=16),
+            WaveletKANLayer(input_dim, output_dim, n_wavelets=16, wavelet_type=wavelet_type),
+            SplineKANLayer(input_dim, output_dim, basis_function='rbf', grid_size=8)
         ])
-        # ===========================================================================
         
         self.num_experts = len(self.experts)
-        # ===== CRITICAL CHANGE 3: Gating network also uses the transformed time =====
-        # It needs to decide which expert to use based on the rich, multi-channel representation.
         self.gating_network = nn.Sequential(
-            nn.Linear(output_dim, 64), # Input is now output_dim
+            nn.Linear(input_dim, 64),
             nn.GELU(),
             nn.Linear(64, self.num_experts)
         )
-        # =========================================================================
         
+        # --- FIX: Conditionally apply LayerNorm ONLY when output_dim > 1 ---
         if use_layernorm and output_dim > 1:
             self.layer_norm = nn.LayerNorm(output_dim)
-            print(f"Initialized K-MOTE with LayerNorm and LeTE-style architecture.")
+            print(f"Initialized K-MOTE {version} with LayerNorm, Gating Temperature={self.temperature}.")
         else:
             self.layer_norm = nn.Identity()
-
-    def _initialize_time_transform(self):
-        """
-        Initializes the time transformation layer with a geometric progression of frequencies,
-        following the LeTE / Transformer paper's methodology.
-        
-        CRITICAL: These weights REMAIN LEARNABLE to ensure scale-invariance.
-        The initialization provides a strong inductive bias, while the trainability
-        allows the model to fine-tune frequencies and adapt to input scale.
-        """
-        # The torch.no_grad() context is good practice for initialization.
-        # It prevents this operation from being tracked in the computation graph.
-        # It does NOT freeze the parameters from future gradient updates.
-        with torch.no_grad():
-            # Create frequencies from 1.0 down to 1.0 / 10^9
-            frequencies = 1.0 / (10 ** torch.linspace(0, 9, self.output_dim, dtype=torch.float32))
-            
-            # Copy these values into the weight tensor. The .weight attribute itself
-            # is still a learnable nn.Parameter.
-            self.time_linear_transform.weight.copy_(frequencies.unsqueeze(1))
-            
-            # Initialize bias to zero
-            self.time_linear_transform.bias.zero_()
+            print(f"Initialized K-MOTE {version} (No LayerNorm for 1D output), Gating Temperature={self.temperature}.")
 
     def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
         if t.dim() == 2:
-            t = t.unsqueeze(-1) # Ensure shape (B, S, 1)
-
-        # 1. Apply the LeTE-style linear transformation FIRST.
-        # This is the crucial step that creates the scale-invariant, multi-scale representation.
-        # Shape: (B, S, 1) -> (B, S, output_dim)
-        t_transformed = self.time_linear_transform(t)
+            t = t.unsqueeze(-1)
         
-        # 2. Pass this high-dimensional representation to the gating network and all experts.
-        gating_logits = self.gating_network(t_transformed)
+        gating_logits = self.gating_network(t)
         gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
         
-        expert_outputs = [expert(t_transformed) for expert in self.experts]
+        expert_outputs = [expert(t) for expert in self.experts]
         
-        # 3. Combine, Normalize, and Scale as before.
         stacked_outputs = torch.stack(expert_outputs, dim=-1)
         gating_weights = gating_weights.unsqueeze(-2)
         
         weighted_sum = (gating_weights * stacked_outputs).sum(dim=-1)
         
         output_embedding = self.layer_norm(weighted_sum)
-        
-        if self.use_scale:
-            output_embedding = output_embedding * self.scale
         
         if return_weights:
             return output_embedding, gating_weights.squeeze(-2)

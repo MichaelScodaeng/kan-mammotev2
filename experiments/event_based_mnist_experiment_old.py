@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import numpy as np
@@ -22,7 +23,7 @@ matplotlib.use('Agg')  # Use non-interactive backend for server
 import matplotlib.pyplot as plt
 import pandas as pd
 import csv
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
+
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -142,60 +143,77 @@ class EventBasedMNIST(Dataset):
         super(EventBasedMNIST, self).__init__()
         
         # Load MNIST dataset
-        
+        self.mnist = datasets.MNIST(root=root, train=train, transform=transform, download=download)
         self.threshold = threshold
         self.max_events = max_events  # None = use all events (matching paper)
         self.normalize_positions = normalize_positions  # Normalize pixel positions to [0,1]
-        self.transform = transform
+        
         # Convert images to event sequences
-        self.event_data = []
+        self.event_sequences = []
         self.labels = []
-        self.data = datasets.MNIST(root=root, train=train, transform=transform, download=download)
+        
         print(f"Converting MNIST to event sequences (threshold={threshold}, max_events={max_events})...")
-        for img, label in self.data:
-            img_flat = img.view(-1)  # (784,)
-            events = torch.nonzero(img_flat > self.threshold).squeeze()
-            events = torch.sort(events).values
-            self.event_data.append(events)
+        for idx in tqdm(range(len(self.mnist))):
+            img, label = self.mnist[idx]
+            
+            # Convert to tensor if needed
+            if not isinstance(img, torch.Tensor):
+                img = transforms.ToTensor()(img)
+            
+            # Flatten image and find bright pixels
+            img_flat = img.view(-1)  # 28*28 = 784 pixels
+            bright_pixels = torch.nonzero(img_flat > threshold).squeeze()
+            
+            
+            # Handle edge cases
+            if bright_pixels.dim() == 0:
+                print("bugged")
+                bright_pixels = bright_pixels.unsqueeze(0)
+            '''
+            if len(bright_pixels) == 0:
+                # If no pixels above threshold, add the brightest pixel
+                bright_pixels = torch.tensor([torch.argmax(img_flat)])
+            '''
+
+            # Sort by pixel position and optionally limit to max_events
+            bright_pixels = torch.sort(bright_pixels).values
+            if self.max_events is not None and len(bright_pixels) > self.max_events:
+                bright_pixels = bright_pixels[:self.max_events]
+            
+            self.event_sequences.append(bright_pixels)
             self.labels.append(label)
+        
+        print(f"Created {len(self.event_sequences)} event sequences")
     
     def __len__(self):
-        return len(self.event_data)
+        return len(self.event_sequences)
     
     def __getitem__(self, idx):
-        return self.event_data[idx], self.labels[idx]
-
-def custom_collate_fn(batch):
-    events_list = []
-    labels_list = []
-    lengths = []
-    for events, label in batch:
-        events_list.append(events)
-        labels_list.append(label)
-        lengths.append(events.shape[0])
-    labels_tensor = torch.tensor(labels_list, dtype=torch.long)
-    padded_events = pad_sequence(events_list, batch_first=True, padding_value=0)  # (batch, max_len)
-    lengths = torch.tensor(lengths, dtype=torch.long)
-    return padded_events, lengths, labels_tensor
+        sequence = self.event_sequences[idx]
+        
+        # Normalize pixel positions to [0, 1] range to fix gradient scaling issues
+        if self.normalize_positions:
+            sequence = sequence.float() / 783.0  # 28*28-1 = 783 (max valid index)
+        
+        return sequence, self.labels[idx]
 
 
-"""
 def collate_fn(batch):
-    # Custom collate function to handle variable sequence lengths (matching LeTE implementation)
+    """Custom collate function to handle variable sequence lengths (matching LeTE implementation)"""
     sequences, labels = zip(*batch)
     
     # Get sequence lengths
     lengths = [len(seq) for seq in sequences]
     
     # ✅ Use pad_sequence with padding_value=0 (matching LeTE exactly)
-    
+    from torch.nn.utils.rnn import pad_sequence as torch_pad_sequence
     padded_sequences = torch_pad_sequence(sequences, batch_first=True, padding_value=0)
     
     labels_tensor = torch.tensor(labels, dtype=torch.long)
     lengths_tensor = torch.tensor(lengths, dtype=torch.long)
     
     return padded_sequences, labels_tensor, lengths_tensor
-"""
+
 
 class PlainLSTMEncoder(nn.Module):
     """
@@ -229,118 +247,181 @@ class TimeEncoderClassifier(nn.Module):
     LSTM classifier with different time encoders for event sequences
     """
     def __init__(self, encoder_type='lete', embedding_dim=32, hidden_dim=128, num_classes=10, **encoder_kwargs):
-        super().__init__()
+        super(TimeEncoderClassifier, self).__init__()
+        
         self.encoder_type = encoder_type
         self.embedding_dim = embedding_dim
-        self.hidden_dim = hidden_dim
         
-        # Create time encoder
+        # Create time encoder based on type
         self.time_encoder = self._create_time_encoder(encoder_type, embedding_dim, **encoder_kwargs)
         
-        # LSTM + classifier
+        # ===== CRITICAL FIX: INITIALIZE SM-KERNEL PROPERLY =====
+        if hasattr(self.time_encoder, 'initialize_sm_kernel'):
+            # Create sample relative time data for initialization (RAW pixel difference range)
+            # MNIST max pixel difference is ~784, but typical differences are much smaller
+            sample_t_rel = torch.linspace(0, 100, 100).unsqueeze(0).unsqueeze(-1)  # (1, 100, 1)
+            self.time_encoder.initialize_sm_kernel(sample_t_rel)
+            print(f"✅ Initialized {encoder_type} SM-Kernel with RAW pixel difference range")
+        # ===== END CRITICAL FIX =====
+        
+        # ✅ Simple LSTM without dropout (matching LeTE)
         self.lstm = nn.LSTM(
             input_size=embedding_dim, 
             hidden_size=hidden_dim, 
             batch_first=True
         )
+        
+        # ✅ Simple linear classifier (matching LeTE)
         self.fc = nn.Linear(hidden_dim, num_classes)
         
     def _create_time_encoder(self, encoder_type, embedding_dim, **kwargs):
         """Create the appropriate time encoder"""
+        
         if encoder_type == 'lstm_only':
-            return PlainLSTMEncoder(embedding_dim=embedding_dim)
+            # ✅ Plain LSTM baseline (no time encoding)
+            return PlainLSTMEncoder(embedding_dim=embedding_dim, max_position=784)
+        
         elif encoder_type == 'lete':
             if not LETE_AVAILABLE:
-                raise ImportError("LeTE not available")
+                raise ImportError("LeTE encoder not available")
             return LeTE(time_dim=embedding_dim)
-        elif encoder_type in ['lete_rel', 'lete_relative']:
+            
+        elif encoder_type == 'lete_relative':
+            if not LETE_AVAILABLE:
+                raise ImportError("LeTE encoder not available")
             return LeTERelativeTime(time_dim=embedding_dim)
-        elif encoder_type == 'time2vec':
-            if not TIME2VEC_AVAILABLE:
-                raise ImportError("Time2Vec not available")
-            return Time2VecEncoder(time_dim=embedding_dim)
-        elif encoder_type in ['time2vec_rel', 'time2vec_relative']:
-            return Time2VecRelativeTime(time_dim=embedding_dim)
+            
         elif encoder_type == 'mercer':
             if not MERCER_AVAILABLE:
-                raise ImportError("Mercer not available")
+                raise ImportError("Mercer encoder not available")
             return MercerTimeEncoder(time_dim=embedding_dim)
-        elif encoder_type in ['mercer_rel', 'mercer_relative']:
+            
+        elif encoder_type == 'mercer_relative':
+            if not MERCER_AVAILABLE:
+                raise ImportError("Mercer encoder not available for mercer_relative")
             return MercerRelativeTime(time_dim=embedding_dim)
+            
+        elif encoder_type == 'time2vec':
+            if not TIME2VEC_AVAILABLE:
+                raise ImportError("Time2Vec encoder not available")
+            return Time2VecEncoder(time_dim=embedding_dim)
+            
+        elif encoder_type == 'time2vec_relative':
+            if not TIME2VEC_AVAILABLE:
+                raise ImportError("Time2Vec encoder not available for time2vec_relative")
+            return Time2VecRelativeTime(time_dim=embedding_dim)
+            
         elif encoder_type == 'bochner':
             if not BOCHNER_AVAILABLE:
-                raise ImportError("Bochner not available")
+                raise ImportError("Bochner encoder not available")
             return BochnerTimeEncoder(time_dim=embedding_dim)
-        # Ablation encoders
+            
         elif encoder_type == 'sm_kernel_only':
-            return SMKernelOnly(embedding_dim=embedding_dim, **kwargs)
+            return SMKernelOnly(
+                embedding_dim=embedding_dim,
+                num_mixtures=kwargs.get('num_mixtures', 12)
+            )
+            
         elif encoder_type == 'kmote_abs_only':
-            return KMOTEAbsOnly(embedding_dim=embedding_dim, **kwargs)
+            return KMOTEAbsOnly(
+                embedding_dim=embedding_dim,
+                wavelet_type=kwargs.get('wavelet_type', 'shock')
+            )
+            
         elif encoder_type == 'kmote_rel_only':
-            return KMOTERelOnly(embedding_dim=embedding_dim, **kwargs)
+            return KMOTERelOnly(
+                embedding_dim=embedding_dim,
+                wavelet_type=kwargs.get('wavelet_type', 'shock')
+            )
+            
         elif encoder_type == 'dual_stream_baseline':
-            return DualStreamBaseline(embedding_dim=embedding_dim, **kwargs)
-        # Full encoders
+            return DualStreamBaseline(
+                embedding_dim=embedding_dim,
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock')
+            )
+            
         elif encoder_type == 'kan_mammote_lite':
-            return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, **kwargs)
-        elif encoder_type in ['kan_mammote_lite_concat', 'kan_mammote_lite_weighted', 
-                              'kan_mammote_lite_attention', 'kan_mammote_dual_kmote']:
-            return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, fusion_strategy=encoder_type.replace('kan_mammote_lite_', ''), **kwargs)
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='linear_mlp'  # Default fusion
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_concat':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='linear_mlp'  # Simple concatenation linear_mlp
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_weighted':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='weighted_sum'  # Weighted Sum → Linear
+            )
+            
+        elif encoder_type == 'kan_mammote_lite_attention':
+            return KAN_MAMMOTE_Lite(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', embedding_dim),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                wavelet_type=kwargs.get('wavelet_type', 'shock'),
+                use_dual_kmote=kwargs.get('use_dual_kmote', True),
+                fusion_type='cross_attention'  # Cross-Attention → Linear
+            )
+            
         elif encoder_type == 'kan_mammote_full':
-            # Default: K-MOTE for relative, controllable Mamba2, mamba fusion
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, **kwargs)
-        # KAN-MAMMOTE variants with different fusion strategies
-        elif encoder_type == 'kan_mammote_concat':
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='concat', **kwargs)
-        elif encoder_type == 'kan_mammote_weighted':
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='weighted', **kwargs)
-        elif encoder_type == 'kan_mammote_attention':
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='attention', **kwargs)
-        # KAN-MAMMOTE with vanilla Mamba2 (no FiLM modulation)
-        elif encoder_type == 'kan_mammote_vanilla_mamba':
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, use_controllable_mamba=False, **kwargs)
-        # KAN-MAMMOTE with SM-kernel (legacy, for ablation)
-        elif encoder_type == 'kan_mammote_sm_kernel':
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, use_kmote_for_relative=False, **kwargs)
+            return KAN_MAMMOTE(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', 64),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                mamba_d_state=kwargs.get('mamba_d_state', 16),
+                mamba_d_conv=kwargs.get('mamba_d_conv', 4),
+                mamba_expand= 4 #kwargs.get('mamba_expand', 2)
+            )
+        elif encoder_type == 'kan_mammote_dual_kmote':
+            return KAN_MAMMOTE(
+                embedding_dim=embedding_dim,
+                expert_dim=kwargs.get('expert_dim', 64),
+                num_mixtures=kwargs.get('num_mixtures', 12),
+                mamba_d_state=kwargs.get('mamba_d_state', 16),
+                mamba_d_conv=kwargs.get('mamba_d_conv', 4),
+                mamba_expand= 4, #kwargs.get('mamba_expand', 2)
+                dual_kmote_stream=True
+            )
         else:
             raise ValueError(f"Unknown encoder type: {encoder_type}")
     
     def _needs_both_times(self, encoder_type):
         """Check if encoder needs both absolute and relative time"""
         dual_time_encoders = [
-            'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only',
-            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_full',
-            'kan_mammote_lite_concat', 'kan_mammote_lite_weighted',
-            'kan_mammote_lite_attention', 'kan_mammote_dual_kmote',
-            'kan_mammote_concat', 'kan_mammote_weighted', 'kan_mammote_attention',
-            'kan_mammote_vanilla_mamba', 'kan_mammote_sm_kernel'
+            'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 
+            'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_lite_concat',
+            'kan_mammote_lite_weighted', 'kan_mammote_lite_attention', 
+            'kan_mammote_full', 'kan_mammote_dual_kmote'
         ]
         return encoder_type in dual_time_encoders
     
     def forward(self, x, lengths):
-        """
-        Forward pass
-        
-        Args:
-            x: (batch, seq_len) - pixel positions [0-783]
-            lengths: (batch,) - actual sequence lengths
-            
-        Returns:
-            logits: (batch, num_classes)
-        """
         batch_size, seq_len = x.shape
-        
-        # ===== CRITICAL FIX: Convert to float BEFORE encoder =====
-        # Original LeTE code does: padded_events.float().to(device)
-        # This ensures the encoder receives float tensors, not long tensors
-        x_float = x.float()
-        # ===== END CRITICAL FIX =====
         
         # Check encoder type and process accordingly
         if self.encoder_type == 'lstm_only':
-            # LSTM baseline uses categorical embedding (expects long tensor)
-            embedded = self.time_encoder(x)  # Keep as long for embedding lookup
+            # ✅ Plain LSTM: simple embedding lookup (no time encoding)
+            embedded = self.time_encoder(x)  # (batch, seq_len, embedding_dim)
             
+            # Debug on first batch
             if not hasattr(self, '_debug_printed'):
                 print(f"🔍 DEBUG - LSTM-Only Baseline (no time encoding):")
                 print(f"  Input range: [{x.min():.1f}, {x.max():.1f}]")
@@ -349,260 +430,57 @@ class TimeEncoderClassifier(nn.Module):
                 self._debug_printed = True
         
         elif self._needs_both_times(self.encoder_type):
-            # Dual-time encoders need both absolute and relative
-            t_abs = x_float.unsqueeze(-1)  # (batch, seq_len, 1)
+            # Generate both absolute and relative time
+            t_abs = x.unsqueeze(-1).float()  # (batch, seq_len, 1) - RAW pixel positions (0-783)
             
-            # Generate relative time (differences between consecutive events)
+            # Generate relative time (differences between consecutive positions)
             t_rel = torch.zeros_like(t_abs)
-            t_rel[:, 1:, 0] = x_float[:, 1:] - x_float[:, :-1]
+            t_rel[:, 1:, 0] = x[:, 1:] - x[:, :-1]  # Consecutive position differences
             t_rel[:, 0, 0] = 0  # First position has no predecessor
             
-            # Move to device
+            # ===== PAPER-MATCHING: USE RAW VALUES (NO NORMALIZATION) =====
+            # The paper (Kazemi et al., 2019) uses RAW pixel positions as time
+            # No normalization applied - encoders must learn from raw temporal dynamics
+            
+            # Move to same device as model
             t_abs = t_abs.to(next(self.parameters()).device)
             t_rel = t_rel.to(next(self.parameters()).device)
             
-            # Debug on first batch only
+            # Debug: Print input statistics on first batch
             if not hasattr(self, '_debug_printed'):
                 print(f"🔍 DEBUG - Input Statistics (RAW - matching paper):")
                 print(f"  t_abs range: [{t_abs.min():.1f}, {t_abs.max():.1f}], mean: {t_abs.mean():.1f}")
                 print(f"  t_rel range: [{t_rel.min():.1f}, {t_rel.max():.1f}], mean: {t_rel.mean():.1f}")
                 self._debug_printed = True
             
-            # Forward with RAW values (no normalization)
-            embedded = self.time_encoder(t_abs, t_rel)
+            # Forward through time encoder with RAW values
+            embedded = self.time_encoder(t_abs, t_rel)  # (batch, seq_len, embedding_dim)
+            # ===== END PAPER-MATCHING =====
             
         else:
-            # Single input encoders (LeTE, Mercer, Time2Vec, etc.)
-            # ===== CRITICAL: NO DEBUG PRINT HERE =====
-            # Original LeTE code does NOT print the tensor
-            # ===== END CRITICAL =====
+            # Single input encoders (LeTE, Mercer, Bochner)
+            # These encoders expect raw pixel positions (0-784), matching the paper
+            x_float = x.float().to(next(self.parameters()).device)
             
+            # Debug: Print input statistics on first batch
             if not hasattr(self, '_debug_printed'):
-                print(f"🔍 DEBUG - Input Statistics (RAW for {self.encoder_type}):")
+                print(f"🔍 DEBUG - Input Statistics (RAW for {self.encoder_type} - matching paper):")
                 print(f"  x_float range: [{x_float.min():.1f}, {x_float.max():.1f}], mean: {x_float.mean():.1f}")
                 self._debug_printed = True
             
-            # ===== CRITICAL FIX: Pass float tensor directly =====
-            # Original LeTE: embedded = self.time_encoder(x) where x is already float
-            embedded = self.time_encoder(x_float)
-            # ===== END CRITICAL FIX =====
+            embedded = self.time_encoder(x_float)  # (batch, seq_len, embedding_dim)
         
-        # ===== CRITICAL FIX: Pack sequences EXACTLY like LeTE =====
-        # Original LeTE uses: pack_padded_sequence(..., enforce_sorted=False)
-        # This is ESSENTIAL for handling variable-length sequences correctly
-        packed = pack_padded_sequence(
-            embedded, 
-            lengths.cpu(),  # Move to CPU for pack_padded_sequence
-            batch_first=True, 
-            enforce_sorted=False  # CRITICAL: allows unsorted lengths
-        )
-        # ===== END CRITICAL FIX =====
+        # Pack for LSTM
+        packed = pack_padded_sequence(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
         
         # LSTM forward
         _, (h_n, c_n) = self.lstm(packed)
+        h_n = h_n[-1]  # Get last layer hidden state
         
-        # ===== CRITICAL FIX: Use last hidden state correctly =====
-        # Original LeTE: h_n = h_n[-1]  (takes last layer's hidden state)
-        h_n = h_n[-1]  # (batch, hidden_dim)
-        # ===== END CRITICAL FIX =====
-        
-        # Classifier
-        logits = self.fc(h_n)  # (batch, num_classes)
-        
-        return logits
+        # ✅ Simple classification (matching LeTE)
+        output = self.fc(h_n)
+        return output
 
-
-def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False):
-    """
-    Train the model with proper evaluation
-    """
-    # ===== CRITICAL FIX: Use Adam with lr=1e-3 (matching LeTE exactly) =====
-    # Original LeTE: optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
-    # ===== END CRITICAL FIX =====
-    
-    criterion = nn.CrossEntropyLoss()
-    
-    # Initialize tracking
-    history = {
-        'train_loss': [], 'train_acc': [],
-        'val_loss': [], 'val_acc': []
-    }
-    best_val_acc = 0.0
-    start_epoch = 0
-    
-    # Resume from checkpoint if requested
-    if resume_from_checkpoint and checkpoint_dir:
-        latest_checkpoint = find_latest_checkpoint(checkpoint_dir, encoder_name)
-        if latest_checkpoint:
-            checkpoint_info = load_checkpoint(latest_checkpoint, model, optimizer)
-            start_epoch = checkpoint_info['epoch'] + 1
-            best_val_acc = checkpoint_info['best_val_acc']
-            history = checkpoint_info['history']
-            print(f"✅ Resumed from epoch {start_epoch} with best val acc: {best_val_acc:.2f}%")
-    
-    # Training loop
-    for epoch in range(start_epoch, num_epochs):
-        # ===== Training Phase =====
-        model.train()
-        total_loss = 0.0
-        total_correct = 0
-        total_samples = 0
-        
-        # ===== CRITICAL FIX: Use tqdm EXACTLY like LeTE =====
-        # Original LeTE wraps the dataloader with tqdm for progress bars
-        train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Train]')
-        # ===== END CRITICAL FIX =====
-        
-        for batch_idx, (padded_events, lengths, labels) in enumerate(train_pbar):
-            # ===== CRITICAL FIX: Move to device BEFORE forward pass =====
-            # Original LeTE: padded_events.float().to(device)
-            padded_events = padded_events.to(device)
-            lengths = lengths.to(device)
-            labels = labels.to(device)
-            # ===== END CRITICAL FIX =====
-            
-            # Debug first batch only
-            if batch_idx == 0 and epoch == start_epoch:
-                print(f"🔍 DEBUG - Input Statistics (RAW - matching paper):")
-                print(f"  t_abs range: [{padded_events.min():.1f}, {padded_events.max():.1f}], mean: {padded_events.float().mean():.1f}")
-                # For relative time calculation
-                t_rel_debug = torch.zeros_like(padded_events.float())
-                t_rel_debug[:, 1:] = padded_events[:, 1:].float() - padded_events[:, :-1].float()
-                print(f"  t_rel range: [{t_rel_debug.min():.1f}, {t_rel_debug.max():.1f}], mean: {t_rel_debug.mean():.1f}")
-            
-            # Forward pass
-            optimizer.zero_grad()
-            outputs = model(padded_events, lengths)
-            loss = criterion(outputs, labels)
-            
-            # Backward pass
-            loss.backward()
-            
-            # ===== ADD: Gradient clipping for stability =====
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            # ===== END ADD =====
-            
-            # ===== OPTIONAL: Gradient health monitoring (first batch only) =====
-            if batch_idx == 0 and epoch == start_epoch:
-                total_params = 0
-                small_grads = 0
-                zero_grads = 0
-                grad_norms = []
-                
-                for name, param in model.named_parameters():
-                    if param.grad is not None:
-                        total_params += 1
-                        grad_norm = param.grad.norm().item()
-                        grad_norms.append(grad_norm)
-                        
-                        if grad_norm < 1e-8:
-                            zero_grads += 1
-                        elif grad_norm < 1e-6:
-                            small_grads += 1
-                            print(f"⚠️  Very small gradient for {name}: {grad_norm:.2e}")
-                
-                if grad_norms:
-                    avg_grad_norm = sum(grad_norms) / len(grad_norms)
-                    print(f"🔍 DEBUG - Average gradient norm: {avg_grad_norm:.6f}")
-                    print(f"📊 Gradient health: {small_grads} small + {zero_grads} zero / {total_params} total ({100*(small_grads+zero_grads)/total_params:.1f}% unhealthy)")
-            # ===== END OPTIONAL =====
-            
-            optimizer.step()
-            
-            # Track metrics
-            total_loss += loss.item() * labels.size(0)
-            preds = outputs.argmax(dim=1)
-            total_correct += (preds == labels).sum().item()
-            total_samples += labels.size(0)
-            
-            # Update progress bar
-            current_acc = 100.0 * total_correct / total_samples
-            train_pbar.set_postfix({
-                'Loss': f'{loss.item():.4f}',
-                'Acc': f'{current_acc:.2f}%'
-            })
-        
-        # Calculate epoch metrics
-        train_loss = total_loss / total_samples
-        train_acc = 100.0 * total_correct / total_samples
-        
-        # ===== Validation Phase =====
-        val_loss, val_acc = evaluate_model(model, val_loader, device, criterion)
-        
-        # Update history
-        history['train_loss'].append(train_loss)
-        history['train_acc'].append(train_acc)
-        history['val_loss'].append(val_loss)
-        history['val_acc'].append(val_acc)
-        
-        # Print epoch summary
-        print(f"Epoch {epoch+1}/{num_epochs}: "
-              f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, "
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
-        
-        # Save best model
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            best_model_path = os.path.join(models_dir, f'best_model_{encoder_name}.pth')
-            torch.save(model.state_dict(), best_model_path)
-            print(f"🔥 New best validation accuracy: {val_acc:.2f}%")
-            print(f"💾 Model saved to: {best_model_path}")
-        
-        # Save checkpoint
-        if checkpoint_dir:
-            checkpoint_path = save_checkpoint(
-                model, optimizer, epoch, history, best_val_acc, encoder_name, checkpoint_dir
-            )
-            print(f"💾 Best checkpoint saved to: {checkpoint_path}")
-    
-    return history, best_val_acc
-
-
-def evaluate_model(model, data_loader, device, criterion):
-    """
-    Evaluate model on a dataset (matches LeTE's evaluate function exactly)
-    """
-    model.eval()
-    total_loss = 0.0
-    total_correct = 0
-    total_samples = 0
-    
-    # ===== CRITICAL FIX: Use tqdm for validation too =====
-    val_pbar = tqdm(data_loader, desc=f'Epoch {model.training}/{model.training} [Val]')
-    # Get current epoch from somewhere, or just use a generic description
-    val_pbar.set_description('[Val]')
-    # ===== END CRITICAL FIX =====
-    
-    with torch.no_grad():
-        for padded_events, lengths, labels in val_pbar:
-            # Move to device
-            padded_events = padded_events.to(device)
-            lengths = lengths.to(device)
-            labels = labels.to(device)
-            
-            # Forward pass
-            outputs = model(padded_events, lengths)
-            loss = criterion(outputs, labels)
-            
-            # Track metrics
-            total_loss += loss.item() * labels.size(0)
-            preds = outputs.argmax(dim=1)
-            total_correct += (preds == labels).sum().item()
-            total_samples += labels.size(0)
-            
-            # Update progress bar
-            current_acc = 100.0 * total_correct / total_samples
-            val_pbar.set_postfix({
-                'Loss': f'{loss.item():.4f}',
-                'Acc': f'{current_acc:.2f}%'
-            })
-    
-    avg_loss = total_loss / total_samples
-    acc = 100.0 * total_correct / total_samples
-    
-    return avg_loss, acc
 
 def resume_specific_encoder(experiment_dir, encoder_name, additional_epochs=50):
     """
@@ -641,41 +519,24 @@ def resume_specific_encoder(experiment_dir, encoder_name, additional_epochs=50):
 
 def get_available_encoders():
     """Get list of available encoders based on imports"""
-    # Always available encoders (no external dependency)
-    encoders = [
-        #'lstm_only',  # Baseline
-        # Ablation study encoders
-        #'kmote_abs_only', 'kmote_rel_only', 
-        #'sm_kernel_only',
-        #'dual_stream_baseline',
-        # KAN-MAMMOTE Lite variants (without Mamba)
-        #'kan_mammote_lite', 'kan_mammote_lite_concat', 'kan_mammote_lite_weighted', 
-        #'kan_mammote_lite_attention', 'kan_mammote_dual_kmote',
-        # KAN-MAMMOTE Full variants (with different fusion strategies)
-        #'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
-        #'kan_mammote_concat',  # K-MOTE relative + concat fusion
-        #'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
-        #'kan_mammote_attention',  # K-MOTE relative + attention fusion
-        #'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
-        #'kan_mammote_sm_kernel',  # SM-kernel (legacy) + ControllableMamba2 + mamba fusion
-    ]
-
+    # lstm_only is always available (no external dependency)
+    encoders = ['lstm_only', 'kmote_abs_only', 'kmote_rel_only']
+    #, 'kan_mammote_lite_concat','kan_mammote_lite_weighted', 'kan_mammote_lite_attention', 'kan_mammote_dual_kmote'
+    encoders_old_notuse = ['lstm_only', 'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only',
+                'dual_stream_baseline', 'kan_mammote_lite', 'kan_mammote_lite_concat',
+                'kan_mammote_lite_weighted', 'kan_mammote_lite_attention', 
+                'kan_mammote_full', 'kan_mammote_dual_kmote']
     
-    # Optional encoders (require imports)
     if LETE_AVAILABLE:
         encoders.extend(['lete', 'lete_relative'])
-    """
     if MERCER_AVAILABLE:
         encoders.extend(['mercer', 'mercer_relative'])
     if TIME2VEC_AVAILABLE:
         encoders.extend(['time2vec', 'time2vec_relative'])
-    """
-    
-    """
+    """    
     if BOCHNER_AVAILABLE:
         encoders.append('bochner')
     """
-    
     return encoders
 
 
@@ -741,6 +602,170 @@ def find_latest_checkpoint(checkpoint_dir, encoder_name):
     return None
 
 
+def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False):
+    """Train the model and return training history (matching LeTE implementation)"""
+    
+    criterion = nn.CrossEntropyLoss()
+    
+    # ✅ Simple Adam optimizer (matching LeTE exactly)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)  # lr=0.001, no weight decay
+    
+    history = {
+        'train_loss': [], 'train_acc': [],
+        'val_loss': [], 'val_acc': []
+    }
+    
+    best_val_acc = 0.0
+    start_epoch = 0
+    
+    # Resume from checkpoint if requested
+    if resume_from_checkpoint and checkpoint_dir:
+        latest_checkpoint = find_latest_checkpoint(checkpoint_dir, encoder_name)
+        if latest_checkpoint:
+            checkpoint_data = load_checkpoint(latest_checkpoint, model, optimizer)
+            start_epoch = checkpoint_data['epoch'] + 1
+            history = checkpoint_data['history']
+            best_val_acc = checkpoint_data['best_val_acc']
+            print(f"🔄 Resumed from epoch {checkpoint_data['epoch']}, best val acc: {best_val_acc:.2f}%")
+        else:
+            print(f"⚠️  No checkpoint found for {encoder_name}, starting from scratch")
+    
+    print(f"\nTraining {encoder_name} encoder...")
+    print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
+    if start_epoch > 0:
+        print(f"🔄 Resuming from epoch {start_epoch}")
+    
+    # Create checkpoint directory if needed
+    if checkpoint_dir:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+    
+    for epoch in range(start_epoch, num_epochs):
+        # Training phase
+        model.train()
+        train_loss = 0.0
+        train_correct = 0
+        train_total = 0
+        
+        train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Train]')
+        for batch_idx, (sequences, labels, lengths) in enumerate(train_pbar):
+            sequences, labels = sequences.to(device), labels.to(device)
+            
+            optimizer.zero_grad()
+            outputs = model(sequences, lengths)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            
+            # ===== GRADIENT CLIPPING FOR STABILITY =====
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # ===== END GRADIENT CLIPPING =====
+            
+            optimizer.step()
+            
+            train_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            train_total += labels.size(0)
+            train_correct += (predicted == labels).sum().item()
+            
+            # Update progress bar
+            train_pbar.set_postfix({
+                'Loss': f'{loss.item():.4f}',
+                'Acc': f'{100.*train_correct/train_total:.2f}%'
+            })
+            
+            # ===== IMPROVED GRADIENT MONITORING =====
+            if epoch == 0 and batch_idx == 0:
+                total_grad_norm = 0
+                param_count = 0
+                small_grad_count = 0
+                zero_grad_count = 0
+                gradient_threshold = 1e-8  # More reasonable threshold
+                
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        grad_norm = param.grad.norm().item()
+                        total_grad_norm += grad_norm
+                        param_count += 1
+                        
+                        if grad_norm == 0.0:
+                            zero_grad_count += 1
+                        elif grad_norm < gradient_threshold:
+                            small_grad_count += 1
+                            if 'time_encoder' in name:
+                                print(f"⚠️  Very small gradient for {name}: {grad_norm:.2e}")
+                
+                avg_grad_norm = total_grad_norm / param_count if param_count > 0 else 0
+                small_grad_ratio = (small_grad_count + zero_grad_count) / param_count if param_count > 0 else 0
+                
+                print(f"🔍 DEBUG - Average gradient norm: {avg_grad_norm:.6f}")
+                print(f"📊 Gradient health: {small_grad_count} small + {zero_grad_count} zero / {param_count} total ({100*small_grad_ratio:.1f}% unhealthy)")
+                
+                if small_grad_ratio > 0.5:
+                    print("❌ WARNING: >50% of gradients are very small or zero - possible vanishing gradients!")
+            # ===== END IMPROVED GRADIENT MONITORING =====
+        
+        # Validation phase
+        model.eval()
+        val_loss = 0.0
+        val_correct = 0
+        val_total = 0
+        
+        with torch.no_grad():
+            val_pbar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Val]')
+            for sequences, labels, lengths in val_pbar:
+                sequences, labels = sequences.to(device), labels.to(device)
+                outputs = model(sequences, lengths)
+                loss = criterion(outputs, labels)
+                
+                # ✅ Accumulate loss properly (multiply by batch size for averaging later)
+                val_loss += loss.item() * labels.size(0)
+                _, predicted = torch.max(outputs.data, 1)
+                val_total += labels.size(0)
+                val_correct += (predicted == labels).sum().item()
+                
+                val_pbar.set_postfix({
+                    'Loss': f'{loss.item():.4f}',
+                    'Acc': f'{100.*val_correct/val_total:.2f}%'
+                })
+        
+        # ✅ Calculate epoch metrics (divide by total samples, matching LeTE)
+        epoch_train_loss = train_loss / train_total
+        epoch_train_acc = 100. * train_correct / train_total
+        epoch_val_loss = val_loss / val_total
+        epoch_val_acc = 100. * val_correct / val_total
+        
+        history['train_loss'].append(epoch_train_loss)
+        history['train_acc'].append(epoch_train_acc)
+        history['val_loss'].append(epoch_val_loss)
+        history['val_acc'].append(epoch_val_acc)
+        
+        print(f'Epoch {epoch+1}/{num_epochs}: '
+              f'Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.2f}%, '
+              f'Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.2f}%')
+        
+        # ✅ Save checkpoint every 10 epochs or if best model
+        save_checkpoint_now = False
+        
+        # ✅ No early stopping - just save best model (matching LeTE)
+        if epoch_val_acc > best_val_acc:
+            best_val_acc = epoch_val_acc
+            save_checkpoint_now = True
+            # Save best model in models directory
+            model_save_path = os.path.join(models_dir, f'best_model_{encoder_name}.pth')
+            torch.save(model.state_dict(), model_save_path)
+            print(f"🔥 New best validation accuracy: {best_val_acc:.2f}%")
+            print(f"💾 Model saved to: {model_save_path}")
+        
+        # Save checkpoint every 10 epochs or at the end
+        if checkpoint_dir and (save_checkpoint_now or (epoch + 1) % 10 == 0 or epoch == num_epochs - 1):
+            checkpoint_path = save_checkpoint(
+                model, optimizer, epoch, history, best_val_acc, encoder_name, checkpoint_dir
+            )
+            if save_checkpoint_now:
+                print(f"💾 Best checkpoint saved to: {checkpoint_path}")
+            elif (epoch + 1) % 10 == 0:
+                print(f"💾 Checkpoint saved to: {checkpoint_path}")
+    
+    return history, best_val_acc
 
 
 def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
@@ -751,14 +776,13 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
-    transform = transforms.ToTensor()
+    
     # Create datasets with input normalization (fixes gradient scaling issues)
     train_dataset = EventBasedMNIST(
         root='./data', 
         train=True, 
         threshold=args.threshold,
         max_events=args.max_events,
-        transform=transform,
         download=True,
         normalize_positions=False  # ✅ Enable position normalization
     )
@@ -768,7 +792,6 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         train=False, 
         threshold=args.threshold,
         max_events=args.max_events,
-        transform=transform,
         download=True,
         normalize_positions=False  # ✅ Enable position normalization
     )
@@ -778,7 +801,7 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         train_dataset, 
         batch_size=args.batch_size, 
         shuffle=True, 
-        collate_fn=custom_collate_fn,
+        collate_fn=collate_fn,
         num_workers=2
     )
     
@@ -786,7 +809,7 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         val_dataset, 
         batch_size=args.batch_size, 
         shuffle=False, 
-        collate_fn=custom_collate_fn,
+        collate_fn=collate_fn,
         num_workers=2
     )
     
@@ -797,6 +820,7 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
             embedding_dim=args.embedding_dim,
             hidden_dim=args.hidden_dim,
             num_classes=10,
+            num_mixtures=args.num_mixtures,
             expert_dim=args.expert_dim,
             mamba_d_state=args.mamba_d_state,
             mamba_d_conv=args.mamba_d_conv,
@@ -1044,6 +1068,9 @@ def main():
     parser.add_argument('--hidden_dim', type=int, default=128,
                         help='LSTM hidden dimension (default: 128)')
     
+    # Encoder parameters
+    parser.add_argument('--num_mixtures', type=int, default=12,
+                        help='Number of mixtures for SM-Kernel (default: 12)')
     parser.add_argument('--expert_dim', type=int, default=32,
                         help='Expert dimension for K-MOTE (default: 32)')
     parser.add_argument('--mamba_d_state', type=int, default=16,

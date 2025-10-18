@@ -29,9 +29,8 @@ class SplineKANLayer(nn.Module):
         self.grid_size = grid_size
         self.output_dim = output_dim
 
-        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
-        # self.input_projection = nn.Linear(input_dim, input_dim)
-        # ===== END REMOVE =====
+        # This layer learns to scale/shift the input for the LOCAL branch
+        self.input_projection = nn.Linear(input_dim, input_dim)
 
         # --- FIX: A powerful MLP to learn the GLOBAL trend ---
         hidden_dim = 32 # A small hidden layer
@@ -48,12 +47,12 @@ class SplineKANLayer(nn.Module):
         # self.base_weight = nn.Parameter(torch.Tensor(self.output_dim, input_dim)) # This is no longer needed
 
         if self.basis_function == 'b_spline':
-            # Parameters for the LOCAL spline branch - following LeTE's approach
-            self.num_knots = self.grid_size + 3  # Similar to LeTE's knot count
-            # Learnable knot positions in [0, 1] range (like LeTE)
-            self.knots = nn.Parameter(torch.linspace(0, 1, self.num_knots))
-            # Learnable coefficients (like LeTE's coeffs)
-            self.spline_coeffs = nn.Parameter(torch.randn(self.output_dim, self.num_knots) * 0.1)
+            # Parameters for the LOCAL spline branch
+            self.grid_range = [-2, 2]
+            self.order_spline = 3
+            self.spline_weight = nn.Parameter(torch.Tensor(
+                input_dim, self.output_dim, self.grid_size + self.order_spline))
+            nn.init.xavier_uniform_(self.spline_weight)
             
         else: # RBF implementation
             # Parameters for the LOCAL RBF branch
@@ -66,53 +65,17 @@ class SplineKANLayer(nn.Module):
 
     def b_splines(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Compute B-spline basis functions following LeTE's approach.
-        Uses sigmoid normalization and L1 distance like LeTE.
+        Compute B-spline basis functions. Expects 'x' to be already projected.
         """
-        # Normalize input to [0, 1] range using sigmoid (like LeTE)
-        x_norm = torch.sigmoid(x)  # Maps any real input to [0, 1]
-        
-        # Handle different input dimensions properly
-        original_shape = x_norm.shape
-        
-        # Flatten to 2D for processing: (batch_size * seq_len, input_dim)
-        if x_norm.dim() > 2:
-            x_flat = x_norm.view(-1, x_norm.shape[-1])  # Flatten all but last dim
-        else:
-            x_flat = x_norm
-        
-        # Extract the last dimension (should be 1 for time encoding)
-        if x_flat.shape[-1] == 1:
-            x_values = x_flat.squeeze(-1)  # (batch_size * seq_len,)
-        else:
-            # Take mean across features if multiple features
-            x_values = x_flat.mean(dim=-1)  # (batch_size * seq_len,)
-        
-        # Reshape for broadcasting with knots
-        x_values = x_values.unsqueeze(-1)  # (batch_size * seq_len, 1)
-        knots = self.knots.unsqueeze(0)  # (1, num_knots)
-        
-        # Compute distances using L1 norm (like LeTE)
-        distances = torch.abs(x_values - knots)  # (batch_size * seq_len, num_knots)
-        
-        # RBF kernel as B-spline approximation (like LeTE)
-        basis = torch.exp(-distances * 5.0)  # (batch_size * seq_len, num_knots)
-        
-        # Apply learnable coefficients using matrix multiplication (like LeTE)
-        # basis: (batch_size * seq_len, num_knots)
-        # spline_coeffs: (output_dim, num_knots)
-        # Want output: (batch_size * seq_len, output_dim)
-        spline_output = torch.matmul(basis, self.spline_coeffs.T)  # (batch_size * seq_len, output_dim)
-        
-        # Reshape back to original batch/sequence dimensions
-        if len(original_shape) == 3:  # (batch_size, seq_len, input_dim)
-            spline_output = spline_output.view(original_shape[0], original_shape[1], self.output_dim)
-        elif len(original_shape) == 2:  # (batch_size, input_dim)
-            spline_output = spline_output.view(original_shape[0], self.output_dim)
-        else:  # (batch_size,)
-            spline_output = spline_output.view(original_shape[0], self.output_dim)
-        
-        return spline_output
+        input_dim = x.shape[2]
+        grid_points = torch.linspace(self.grid_range[0], self.grid_range[1], 
+                                   self.grid_size + self.order_spline, 
+                                   device=x.device).unsqueeze(0).expand(input_dim, -1)
+        bandwidth = (self.grid_range[1] - self.grid_range[0]) / self.grid_size
+        distances_sq = (x.unsqueeze(-1) - grid_points.unsqueeze(0).unsqueeze(0)) ** 2
+        bases = torch.exp(-distances_sq / (2 * bandwidth ** 2))
+        bases = bases / (bases.sum(dim=-1, keepdim=True) + 1e-8)
+        return bases.contiguous()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -127,16 +90,14 @@ class SplineKANLayer(nn.Module):
         # 1. Calculate the global trend using the powerful MLP branch on the raw input
         global_output = self.global_branch(x)
 
-        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
-        # 2. Use input directly for local branch (preprocessing done at K-MOTE level)
-        x_proj = x  # No additional projection needed
-        # ===== END REMOVE =====
+        # 2. Project the input for the local branch to handle data scaling
+        x_proj = self.input_projection(x)
         
         # 3. Calculate the local correction using the specialized branch
         if self.basis_function == 'b_spline':
-            # Use the corrected B-spline implementation (following LeTE)
-            spline_output = self.b_splines(x_proj)  # Direct output, no einsum needed
-            local_output = spline_output  # Already in correct shape
+            b_splines_val = self.b_splines(x_proj)
+            spline_output = torch.einsum('bsik,iok->bso', b_splines_val, self.spline_weight)
+            local_output = spline_output.view(batch_size, seq_len, self.output_dim)
             
         else: # RBF forward pass
             x_expanded = x_proj.unsqueeze(-1).unsqueeze(-1)
@@ -303,110 +264,52 @@ class WaveletKANLayer(nn.Module):
 
 class KMOTE(nn.Module):
     """
-    Final, architecturally correct K-MOTE.
-    This version fully aligns with the LeTE/Time2Vec design by expanding the
-    time dimension in the initial linear layer BEFORE it is passed to the experts.
+    Enhanced K-MOTE with conditional LayerNorm for stability and gating temperature
+    to encourage decisive expert selection.
     """
-    def __init__(self, input_dim: int, output_dim: int,
-                 wavelet_type: str = 'shock',
-                 use_layernorm: bool = True,
-                 use_scale: bool = True,
+    def __init__(self, input_dim: int, output_dim: int, wavelet_type: str = 'shock', use_layernorm: bool = True,
                  gating_temp: float = 1.0):
         super().__init__()
-        
-        # This architecture is designed for a 1D time input.
-        if input_dim != 1:
-            raise ValueError("K-MOTE requires input_dim=1 for the time input.")
-
         self.output_dim = output_dim
         self.temperature = gating_temp
-        self.use_scale = use_scale
 
-        # ===== CRITICAL CHANGE 1: The Initial Linear Transformation =====
-        # This layer now expands the 1D time input to the full output dimension.
-        # This is the 'w*t + b' step that creates the multi-channel time representation.
-        self.time_linear_transform = nn.Linear(input_dim, output_dim)
-        self._initialize_time_transform() # Apply the special initialization
-        # =============================================================
-
-        if use_scale:
-            self.scale = nn.Parameter(torch.ones(output_dim))
-
-        # ===== CRITICAL CHANGE 2: Experts now operate on high-dimensional input =====
-        # The input_dim for all experts is now `output_dim`, as they receive the
-        # already-transformed time vector.
         self.experts = nn.ModuleList([
-            SplineKANLayer(output_dim, output_dim, basis_function='b_spline', grid_size=8),
-            FourierKANLayer(output_dim, output_dim, n_harmonics=16),
-            WaveletKANLayer(output_dim, output_dim, n_wavelets=16, wavelet_type=wavelet_type),
-            SplineKANLayer(output_dim, output_dim, basis_function='rbf', grid_size=8)
+            SplineKANLayer(input_dim, output_dim, basis_function='b_spline', grid_size=8),
+            FourierKANLayer(input_dim, output_dim, n_harmonics=16),
+            WaveletKANLayer(input_dim, output_dim, n_wavelets=16, wavelet_type=wavelet_type),
+            SplineKANLayer(input_dim, output_dim, basis_function='rbf', grid_size=8)
         ])
-        # ===========================================================================
         
         self.num_experts = len(self.experts)
-        # ===== CRITICAL CHANGE 3: Gating network also uses the transformed time =====
-        # It needs to decide which expert to use based on the rich, multi-channel representation.
         self.gating_network = nn.Sequential(
-            nn.Linear(output_dim, 64), # Input is now output_dim
+            nn.Linear(input_dim, 64),
             nn.GELU(),
             nn.Linear(64, self.num_experts)
         )
-        # =========================================================================
         
+        # --- FIX: Conditionally apply LayerNorm ONLY when output_dim > 1 ---
         if use_layernorm and output_dim > 1:
             self.layer_norm = nn.LayerNorm(output_dim)
-            print(f"Initialized K-MOTE with LayerNorm and LeTE-style architecture.")
+            print(f"Initialized K-MOTE with LayerNorm, Gating Temperature={self.temperature}.")
         else:
             self.layer_norm = nn.Identity()
-
-    def _initialize_time_transform(self):
-        """
-        Initializes the time transformation layer with a geometric progression of frequencies,
-        following the LeTE / Transformer paper's methodology.
-        
-        CRITICAL: These weights REMAIN LEARNABLE to ensure scale-invariance.
-        The initialization provides a strong inductive bias, while the trainability
-        allows the model to fine-tune frequencies and adapt to input scale.
-        """
-        # The torch.no_grad() context is good practice for initialization.
-        # It prevents this operation from being tracked in the computation graph.
-        # It does NOT freeze the parameters from future gradient updates.
-        with torch.no_grad():
-            # Create frequencies from 1.0 down to 1.0 / 10^9
-            frequencies = 1.0 / (10 ** torch.linspace(0, 9, self.output_dim, dtype=torch.float32))
-            
-            # Copy these values into the weight tensor. The .weight attribute itself
-            # is still a learnable nn.Parameter.
-            self.time_linear_transform.weight.copy_(frequencies.unsqueeze(1))
-            
-            # Initialize bias to zero
-            self.time_linear_transform.bias.zero_()
+            print(f"Initialized K-MOTE (No LayerNorm for 1D output), Gating Temperature={self.temperature}.")
 
     def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
         if t.dim() == 2:
-            t = t.unsqueeze(-1) # Ensure shape (B, S, 1)
-
-        # 1. Apply the LeTE-style linear transformation FIRST.
-        # This is the crucial step that creates the scale-invariant, multi-scale representation.
-        # Shape: (B, S, 1) -> (B, S, output_dim)
-        t_transformed = self.time_linear_transform(t)
+            t = t.unsqueeze(-1)
         
-        # 2. Pass this high-dimensional representation to the gating network and all experts.
-        gating_logits = self.gating_network(t_transformed)
+        gating_logits = self.gating_network(t)
         gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
         
-        expert_outputs = [expert(t_transformed) for expert in self.experts]
+        expert_outputs = [expert(t) for expert in self.experts]
         
-        # 3. Combine, Normalize, and Scale as before.
         stacked_outputs = torch.stack(expert_outputs, dim=-1)
         gating_weights = gating_weights.unsqueeze(-2)
         
         weighted_sum = (gating_weights * stacked_outputs).sum(dim=-1)
         
         output_embedding = self.layer_norm(weighted_sum)
-        
-        if self.use_scale:
-            output_embedding = output_embedding * self.scale
         
         if return_weights:
             return output_embedding, gating_weights.squeeze(-2)

@@ -57,9 +57,10 @@ class KMOTEAbsOnly(nn.Module):
         
         # Only K-MOTE for absolute time
         self.k_mote = KMOTE(
-            input_dim=1, 
-            output_dim=embedding_dim, 
-            wavelet_type=wavelet_type
+            input_dim=1,
+            output_dim=embedding_dim,
+            use_scale=True, 
+            use_layernorm=True,       # NEW: enable scale
         )
         
     def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
@@ -93,7 +94,9 @@ class KMOTERelOnly(nn.Module):
         self.k_mote = KMOTE(
             input_dim=1, 
             output_dim=embedding_dim, 
-            wavelet_type=wavelet_type
+            wavelet_type=wavelet_type,
+            use_scale=True,     
+            use_layernorm=True,   # NEW: enable scale
         )
         
     def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor) -> torch.Tensor:
