@@ -44,7 +44,12 @@ except ImportError:
 
 # Create LeTE Relative Time variant
 class LeTERelativeTime(nn.Module):
-    """LeTE variant that uses relative time differences instead of absolute positions"""
+    """LeTE variant that uses relative time differences instead of absolute positions
+    
+    NOTE: This wrapper converts absolute pixel positions to relative differences.
+    All positions become relative (including first position = 0), and values are
+    shifted to positive range [0, ~800] for compatibility with LeTE's learned frequencies.
+    """
     def __init__(self, time_dim):
         super().__init__()
         if not LETE_AVAILABLE:
@@ -55,14 +60,23 @@ class LeTERelativeTime(nn.Module):
         """
         Convert absolute positions to relative differences before LeTE encoding
         Args:
-            x: (batch, seq_len) - absolute pixel positions
+            x: (batch, seq_len) - absolute pixel positions [0-783]
         Returns:
             embeddings: (batch, seq_len, time_dim)
         """
-        # Convert absolute positions to relative differences
-        rel_times = torch.zeros_like(x)
-        rel_times[:, 1:] = x[:, 1:] - x[:, :-1]  # Differences between consecutive positions
-        rel_times[:, 0] = x[:, 0]  # First position remains absolute
+        # ===== FIX: Make all positions consistently relative =====
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        
+        # All positions become relative differences (consistent signal)
+        rel_times[:, 0] = 0.0  # First event has no predecessor
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        
+        # Shift to positive range (LeTE uses learned frequencies that expect positive values)
+        # Max difference is 783, so range is [-783, 783]
+        #rel_times = rel_times + 400.0  # Shift to approximately [0, 800] range
+        # ===== END FIX =====
         
         return self.lete(rel_times)
 
@@ -79,14 +93,22 @@ class Time2VecRelativeTime(nn.Module):
         """
         Convert absolute positions to relative differences before Time2Vec encoding
         Args:
-            x: (batch, seq_len) - absolute pixel positions
+            x: (batch, seq_len) - absolute pixel positions [0-783]
         Returns:
             embeddings: (batch, seq_len, time_dim)
         """
-        # Convert absolute positions to relative differences
-        rel_times = torch.zeros_like(x)
-        rel_times[:, 1:] = x[:, 1:] - x[:, :-1]  # Differences between consecutive positions
-        rel_times[:, 0] = x[:, 0]  # First position remains absolute
+        # ===== FIX: Make all positions consistently relative =====
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        
+        # All positions become relative differences (consistent signal)
+        rel_times[:, 0] = 0.0  # First event has no predecessor
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        
+        # Shift to positive range (Time2Vec uses periodic functions that work better with positive values)
+        #rel_times = rel_times + 400.0  # Shift to approximately [0, 800] range
+        # ===== END FIX =====
         
         return self.time2vec(rel_times)
 
@@ -103,14 +125,22 @@ class MercerRelativeTime(nn.Module):
         """
         Convert absolute positions to relative differences before Mercer encoding
         Args:
-            x: (batch, seq_len) - absolute pixel positions
+            x: (batch, seq_len) - absolute pixel positions [0-783]
         Returns:
             embeddings: (batch, seq_len, time_dim)
         """
-        # Convert absolute positions to relative differences
-        rel_times = torch.zeros_like(x)
-        rel_times[:, 1:] = x[:, 1:] - x[:, :-1]  # Differences between consecutive positions
-        rel_times[:, 0] = x[:, 0]  # First position remains absolute
+        # ===== FIX: Make all positions consistently relative =====
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        
+        # All positions become relative differences (consistent signal)
+        rel_times[:, 0] = 0.0  # First event has no predecessor
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        
+        # Shift to positive range (Mercer kernel expects positive values)
+        #rel_times = rel_times + 400.0  # Shift to approximately [0, 800] range
+        # ===== END FIX =====
         
         return self.mercer(rel_times)
 
@@ -670,7 +700,7 @@ def get_available_encoders():
     if TIME2VEC_AVAILABLE:
         encoders.extend(['time2vec', 'time2vec_relative'])
     """
-    
+
     """
     if BOCHNER_AVAILABLE:
         encoders.append('bochner')
