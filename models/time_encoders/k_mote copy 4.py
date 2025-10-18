@@ -336,10 +336,10 @@ class KMOTE(nn.Module):
         # The input_dim for all experts is now `output_dim`, as they receive the
         # already-transformed time vector.
         self.experts = nn.ModuleList([
-            SplineKANLayer(output_dim, output_dim, basis_function='b_spline', grid_size=5),
-            FourierKANLayer(output_dim, output_dim, n_harmonics=8),
-            WaveletKANLayer(output_dim, output_dim, n_wavelets=8, wavelet_type=wavelet_type),
-            SplineKANLayer(output_dim, output_dim, basis_function='rbf', grid_size=5)
+            #SplineKANLayer(output_dim, output_dim, basis_function='b_spline', grid_size=8),
+            FourierKANLayer(output_dim, output_dim, n_harmonics=16),
+            WaveletKANLayer(output_dim, output_dim, n_wavelets=16, wavelet_type=wavelet_type),
+            SplineKANLayer(output_dim, output_dim, basis_function='rbf', grid_size=8)
         ])
         # ===========================================================================
         

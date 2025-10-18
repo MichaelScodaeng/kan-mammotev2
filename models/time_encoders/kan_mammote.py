@@ -111,6 +111,12 @@ class KAN_MAMMOTE(nn.Module):
                     expand=mamba_expand, 
                     headdim=mamba_headdim
                 )
+                print("Controllable Mamba2 hyperparameters:")
+                print(f"   ├─ d_model: {self.expert_dim}")
+                print(f"   ├─ d_state: {mamba_d_state}")
+                print(f"   ├─ d_conv: {mamba_d_conv}")
+                print(f"   ├─ expand: {mamba_expand}")
+                print(f"   └─ headdim: {mamba_headdim}")
                 
                 # Fusion architecture: relative features → expert_dim (for residual addition)
                 self.fusion_mlp_base = nn.Sequential(
