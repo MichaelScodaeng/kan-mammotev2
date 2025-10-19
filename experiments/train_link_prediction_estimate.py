@@ -659,7 +659,7 @@ if __name__ == "__main__":
                 batch_time = batch_end_time - batch_start_time
                 batch_times.append(batch_time)
                 
-                logger.info(f"  Timing batch {batch_idx + 1}/{timing_batches}: {batch_time:.3f}s")
+                logger.info(f"  Batch {batch_idx + 1}/{timing_batches}: {batch_time:.3f}s")
             
             # Calculate estimates with improved statistics
             if batch_times:

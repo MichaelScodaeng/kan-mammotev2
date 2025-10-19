@@ -144,6 +144,143 @@ class MercerRelativeTime(nn.Module):
         
         return self.mercer(rel_times)
 
+# Create K-MOTE Absolute Time variants (using absolute pixel positions only)
+class KMOTEAbsoluteTime(nn.Module):
+    """K-MOTE variant that uses absolute positions (default adapter mode)"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='affine', **kwargs)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.kmote(x.float())
+
+class KMOTESharedAbsoluteTime(nn.Module):
+    """K-MOTE (shared transform) variant that uses absolute positions"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='shared', **kwargs)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.kmote(x.float())
+
+class KMOTEPerExpertAbsoluteTime(nn.Module):
+    """K-MOTE (per-expert transform) variant that uses absolute positions"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='per_expert', **kwargs)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.kmote(x.float())
+
+class KMOTEAdapterAffineAbsoluteTime(nn.Module):
+    """K-MOTE (adapter affine) variant that uses absolute positions"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='affine', **kwargs)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.kmote(x.float())
+
+class KMOTEAdapterLinearAbsoluteTime(nn.Module):
+    """K-MOTE (adapter linear) variant that uses absolute positions"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='linear', **kwargs)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.kmote(x.float())
+
+# Create K-MOTE Relative Time variants (using time differences)
+class KMOTERelativeTime(nn.Module):
+    """K-MOTE variant that uses relative time differences (default adapter mode)"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='affine', **kwargs)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before K-MOTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        rel_times[:, 0] = 0.0
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        return self.kmote(rel_times)
+
+class KMOTESharedRelativeTime(nn.Module):
+    """K-MOTE (shared transform) variant that uses relative time differences"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='shared', **kwargs)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before K-MOTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        rel_times[:, 0] = 0.0
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        return self.kmote(rel_times)
+
+class KMOTEPerExpertRelativeTime(nn.Module):
+    """K-MOTE (per-expert transform) variant that uses relative time differences"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='per_expert', **kwargs)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before K-MOTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        rel_times[:, 0] = 0.0
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        return self.kmote(rel_times)
+
+class KMOTEAdapterAffineRelativeTime(nn.Module):
+    """K-MOTE (adapter affine) variant that uses relative time differences"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='affine', **kwargs)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before K-MOTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        rel_times[:, 0] = 0.0
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        return self.kmote(rel_times)
+
+class KMOTEAdapterLinearRelativeTime(nn.Module):
+    """K-MOTE (adapter linear) variant that uses relative time differences"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.kmote = create_time_encoder('k_mote', time_dim=time_dim, 
+                                        transform_mode='adapter', adapter_type='linear', **kwargs)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before K-MOTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        rel_times[:, 0] = 0.0
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
+        return self.kmote(rel_times)
+
 try:
     from models.time_encoders.mercer_encoder import MercerTimeEncoder
     MERCER_AVAILABLE = True
@@ -301,6 +438,52 @@ class TimeEncoderClassifier(nn.Module):
             if not BOCHNER_AVAILABLE:
                 raise ImportError("Bochner not available")
             return BochnerTimeEncoder(time_dim=embedding_dim)
+        # K-MOTE variants with different transform modes
+        elif encoder_type == 'k_mote':
+            # Default: adapter mode with affine adapters
+            return create_time_encoder('k_mote', time_dim=embedding_dim, 
+                                      transform_mode='adapter', adapter_type='affine', **kwargs)
+        elif encoder_type == 'k_mote_shared':
+            # Shared transform (MoE approach)
+            return create_time_encoder('k_mote', time_dim=embedding_dim, 
+                                      transform_mode='shared', **kwargs)
+        elif encoder_type == 'k_mote_per_expert':
+            # Per-expert transforms (LeTE-style)
+            return create_time_encoder('k_mote', time_dim=embedding_dim, 
+                                      transform_mode='per_expert', **kwargs)
+        elif encoder_type == 'k_mote_adapter_affine':
+            # Adapter mode with affine adapters (same as default)
+            return create_time_encoder('k_mote', time_dim=embedding_dim, 
+                                      transform_mode='adapter', adapter_type='affine', **kwargs)
+        elif encoder_type == 'k_mote_adapter_linear':
+            # Adapter mode with linear adapters
+            return create_time_encoder('k_mote', time_dim=embedding_dim, 
+                                      transform_mode='adapter', adapter_type='linear', **kwargs)
+        
+        # K-MOTE Absolute Time variants (uses absolute pixel positions)
+        elif encoder_type in ['k_mote_abs', 'k_mote_absolute']:
+            return KMOTEAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_shared_abs', 'k_mote_shared_absolute']:
+            return KMOTESharedAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_per_expert_abs', 'k_mote_per_expert_absolute']:
+            return KMOTEPerExpertAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_adapter_affine_abs', 'k_mote_adapter_affine_absolute']:
+            return KMOTEAdapterAffineAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_adapter_linear_abs', 'k_mote_adapter_linear_absolute']:
+            return KMOTEAdapterLinearAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        
+        # K-MOTE Relative Time variants (uses time differences)
+        elif encoder_type in ['k_mote_rel', 'k_mote_relative']:
+            return KMOTERelativeTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_shared_rel', 'k_mote_shared_relative']:
+            return KMOTESharedRelativeTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_per_expert_rel', 'k_mote_per_expert_relative']:
+            return KMOTEPerExpertRelativeTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_adapter_affine_rel', 'k_mote_adapter_affine_relative']:
+            return KMOTEAdapterAffineRelativeTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['k_mote_adapter_linear_rel', 'k_mote_adapter_linear_relative']:
+            return KMOTEAdapterLinearRelativeTime(time_dim=embedding_dim, **kwargs)
+        
         # Ablation encoders
         elif encoder_type == 'sm_kernel_only':
             return SMKernelOnly(embedding_dim=embedding_dim, **kwargs)
@@ -318,7 +501,7 @@ class TimeEncoderClassifier(nn.Module):
             return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, fusion_strategy=encoder_type.replace('kan_mammote_lite_', ''), **kwargs)
         elif encoder_type == 'kan_mammote_full':
             # Default: K-MOTE for relative, controllable Mamba2, mamba fusion
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, mamba_headdim=16)
+            return KAN_MAMMOTE(embedding_dim=embedding_dim,expert_dim = 64, mamba_headdim=16)
         # KAN-MAMMOTE variants with different fusion strategies
         elif encoder_type == 'kan_mammote_concat':
             return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='concat', **kwargs)
@@ -674,6 +857,28 @@ def get_available_encoders():
     # Always available encoders (no external dependency)
     encoders = [
         #'lstm_only',  # Baseline
+        
+        # K-MOTE variants with different transform modes (default: uses absolute positions)
+        #'k_mote',  # Default: adapter mode with affine adapters
+        #'k_mote_shared',  # Shared transform (MoE approach)
+        #'k_mote_per_expert',  # Per-expert transforms (LeTE-style)
+        #'k_mote_adapter_affine',  # Adapter mode with affine (same as default)
+        #'k_mote_adapter_linear',  # Adapter mode with linear adapters
+        
+        # K-MOTE Absolute Time variants (explicitly using absolute pixel positions)
+        #'k_mote_abs',  # Default adapter with absolute time
+        'k_mote_shared_abs',  # Shared transform with absolute time
+        'k_mote_per_expert_abs',  # Per-expert with absolute time
+        'k_mote_adapter_affine_abs',  # Affine adapter with absolute time
+        'k_mote_adapter_linear_abs',  # Linear adapter with absolute time
+        
+        # K-MOTE Relative Time variants (using time differences)
+        #'k_mote_rel',  # Default adapter with relative time
+        'k_mote_shared_rel',  # Shared transform with relative time
+        'k_mote_per_expert_rel',  # Per-expert with relative time
+        'k_mote_adapter_affine_rel',  # Affine adapter with relative time
+        'k_mote_adapter_linear_rel',  # Linear adapter with relative time
+        
         # Ablation study encoders
         #'kmote_abs_only', 'kmote_rel_only', 
         #'sm_kernel_only',

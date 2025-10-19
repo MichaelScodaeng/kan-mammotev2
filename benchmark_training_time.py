@@ -54,7 +54,6 @@ def run_estimation(dataset, model, encoder, timeout=600):
         "--batch_size", str(DEFAULT_PARAMS['batch_size']),
         "--data_ratio", str(DEFAULT_PARAMS['data_ratio']),
         "--num_runs", str(DEFAULT_PARAMS['num_runs']),
-        "--disable_progress_bar"
     ]
     
     print(f"🔄 Testing: {dataset} + {model} + {encoder}")
@@ -65,7 +64,17 @@ def run_estimation(dataset, model, encoder, timeout=600):
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         elapsed_time = time.time() - start_time
+        # ===== ADD: Force memory cleanup after each test =====
+        import gc
+        import torch
         
+        # Clear Python garbage
+        gc.collect()
+        
+        # Clear CUDA cache if available
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
         if result.returncode == 0:
             print(f"   ✅ Success in {elapsed_time:.1f}s")
             
