@@ -35,8 +35,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'kan_mammote', 'kan_mammote_dual_kmote', 'mercer', 'bochner', 'time2vec', 'kan_mammote_lite',
-                                'sm_kernel_only', 'kmote_abs_only', 'kmote_rel_only', 'dual_stream_baseline'], 
+                        choices=['original', 'lete', 'kan_mammote_dual_kmote', 'mercer', 'bochner', 'time2vec',"kan_mammote_dual_kmote_tgat"], 
                         help='type of time encoder to use')
     parser.add_argument('--expert_dim', type=int, default=128, 
                         help='dimension of each expert in K-MOTE (for kan_mammote encoder)')

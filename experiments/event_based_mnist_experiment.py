@@ -867,17 +867,17 @@ def get_available_encoders():
         
         # K-MOTE Absolute Time variants (explicitly using absolute pixel positions)
         #'k_mote_abs',  # Default adapter with absolute time
-        'k_mote_shared_abs',  # Shared transform with absolute time
-        'k_mote_per_expert_abs',  # Per-expert with absolute time
-        'k_mote_adapter_affine_abs',  # Affine adapter with absolute time
-        'k_mote_adapter_linear_abs',  # Linear adapter with absolute time
+        #'k_mote_shared_abs',  # Shared transform with absolute time
+        #'k_mote_per_expert_abs',  # Per-expert with absolute time
+        #'k_mote_adapter_affine_abs',  # Affine adapter with absolute time
+        #'k_mote_adapter_linear_abs',  # Linear adapter with absolute time
         
         # K-MOTE Relative Time variants (using time differences)
         #'k_mote_rel',  # Default adapter with relative time
-        'k_mote_shared_rel',  # Shared transform with relative time
-        'k_mote_per_expert_rel',  # Per-expert with relative time
-        'k_mote_adapter_affine_rel',  # Affine adapter with relative time
-        'k_mote_adapter_linear_rel',  # Linear adapter with relative time
+        #'k_mote_shared_rel',  # Shared transform with relative time
+        #'k_mote_per_expert_rel',  # Per-expert with relative time
+        #'k_mote_adapter_affine_rel',  # Affine adapter with relative time
+        #'k_mote_adapter_linear_rel',  # Linear adapter with relative time
         
         # Ablation study encoders
         #'kmote_abs_only', 'kmote_rel_only', 
@@ -887,19 +887,20 @@ def get_available_encoders():
         #'kan_mammote_lite', 'kan_mammote_lite_concat', 'kan_mammote_lite_weighted', 
         #'kan_mammote_lite_attention', 'kan_mammote_dual_kmote',
         # KAN-MAMMOTE Full variants (with different fusion strategies)
-        #'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
+        'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
         #'kan_mammote_concat',  # K-MOTE relative + concat fusion
-        #'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
-        #'kan_mammote_attention',  # K-MOTE relative + attention fusion
-        #'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
+        'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
+        'kan_mammote_attention',  # K-MOTE relative + attention fusion
+        'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
         #'kan_mammote_sm_kernel',  # SM-kernel (legacy) + ControllableMamba2 + mamba fusion
     ]
 
     
     # Optional encoders (require imports)
+    '''
     if LETE_AVAILABLE:
         encoders.extend(['lete', 'lete_relative'])
-    '''
+    
     if MERCER_AVAILABLE:
         encoders.extend(['mercer', 'mercer_relative'])
     if TIME2VEC_AVAILABLE:
