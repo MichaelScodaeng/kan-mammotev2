@@ -40,6 +40,7 @@ from utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_o
 from utils import get_neighbor_sampler, NegativeEdgeSampler
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.load_configs import get_link_prediction_args
+from utils.memory_profiler import MemoryProfiler, print_memory_snapshot
 from datetime import datetime
 import numpy as np
 import json
@@ -386,6 +387,13 @@ if __name__ == "__main__":
         # ===== END WARM UP =====
 
         loss_func = nn.BCELoss()
+        
+        # ===== INITIALIZE MEMORY PROFILER =====
+        memory_profiler = MemoryProfiler(device=args.device, enabled=True)
+        logger.info("🔍 Memory profiling enabled")
+        print_memory_snapshot(device=args.device, label="Initial Memory State")
+        # ===== END MEMORY PROFILER INIT =====
+        
         # Only run first epoch for timing estimation
         for epoch in range(0, 1):
 
@@ -422,7 +430,10 @@ if __name__ == "__main__":
             for warmup_idx in range(warmup_batches):
                 try:
                     train_data_indices = next(train_idx_data_loader_iter)
-                    logger.info(f"   Warm-up batch {warmup_idx + 1}/{warmup_batches}...")
+                    logger.info(f"\n{'='*70}")
+                    logger.info(f"🔥 WARM-UP BATCH {warmup_idx + 1}/{warmup_batches}")
+                    logger.info(f"{'='*70}")
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - Start")
                     
                     # Run the same forward pass but don't time it
                     train_data_indices = train_data_indices.numpy()
@@ -432,9 +443,15 @@ if __name__ == "__main__":
 
                     _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids))
                     batch_neg_src_node_ids = batch_src_node_ids
+                    
+                    logger.info(f"   Batch size: {len(batch_src_node_ids)}")
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After data loading")
 
                     # Run forward pass (same as timing phase)
                     if args.model_name in ['TGAT', 'CAWN', 'TCL']:
+                        logger.info(f"   Computing positive embeddings...")
+                        print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - Before positive embeddings")
+                        
                         batch_src_node_embeddings, batch_dst_node_embeddings = \
                             model[0].compute_src_dst_node_temporal_embeddings(
                                 src_node_ids=batch_src_node_ids,
@@ -442,12 +459,17 @@ if __name__ == "__main__":
                                 node_interact_times=batch_node_interact_times,
                                 num_neighbors=args.num_neighbors)
                         
+                        print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After positive embeddings")
+                        logger.info(f"   Computing negative embeddings...")
+                        
                         batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
                             model[0].compute_src_dst_node_temporal_embeddings(
                                 src_node_ids=batch_neg_src_node_ids,
                                 dst_node_ids=batch_neg_dst_node_ids,
                                 node_interact_times=batch_node_interact_times,
                                 num_neighbors=args.num_neighbors)
+                        
+                        print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After negative embeddings")
                                 
                     elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
                         batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
@@ -512,6 +534,7 @@ if __name__ == "__main__":
                                 node_interact_times=batch_node_interact_times)
                     
                     # Run prediction and loss calculation
+                    logger.info(f"   Computing predictions...")
                     if args.model_name in ['DyGMamba']:
                         positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
                         negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
@@ -519,28 +542,53 @@ if __name__ == "__main__":
                         positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
                         negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
                     
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After predictions")
+                    
                     predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
                     labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
                     
                     loss = loss_func(input=predicts, target=labels)
+                    logger.info(f"   Loss: {loss.item():.4f}")
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After loss")
+                    
+                    logger.info(f"   Running backward pass...")
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
                     
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - After backward")
+                    
                     if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                         model[0].memory_bank.detach_memory_bank()
+                    
+                    # Clear CUDA cache after warm-up batch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - End (after cleanup)")
+                    logger.info(f"{'='*70}\n")
                         
                 except StopIteration:
                     break
+                except Exception as e:
+                    logger.error(f"❌ Error during warmup batch {warmup_idx+1}: {e}")
+                    print_memory_snapshot(device=args.device, label=f"Warmup {warmup_idx+1} - ERROR STATE")
+                    raise
 
             if warmup_batches > 0:
                 logger.info("   Warm-up complete, starting timing...")
             
             # Actual timing phase
+            for batch_idx in range(timing_batches):
                 try:
                     train_data_indices = next(train_idx_data_loader_iter)
                 except StopIteration:
                     break
+                
+                logger.info(f"\n{'='*70}")
+                logger.info(f"📦 BATCH {batch_idx + 1}/{timing_batches}")
+                logger.info(f"{'='*70}")
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - Start")
                     
                 batch_start_time = time.time()
                 
@@ -551,114 +599,170 @@ if __name__ == "__main__":
 
                 _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids))
                 batch_neg_src_node_ids = batch_src_node_ids
+                
+                logger.info(f"   Batch size: {len(batch_src_node_ids)}")
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After data loading")
 
                 # Run forward pass with the same logic as training
                 if args.model_name in ['TGAT', 'CAWN', 'TCL']:
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_src_node_ids,
-                            dst_node_ids=batch_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            num_neighbors=args.num_neighbors)
+                    with memory_profiler.profile(f"{args.model_name}_positive_embeddings"):
+                        batch_src_node_embeddings, batch_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_src_node_ids,
+                                dst_node_ids=batch_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                num_neighbors=args.num_neighbors)
                     
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_neg_src_node_ids,
-                            dst_node_ids=batch_neg_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            num_neighbors=args.num_neighbors)
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After positive embeddings")
+                    
+                    with memory_profiler.profile(f"{args.model_name}_negative_embeddings"):
+                        batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_neg_src_node_ids,
+                                dst_node_ids=batch_neg_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                num_neighbors=args.num_neighbors)
+                    
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After negative embeddings")
                             
                 elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_neg_src_node_ids,
-                            dst_node_ids=batch_neg_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            edge_ids=None,
-                            edges_are_positive=False,
-                            num_neighbors=args.num_neighbors)
+                    with memory_profiler.profile(f"{args.model_name}_negative_embeddings"):
+                        batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_neg_src_node_ids,
+                                dst_node_ids=batch_neg_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                edge_ids=None,
+                                edges_are_positive=False,
+                                num_neighbors=args.num_neighbors)
                     
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_src_node_ids,
-                            dst_node_ids=batch_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            edge_ids=batch_edge_ids,
-                            edges_are_positive=True,
-                            num_neighbors=args.num_neighbors)
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After negative embeddings")
+                    
+                    with memory_profiler.profile(f"{args.model_name}_positive_embeddings"):
+                        batch_src_node_embeddings, batch_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_src_node_ids,
+                                dst_node_ids=batch_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                edge_ids=batch_edge_ids,
+                                edges_are_positive=True,
+                                num_neighbors=args.num_neighbors)
+                    
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After positive embeddings")
                             
                 elif args.model_name in ['GraphMixer']:
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_src_node_ids,
-                            dst_node_ids=batch_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            num_neighbors=args.num_neighbors,
-                            time_gap=args.time_gap)
+                    with memory_profiler.profile(f"{args.model_name}_positive_embeddings"):
+                        batch_src_node_embeddings, batch_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_src_node_ids,
+                                dst_node_ids=batch_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                num_neighbors=args.num_neighbors,
+                                time_gap=args.time_gap)
                     
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_neg_src_node_ids,
-                            dst_node_ids=batch_neg_dst_node_ids,
-                            node_interact_times=batch_node_interact_times,
-                            num_neighbors=args.num_neighbors,
-                            time_gap=args.time_gap)
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After positive embeddings")
+                    
+                    with memory_profiler.profile(f"{args.model_name}_negative_embeddings"):
+                        batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_neg_src_node_ids,
+                                dst_node_ids=batch_neg_dst_node_ids,
+                                node_interact_times=batch_node_interact_times,
+                                num_neighbors=args.num_neighbors,
+                                time_gap=args.time_gap)
+                    
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After negative embeddings")
                             
                 elif args.model_name in ['DyGFormer']:
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_src_node_ids,
-                            dst_node_ids=batch_dst_node_ids,
-                            node_interact_times=batch_node_interact_times)
+                    with memory_profiler.profile(f"{args.model_name}_positive_embeddings"):
+                        batch_src_node_embeddings, batch_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_src_node_ids,
+                                dst_node_ids=batch_dst_node_ids,
+                                node_interact_times=batch_node_interact_times)
                     
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_neg_src_node_ids,
-                            dst_node_ids=batch_neg_dst_node_ids,
-                            node_interact_times=batch_node_interact_times)
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After positive embeddings")
+                    
+                    with memory_profiler.profile(f"{args.model_name}_negative_embeddings"):
+                        batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_neg_src_node_ids,
+                                dst_node_ids=batch_neg_dst_node_ids,
+                                node_interact_times=batch_node_interact_times)
+                    
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After negative embeddings")
                             
                 elif args.model_name in ['DyGMamba']:
-                    batch_src_node_embeddings, batch_dst_node_embeddings, batch_time_diff_emb = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_src_node_ids,
-                            dst_node_ids=batch_dst_node_ids,
-                            node_interact_times=batch_node_interact_times)
+                    with memory_profiler.profile(f"{args.model_name}_positive_embeddings"):
+                        batch_src_node_embeddings, batch_dst_node_embeddings, batch_time_diff_emb = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_src_node_ids,
+                                dst_node_ids=batch_dst_node_ids,
+                                node_interact_times=batch_node_interact_times)
                     
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings, batch_neg_time_diff_emb = \
-                        model[0].compute_src_dst_node_temporal_embeddings(
-                            src_node_ids=batch_neg_src_node_ids,
-                            dst_node_ids=batch_neg_dst_node_ids,
-                            node_interact_times=batch_node_interact_times)
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After positive embeddings")
+                    
+                    with memory_profiler.profile(f"{args.model_name}_negative_embeddings"):
+                        batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings, batch_neg_time_diff_emb = \
+                            model[0].compute_src_dst_node_temporal_embeddings(
+                                src_node_ids=batch_neg_src_node_ids,
+                                dst_node_ids=batch_neg_dst_node_ids,
+                                node_interact_times=batch_node_interact_times)
+                    
+                    print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After negative embeddings")
                             
                 else:
                     raise ValueError(f"Wrong value for model_name {args.model_name}!")
 
                 # Run prediction and loss calculation
-                if args.model_name in ['DyGMamba']:
-                    positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
-                    negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
-                else:
-                    positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
-                    negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+                with memory_profiler.profile("prediction_forward"):
+                    if args.model_name in ['DyGMamba']:
+                        positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
+                        negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
+                    else:
+                        positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+                        negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
                 
-                predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
-                labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After prediction")
                 
-                loss = loss_func(input=predicts, target=labels)
+                with memory_profiler.profile("prediction_concat"):
+                    predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
+                    labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
+                
+                with memory_profiler.profile("loss_computation"):
+                    loss = loss_func(input=predicts, target=labels)
+                
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After loss computation")
+                logger.info(f"   Loss: {loss.item():.4f}")
+                
+                # Check for NaN/Inf in predictions
+                if torch.isnan(predicts).any() or torch.isinf(predicts).any():
+                    logger.error(f"❌ NaN/Inf detected in predictions!")
+                    logger.error(f"   Positive probs - min: {positive_probabilities.min():.4f}, max: {positive_probabilities.max():.4f}")
+                    logger.error(f"   Negative probs - min: {negative_probabilities.min():.4f}, max: {negative_probabilities.max():.4f}")
                 
                 # Simulate backward pass timing (includes optimizer step)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                with memory_profiler.profile("backward_pass"):
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - After backward pass")
                 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                     model[0].memory_bank.detach_memory_bank()
+                
+                # Clear CUDA cache to prevent fragmentation and OOM
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 
                 batch_end_time = time.time()
                 batch_time = batch_end_time - batch_start_time
                 batch_times.append(batch_time)
                 
-                logger.info(f"  Batch {batch_idx + 1}/{timing_batches}: {batch_time:.3f}s")
+                print_memory_snapshot(device=args.device, label=f"Batch {batch_idx+1} - End (after cleanup)")
+                logger.info(f"   ⏱️  Batch time: {batch_time:.3f}s")
+                logger.info(f"{'='*70}\n")
             
             # Calculate estimates with improved statistics
             if batch_times:
@@ -696,6 +800,9 @@ if __name__ == "__main__":
                 logger.info(f"   Batch size: {args.batch_size}")
                 logger.info(f"   Data ratio: {args.data_ratio}")
                 
+                # Get memory profiling data
+                memory_summary = memory_profiler.get_summary_dict()
+                
                 # Save estimation to file with improved metrics
                 estimation_data = {
                     "dataset": args.dataset_name,
@@ -719,7 +826,8 @@ if __name__ == "__main__":
                     "training_data_size": len(train_data.src_node_ids),
                     "full_data_size": len(full_data.src_node_ids),
                     "estimation_improved": True,  # Flag to indicate this uses improved estimation
-                    "outliers_removed": len(batch_times) >= 5  # Whether outliers were removed
+                    "outliers_removed": len(batch_times) >= 5,  # Whether outliers were removed
+                    "memory_profiling": memory_summary  # Add memory profiling data
                 }
                 
                 os.makedirs("./time_estimates", exist_ok=True)
@@ -729,6 +837,11 @@ if __name__ == "__main__":
                     json.dump(estimation_data, f, indent=2)
                 
                 logger.info(f"💾 Time estimation saved to: {estimate_file}")
+                
+                # Export memory profiling to CSV
+                memory_csv_file = f"./time_estimates/{args.model_name}_{args.time_encoder_type}_{args.dataset_name}_dr{args.data_ratio}_memory.csv"
+                memory_profiler.export_to_csv(memory_csv_file)
+                logger.info(f"💾 Memory profiling saved to: {memory_csv_file}")
                 
                 # Display improved summary table
                 print(f"\n" + "="*70)

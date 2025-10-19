@@ -55,15 +55,14 @@ class SplineKANLayer(nn.Module):
             # Learnable coefficients (like LeTE's coeffs)
             self.spline_coeffs = nn.Parameter(torch.randn(self.output_dim, self.num_knots) * 0.1)
             
-        else:
-            # RBF parameters - MEMORY EFFICIENT structure
+        else: # RBF implementation
+            # Parameters for the LOCAL RBF branch
             internal_range = [-2, 2]
-            centers_init = torch.linspace(internal_range[0], internal_range[1], grid_size)
-            # Shape: (input_dim, grid_size) instead of (input_dim, output_dim, grid_size)
-            self.centers = nn.Parameter(centers_init.unsqueeze(0).repeat(input_dim, 1))
-            self.gammas = nn.Parameter(torch.ones(input_dim, grid_size))
-            # Linear layer to project from (input_dim * grid_size) to output_dim
-            self.local_linear = nn.Linear(input_dim * grid_size, output_dim)
+            centers_init = torch.linspace(internal_range[0], internal_range[1], grid_size, dtype=torch.float32)
+            centers_init = centers_init.unsqueeze(0).unsqueeze(0).repeat(input_dim, output_dim, 1)
+            self.centers = nn.Parameter(centers_init)
+            self.gammas = nn.Parameter(torch.ones(input_dim, output_dim, grid_size))
+            self.local_linear = nn.Linear(input_dim * grid_size, output_dim) # Renamed to avoid confusion
 
     def b_splines(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -139,33 +138,17 @@ class SplineKANLayer(nn.Module):
             spline_output = self.b_splines(x_proj)  # Direct output, no einsum needed
             local_output = spline_output  # Already in correct shape
             
-        else:
-            # ===== MEMORY-EFFICIENT RBF IMPLEMENTATION =====
-            # Flatten batch and sequence dimensions
-            x_flat = x.view(-1, input_dim)  # (B*S, input_dim)
-            
-            # Expand for broadcasting with centers
-            # x_flat: (B*S, input_dim, 1)
-            # centers: (input_dim, grid_size)
-            x_expanded = x_flat.unsqueeze(-1)  # (B*S, input_dim, 1)
-            centers = self.centers.unsqueeze(0)  # (1, input_dim, grid_size)
-            gammas = self.gammas.unsqueeze(0)    # (1, input_dim, grid_size)
-            
-            # Compute distances: (B*S, input_dim, grid_size)
+        else: # RBF forward pass
+            x_expanded = x_proj.unsqueeze(-1).unsqueeze(-1)
+            centers = self.centers.unsqueeze(0).unsqueeze(0)
+            gammas = self.gammas.unsqueeze(0).unsqueeze(0)
+
             dist_sq = (x_expanded - centers).pow(2)
-            
-            # Apply RBF kernel: (B*S, input_dim, grid_size)
             rbf_out = torch.exp(-F.softplus(gammas) * dist_sq)
+            rbf_activated = rbf_out.sum(dim=3)
             
-            # Flatten the RBF features: (B*S, input_dim * grid_size)
-            rbf_flat = rbf_out.view(-1, input_dim * self.grid_size)
-            
-            # Project to output dimension: (B*S, output_dim)
-            local_output_flat = self.local_linear(rbf_flat)
-            
-            # Reshape back to (B, S, output_dim)
-            local_output = local_output_flat.view(batch_size, seq_len, self.output_dim)
-            # ===============================================
+            rbf_flat = rbf_activated.view(batch_size, seq_len, -1)
+            local_output = self.local_linear(rbf_flat)
         
         # 4. Combine the global trend and the local correction
         output = global_output + local_output
@@ -175,51 +158,82 @@ class SplineKANLayer(nn.Module):
 
 # --- Expert 2: Fourier KAN Layer (Unchanged) ---
 
-# ===== Memory-Efficient FourierKANLayer =====
 class FourierKANLayer(nn.Module):
-    """Ultra memory-efficient Fourier expert using per-feature processing."""
-    def __init__(self, input_dim: int, output_dim: int, n_harmonics: int = 16):
+    """
+    Memory-efficient Fourier expert following LeTE's vectorized design.
+    Processes all input dimensions together instead of per-dimension loops.
+    """
+    def __init__(self, input_dim: int, output_dim: int, n_harmonics: int = 5):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.n_harmonics = n_harmonics
         
-        self.cos_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
-        self.sin_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
-        self.frequencies = nn.Parameter(torch.randn(input_dim, n_harmonics) * 0.1)
+        # CHANGE: Shared Fourier weights across all input dimensions (like LeTE)
+        # Shape: (2, input_dim, output_dim, n_harmonics)
+        # First dimension: [0] = cos weights, [1] = sin weights
+        self.fourier_weight = nn.Parameter(
+            torch.randn(2, input_dim, output_dim, n_harmonics) / 
+            (math.sqrt(input_dim) * math.sqrt(n_harmonics))
+        )
+        
+        # Learnable base output (like LeTE)
+        self.base_weight = nn.Parameter(torch.randn(input_dim, output_dim) / math.sqrt(input_dim))
         self.bias = nn.Parameter(torch.zeros(output_dim))
-    
+        
     def forward(self, t: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass using vectorized operations (like LeTE).
+        
+        Args:
+            t: Input tensor of shape (batch_size, seq_len, input_dim)
+            
+        Returns:
+            Output tensor of shape (batch_size, seq_len, output_dim)
+        """
         if t.dim() == 2:
             t = t.unsqueeze(-1)
         
         batch_size, seq_len, input_dim = t.shape
-        t_flat = t.view(-1, input_dim)  # (B*S, input_dim)
         
-        # Initialize output
-        cos_output = torch.zeros(t_flat.shape[0], self.output_dim, 
-                                 device=t.device, dtype=t.dtype)
-        sin_output = torch.zeros(t_flat.shape[0], self.output_dim, 
-                                 device=t.device, dtype=t.dtype)
+        # Reshape for efficient computation
+        t_flat = t.reshape(-1, input_dim)  # (B*S, input_dim)
         
-        # Process each feature independently to avoid 3D tensors
-        for i in range(input_dim):
-            t_i = t_flat[:, i]  # (B*S,)
-            freq_i = self.frequencies[i]  # (n_harmonics,)
-            
-            # Only 2D tensors: (B*S, n_harmonics)
-            args_i = t_i.unsqueeze(-1) * freq_i.unsqueeze(0)
-            cos_vals_i = torch.cos(args_i)
-            sin_vals_i = torch.sin(args_i)
-            
-            # Accumulate: (B*S, n_harmonics) @ (n_harmonics, output_dim)
-            cos_output += torch.matmul(cos_vals_i, self.cos_coeffs[i])
-            sin_output += torch.matmul(sin_vals_i, self.sin_coeffs[i])
+        # Step 1: Base transformation (linear component)
+        # (B*S, input_dim) @ (input_dim, output_dim) = (B*S, output_dim)
+        base_output = torch.matmul(t_flat, self.base_weight)
         
-        output = cos_output + sin_output + self.bias
+        # Step 2: Fourier component (like LeTE's vectorized approach)
+        # Create frequency indices: k = [1, 2, 3, 4, 5]
+        k = torch.arange(1, self.n_harmonics + 1, device=t.device, dtype=t.dtype)
+        k = k.reshape(1, 1, 1, self.n_harmonics)  # (1, 1, 1, n_harmonics)
+        
+        # Reshape input for broadcasting
+        t_reshaped = t_flat.reshape(-1, 1, input_dim, 1)  # (B*S, 1, input_dim, 1)
+        
+        # Compute arguments: (B*S, 1, input_dim, 1) * (1, 1, 1, n_harmonics)
+        # Result: (B*S, 1, input_dim, n_harmonics)
+        args = k * t_reshaped
+        
+        # Compute cos and sin (vectorized across all features)
+        c = torch.cos(args)  # (B*S, 1, input_dim, n_harmonics)
+        s = torch.sin(args)  # (B*S, 1, input_dim, n_harmonics)
+        
+        # Apply Fourier weights using efficient einsum
+        # c: (B*S, 1, input_dim, n_harmonics)
+        # fourier_weight[0]: (input_dim, output_dim, n_harmonics)
+        # Result: (B*S, output_dim)
+        cos_output = torch.einsum('bjih,joh->bo', c, self.fourier_weight[0])
+        sin_output = torch.einsum('bjih,joh->bo', s, self.fourier_weight[1])
+        
+        # Combine all components
+        output = base_output + cos_output + sin_output + self.bias  # (B*S, output_dim)
+        
+        # Reshape back to original dimensions
         output = output.view(batch_size, seq_len, self.output_dim)
         
         return output
+
 
 # --- Expert 3: Enhanced Wavelet KAN Layer (Unchanged) ---
 
@@ -318,106 +332,219 @@ class WaveletKANLayer(nn.Module):
 
 class KMOTE(nn.Module):
     """
-    Final, architecturally correct K-MOTE.
-    This version fully aligns with the LeTE/Time2Vec design by expanding the
-    time dimension in the initial linear layer BEFORE it is passed to the experts.
+    Hybrid K-MOTE with configurable time transformation strategy.
+    
+    Supports three architectures:
+    - transform_mode='shared': Single time transform shared by all experts (MoE approach)
+    - transform_mode='per_expert': Per-expert time transforms (LeTE-style specialization)
+    - transform_mode='adapter' (DEFAULT): Shared base + lightweight expert adapters
     """
     def __init__(self, input_dim: int, output_dim: int,
+                 hidden_dim: int = None,
                  wavelet_type: str = 'shock',
                  use_layernorm: bool = True,
                  use_scale: bool = True,
-                 gating_temp: float = 1.0):
+                 gating_temp: float = 1.0,
+                 transform_mode: str = 'adapter',
+                 adapter_type: str = 'affine'):
         super().__init__()
-        
+        self.adapter_type = adapter_type
         # This architecture is designed for a 1D time input.
         if input_dim != 1:
             raise ValueError("K-MOTE requires input_dim=1 for the time input.")
+        
+        if transform_mode not in ['shared', 'per_expert', 'adapter']:
+            raise ValueError("transform_mode must be 'shared', 'per_expert', or 'adapter'")
+        
+         # ===== FIX: Only validate adapter_type when in adapter mode =====
+        if transform_mode == 'adapter':
+            if adapter_type not in ['affine', 'linear']:
+                raise ValueError(f"adapter_type must be 'affine' or 'linear', got {adapter_type}")
+        # ===== END FIX =====
 
         self.output_dim = output_dim
+        self.hidden_dim = output_dim//3 if hidden_dim is not None else output_dim
         self.temperature = gating_temp
         self.use_scale = use_scale
+        self.transform_mode = transform_mode
+        
 
-        # ===== CRITICAL CHANGE 1: The Initial Linear Transformation =====
-        # This layer now expands the 1D time input to the full output dimension.
-        # This is the 'w*t + b' step that creates the multi-channel time representation.
-        self.time_linear_transform = nn.Linear(input_dim, output_dim)
-        self._initialize_time_transform() # Apply the special initialization
+        if self.transform_mode == 'adapter':
+            if self.adapter_type not in ['affine', 'linear']:
+                raise ValueError("adapter_type must be 'affine' or 'linear'")
+        # ===== CONFIGURABLE TIME TRANSFORMATION =====
+        if transform_mode == 'shared':
+            # Option A: Single shared transform (MoE approach)
+            self.time_linear_transform = nn.Linear(input_dim, self.hidden_dim)
+            self._initialize_shared_transform()
+            
+        elif transform_mode == 'per_expert':
+            # Option B: Per-expert transforms (LeTE-style specialization)
+            self.num_experts = 3  # Will be used for initialization
+            self.time_transforms = nn.ModuleList([
+                nn.Linear(input_dim, self.hidden_dim) for _ in range(self.num_experts)
+            ])
+            self._initialize_expert_transforms()
+            
+        else:  # transform_mode == 'adapter'
+            # Option C: Shared base + expert adapters (DEFAULT, best balance)
+            self.num_experts = 3
+            self.time_base_transform = nn.Linear(input_dim, self.hidden_dim)
+            self._initialize_shared_transform()  # Initialize base with geometric progression
+            
+            if adapter_type == 'affine':
+                # Lightweight affine adapters (scale + shift, like LayerNorm)
+                self.expert_scales = nn.ParameterList([
+                    nn.Parameter(torch.ones(self.hidden_dim)) for _ in range(self.num_experts)
+                ])
+                self.expert_shifts = nn.ParameterList([
+                    nn.Parameter(torch.zeros(self.hidden_dim)) for _ in range(self.num_experts)
+                ])
+            else:  # adapter_type == 'linear'
+                # Small linear adapters
+                self.expert_adapters = nn.ModuleList([
+                    nn.Linear(self.hidden_dim, self.hidden_dim) for _ in range(self.num_experts)
+                ])
+                # Initialize adapters to near-identity
+                for adapter in self.expert_adapters:
+                    nn.init.eye_(adapter.weight)
+                    nn.init.zeros_(adapter.bias)
         # =============================================================
 
         if use_scale:
             self.scale = nn.Parameter(torch.ones(output_dim))
 
-        # ===== CRITICAL CHANGE 2: Experts now operate on high-dimensional input =====
-        # The input_dim for all experts is now `output_dim`, as they receive the
-        # already-transformed time vector.
+        # ===== EXPERTS: Now use hidden_dim for input =====
         self.experts = nn.ModuleList([
-            SplineKANLayer(output_dim, output_dim, basis_function='b_spline', grid_size=5),
-            FourierKANLayer(output_dim, output_dim, n_harmonics=8),
-            WaveletKANLayer(output_dim, output_dim, n_wavelets=8, wavelet_type=wavelet_type),
-            SplineKANLayer(output_dim, output_dim, basis_function='rbf', grid_size=5)
+            SplineKANLayer(self.hidden_dim, output_dim, basis_function='b_spline', grid_size=8),
+            FourierKANLayer(self.hidden_dim, output_dim, n_harmonics=8),
+            WaveletKANLayer(self.hidden_dim, output_dim, n_wavelets=8, wavelet_type=wavelet_type),
         ])
         # ===========================================================================
         
         self.num_experts = len(self.experts)
-        # ===== CRITICAL CHANGE 3: Gating network also uses the transformed time =====
-        # It needs to decide which expert to use based on the rich, multi-channel representation.
+        
+        # ===== GATING NETWORK: Uses hidden_dim input =====
         self.gating_network = nn.Sequential(
-            nn.Linear(output_dim, 64), # Input is now output_dim
+            nn.Linear(self.hidden_dim, 64),
             nn.GELU(),
             nn.Linear(64, self.num_experts)
         )
-        # =========================================================================
+        # ============================================
         
         if use_layernorm and output_dim > 1:
             self.layer_norm = nn.LayerNorm(output_dim)
-            print(f"Initialized K-MOTE with LayerNorm and LeTE-style architecture.")
+            if transform_mode == 'adapter':
+                print(f"Initialized K-MOTE with {adapter_type} adapters (DEFAULT), hidden_dim={self.hidden_dim}")
+            else:
+                transform_type = "shared" if transform_mode == 'shared' else "per-expert"
+                print(f"Initialized K-MOTE with {transform_type} transform, hidden_dim={self.hidden_dim}")
         else:
             self.layer_norm = nn.Identity()
 
-    def _initialize_time_transform(self):
+    def _initialize_shared_transform(self):
         """
-        Initializes the time transformation layer with a geometric progression of frequencies,
+        Initializes the shared time transformation layer with a geometric progression of frequencies,
         following the LeTE / Transformer paper's methodology.
         
         CRITICAL: These weights REMAIN LEARNABLE to ensure scale-invariance.
         The initialization provides a strong inductive bias, while the trainability
         allows the model to fine-tune frequencies and adapt to input scale.
         """
-        # The torch.no_grad() context is good practice for initialization.
-        # It prevents this operation from being tracked in the computation graph.
-        # It does NOT freeze the parameters from future gradient updates.
         with torch.no_grad():
             # Create frequencies from 1.0 down to 1.0 / 10^9
-            frequencies = 1.0 / (10 ** torch.linspace(0, 9, self.output_dim, dtype=torch.float32))
+            frequencies = 1.0 / (10 ** torch.linspace(0, 9, self.hidden_dim, dtype=torch.float32))
             
-            # Copy these values into the weight tensor. The .weight attribute itself
-            # is still a learnable nn.Parameter.
-            self.time_linear_transform.weight.copy_(frequencies.unsqueeze(1))
+            # Determine which transform to initialize based on mode
+            if hasattr(self, 'time_linear_transform'):
+                # For 'shared' mode
+                self.time_linear_transform.weight.copy_(frequencies.unsqueeze(1))
+                self.time_linear_transform.bias.zero_()
+            elif hasattr(self, 'time_base_transform'):
+                # For 'adapter' mode
+                self.time_base_transform.weight.copy_(frequencies.unsqueeze(1))
+                self.time_base_transform.bias.zero_()
+    
+    def _initialize_expert_transforms(self):
+        """
+        Initializes per-expert time transforms with different frequency ranges.
+        This allows each expert to specialize in different temporal scales.
+        
+        Expert specialization:
+        - Expert 0 (Spline): Low-to-medium frequencies (smooth trends)
+        - Expert 1 (Fourier): Medium frequencies (periodic patterns)
+        - Expert 2 (Wavelet): Medium-to-high frequencies (abrupt changes)
+        """
+        with torch.no_grad():
+            # Expert 0 (Spline): Focus on low-to-medium frequencies (0 to 6)
+            freqs_spline = 1.0 / (10 ** torch.linspace(0, 6, self.hidden_dim, dtype=torch.float32))
+            self.time_transforms[0].weight.copy_(freqs_spline.unsqueeze(1))
+            self.time_transforms[0].bias.zero_()
             
-            # Initialize bias to zero
-            self.time_linear_transform.bias.zero_()
+            # Expert 1 (Fourier): Focus on medium frequencies (2 to 8)
+            freqs_fourier = 1.0 / (10 ** torch.linspace(2, 8, self.hidden_dim, dtype=torch.float32))
+            self.time_transforms[1].weight.copy_(freqs_fourier.unsqueeze(1))
+            self.time_transforms[1].bias.zero_()
+            
+            # Expert 2 (Wavelet): Focus on medium-to-high frequencies (4 to 9)
+            freqs_wavelet = 1.0 / (10 ** torch.linspace(4, 9, self.hidden_dim, dtype=torch.float32))
+            self.time_transforms[2].weight.copy_(freqs_wavelet.unsqueeze(1))
+            self.time_transforms[2].bias.zero_()
 
     def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
         if t.dim() == 2:
             t = t.unsqueeze(-1) # Ensure shape (B, S, 1)
 
-        # 1. Apply the LeTE-style linear transformation FIRST.
-        # This is the crucial step that creates the scale-invariant, multi-scale representation.
-        # Shape: (B, S, 1) -> (B, S, output_dim)
-        t_transformed = self.time_linear_transform(t)
+        # 1. Apply time transformation(s) based on mode
+        if self.transform_mode == 'shared':
+            # Option A: Shared transform - all experts get the same transformed input
+            t_transformed = self.time_linear_transform(t)  # (B, S, hidden_dim)
+            
+            # Pass to gating and experts
+            gating_logits = self.gating_network(t_transformed)
+            gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
+            
+            expert_outputs = [expert(t_transformed) for expert in self.experts]
+            
+        elif self.transform_mode == 'per_expert':
+            # Option B: Per-expert transforms - each expert gets its own specialized input
+            t_transformed = [transform(t) for transform in self.time_transforms]  # List of (B, S, hidden_dim)
+            
+            # Each expert processes its specialized input
+            expert_outputs = [expert(t_trans) for expert, t_trans in zip(self.experts, t_transformed)]
+            
+            # Gating network uses the average of all transformed inputs
+            t_for_gating = torch.stack(t_transformed, dim=0).mean(dim=0)  # (B, S, hidden_dim)
+            gating_logits = self.gating_network(t_for_gating)
+            gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
+            
+        else:  # transform_mode == 'adapter'
+            # Option C: Shared base + expert adapters (DEFAULT)
+            t_base = self.time_base_transform(t)  # (B, S, hidden_dim)
+            
+            # Apply expert-specific adaptations
+            expert_outputs = []
+            for i, expert in enumerate(self.experts):
+                if self.adapter_type == 'affine':
+                    # Simple affine adaptation (scale + shift)
+                    t_adapted = t_base * self.expert_scales[i] + self.expert_shifts[i]
+                else:  # adapter_type == 'linear'
+                    # Linear adapter
+                    t_adapted = self.expert_adapters[i](t_base)
+                
+                expert_outputs.append(expert(t_adapted))
+            
+            # Gating network uses the shared base representation
+            gating_logits = self.gating_network(t_base)
+            gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
         
-        # 2. Pass this high-dimensional representation to the gating network and all experts.
-        gating_logits = self.gating_network(t_transformed)
-        gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
+        # 2. Combine expert outputs using gating weights
+        stacked_outputs = torch.stack(expert_outputs, dim=-1)  # (B, S, output_dim, num_experts)
+        gating_weights = gating_weights.unsqueeze(-2)  # (B, S, 1, num_experts)
         
-        expert_outputs = [expert(t_transformed) for expert in self.experts]
+        weighted_sum = (gating_weights * stacked_outputs).sum(dim=-1)  # (B, S, output_dim)
         
-        # 3. Combine, Normalize, and Scale as before.
-        stacked_outputs = torch.stack(expert_outputs, dim=-1)
-        gating_weights = gating_weights.unsqueeze(-2)
-        
-        weighted_sum = (gating_weights * stacked_outputs).sum(dim=-1)
-        
+        # 3. Normalize and scale
         output_embedding = self.layer_norm(weighted_sum)
         
         if self.use_scale:

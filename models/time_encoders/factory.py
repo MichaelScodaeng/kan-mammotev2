@@ -223,7 +223,7 @@ def get_available_encoders():
         'sm_kernel_only',
         'kmote_abs_only',
         'kmote_rel_only',
-        
+        'k_mote',  # ✅ Standalone K-MOTE (without Mamba, for MNIST experiments)
     ])
     
     return encoders
@@ -636,6 +636,39 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
                     print("WARNING: Could not generate SM-Kernel sample for dual stream baseline.")
             except Exception as e:
                 print(f"WARNING: SM-Kernel initialization failed for dual stream baseline: {e}")
+    
+    elif encoder_type == 'k_mote':
+        # ✅ Standalone K-MOTE (without Mamba) for MNIST-style experiments
+        from .k_mote import KMOTE
+        
+        print("INFO: Creating standalone K-MOTE encoder.")
+        print("Time Embedding dim:", time_dim)
+        
+        # Get K-MOTE parameters
+        if args is not None:
+            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
+            transform_mode = getattr(args, 'transform_mode', kwargs.get('transform_mode', 'adapter'))
+            adapter_type = getattr(args, 'adapter_type', kwargs.get('adapter_type', 'affine'))
+        else:
+            wavelet_type = kwargs.get('wavelet_type', 'shock')
+            transform_mode = kwargs.get('transform_mode', 'adapter')
+            adapter_type = kwargs.get('adapter_type', 'affine')
+        
+        print(f"K-MOTE parameters:")
+        print(f"  - output_dim: {time_dim}")
+        print(f"  - wavelet_type: {wavelet_type}")
+        print(f"  - transform_mode: {transform_mode}")
+        print(f"  - adapter_type: {adapter_type if transform_mode == 'adapter' else 'N/A'}")
+        
+        time_encoder = KMOTE(
+            input_dim=1,
+            output_dim=time_dim,
+            wavelet_type=wavelet_type,
+            transform_mode=transform_mode,
+            adapter_type=adapter_type if transform_mode == 'adapter' else None,
+            use_scale=True,
+            use_layernorm=True
+        )
     
     elif encoder_type in ['original', 'time_encoder', 'default']:
         print("INFO: Creating original TimeEncoder (wrapped for compatibility).")
