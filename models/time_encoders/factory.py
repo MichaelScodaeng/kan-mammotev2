@@ -202,7 +202,8 @@ def get_available_encoders():
         encoders.extend([
             'kan_mammote',
             'kan_mammote_dual_kmote'  # NEW: Dual K-MOTE variant
-            ,'dual_stream_baseline'
+            ,'dual_stream_baseline',
+            "kan_mammote_dual_kmote_tgat"
         ])
     
     if KAN_MAMMOTE_Lite is not None:
@@ -257,6 +258,18 @@ def get_encoder_config(encoder_type: str):
                 'num_mixtures': 16  # Still needed for fusion architecture
             },
             'description': 'KAN-MAMMOTE Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding'
+        },
+        'kan_mammote_dual_kmote_tgat': {
+            'required_params': ['embedding_dim', 'expert_dim'],
+            'optional_params': {
+                'mamba_d_state': 16,
+                'mamba_d_conv': 4, 
+                'mamba_expand': 2,
+                'mamba_headdim': 64,
+                'use_kmote_for_relative': True,
+                'num_mixtures': 16  # Still needed for fusion architecture
+            },
+            'description': 'KAN-MAMMOTE Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding for TGAT'
         },
         'kan_mammote_lite': {
             'required_params': ['embedding_dim', 'num_mixtures'],
@@ -405,6 +418,51 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         if args is not None:
             print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.")
             expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 128))
+            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
+            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
+            mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))
+            mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
+            mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
+        else:
+            # Get from kwargs or use defaults
+            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from kwargs or using defaults.")
+            expert_dim = kwargs.get('expert_dim', 64)
+            num_mixtures = kwargs.get('num_mixtures', 4)
+            mamba_d_state = kwargs.get('mamba_d_state', 16)
+            mamba_d_conv = kwargs.get('mamba_d_conv', 4)
+            mamba_expand = kwargs.get('mamba_expand', 2)
+            mamba_headdim = kwargs.get('mamba_headdim', 64)
+        
+        print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
+        print(f"  - embedding_dim: {time_dim}")
+        print(f"  - expert_dim: {expert_dim}")
+        print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
+        print(f"  - mamba_d_state: {mamba_d_state}")
+        print(f"  - mamba_d_conv: {mamba_d_conv}")
+        print(f"  - mamba_expand: {mamba_expand}")
+        print(f"  - use_kmote_for_relative: True (dual K-MOTE mode)")
+        
+        time_encoder = KAN_MAMMOTE(
+            embedding_dim=time_dim,
+            expert_dim=expert_dim,
+            num_mixtures=num_mixtures,
+            mamba_d_state=mamba_d_state,
+            mamba_d_conv=mamba_d_conv,
+            mamba_expand=mamba_expand,
+            use_kmote_for_relative=True  # Force dual K-MOTE mode
+        )
+        
+        print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
+    elif encoder_type == 'kan_mammote_dual_kmote_tgat':
+        if KAN_MAMMOTE is None:
+            raise ImportError(f"KAN_MAMMOTE encoder is not available. Please install Mamba dependencies or use a different encoder.")
+        
+        print("INFO: Creating kan_mammote_dual_kmote_tgat")
+        
+        # Handle args gracefully - try args first, then kwargs, then defaults
+        if args is not None:
+            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.")
+            expert_dim = 64
             num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
             mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
             mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))

@@ -759,6 +759,26 @@ if __name__ == "__main__":
     
     time_encoder = args.single_encoder
     
+    # ===== ADD: Create required base directories =====
+    print("🔧 Setting up directories...")
+    required_base_dirs = [
+        './saved_models',
+        './saved_results',
+        './logs',
+        './experiment_logs'
+    ]
+    
+    for directory in required_base_dirs:
+        try:
+            os.makedirs(directory, exist_ok=True)
+        except OSError as e:
+            print(f"⚠️  Warning: Could not create {directory}: {e}")
+    
+    # Also create encoder-specific log directory
+    encoder_log_dir = get_encoder_log_dir(time_encoder)
+    print(f"✅ Directories ready (encoder logs: {encoder_log_dir})")
+    # ===== END ADD =====
+
     # Handle report generation
     if args.generate_report:
         generate_experiment_report(time_encoder)
