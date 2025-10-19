@@ -20,7 +20,7 @@ DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'
 
 MODELS = ['JODIE', 'TGAT', 'TGN', 'TCL', 'DyGFormer', 'DyGMamba']
 
-ENCODERS = ['lete', 'kan_mammote_dual_kmote', 'mercer', 'time2vec']
+ENCODERS = ["kan_mammote_dual_kmote",] # , 'mercer', 'time2vec' , 'lete', 'kan_mammote_dual_kmote'
 
 # Default parameters
 DEFAULT_PARAMS = {
@@ -122,7 +122,7 @@ def run_estimation(dataset, model, encoder, timeout=600):
                 }
         else:
             print(f"   ❌ Failed in {elapsed_time:.1f}s")
-            print(f"      Error: {result.stderr[:200]}...")
+            print(f"      Error: {result.stderr}...")
             return {
                 'dataset': dataset,
                 'model': model,

@@ -55,14 +55,15 @@ class SplineKANLayer(nn.Module):
             # Learnable coefficients (like LeTE's coeffs)
             self.spline_coeffs = nn.Parameter(torch.randn(self.output_dim, self.num_knots) * 0.1)
             
-        else: # RBF implementation
-            # Parameters for the LOCAL RBF branch
+        else:
+            # RBF parameters - MEMORY EFFICIENT structure
             internal_range = [-2, 2]
-            centers_init = torch.linspace(internal_range[0], internal_range[1], grid_size, dtype=torch.float32)
-            centers_init = centers_init.unsqueeze(0).unsqueeze(0).repeat(input_dim, output_dim, 1)
-            self.centers = nn.Parameter(centers_init)
-            self.gammas = nn.Parameter(torch.ones(input_dim, output_dim, grid_size))
-            self.local_linear = nn.Linear(input_dim * grid_size, output_dim) # Renamed to avoid confusion
+            centers_init = torch.linspace(internal_range[0], internal_range[1], grid_size)
+            # Shape: (input_dim, grid_size) instead of (input_dim, output_dim, grid_size)
+            self.centers = nn.Parameter(centers_init.unsqueeze(0).repeat(input_dim, 1))
+            self.gammas = nn.Parameter(torch.ones(input_dim, grid_size))
+            # Linear layer to project from (input_dim * grid_size) to output_dim
+            self.local_linear = nn.Linear(input_dim * grid_size, output_dim)
 
     def b_splines(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -138,17 +139,33 @@ class SplineKANLayer(nn.Module):
             spline_output = self.b_splines(x_proj)  # Direct output, no einsum needed
             local_output = spline_output  # Already in correct shape
             
-        else: # RBF forward pass
-            x_expanded = x_proj.unsqueeze(-1).unsqueeze(-1)
-            centers = self.centers.unsqueeze(0).unsqueeze(0)
-            gammas = self.gammas.unsqueeze(0).unsqueeze(0)
-
-            dist_sq = (x_expanded - centers).pow(2)
-            rbf_out = torch.exp(-F.softplus(gammas) * dist_sq)
-            rbf_activated = rbf_out.sum(dim=3)
+        else:
+            # ===== MEMORY-EFFICIENT RBF IMPLEMENTATION =====
+            # Flatten batch and sequence dimensions
+            x_flat = x.view(-1, input_dim)  # (B*S, input_dim)
             
-            rbf_flat = rbf_activated.view(batch_size, seq_len, -1)
-            local_output = self.local_linear(rbf_flat)
+            # Expand for broadcasting with centers
+            # x_flat: (B*S, input_dim, 1)
+            # centers: (input_dim, grid_size)
+            x_expanded = x_flat.unsqueeze(-1)  # (B*S, input_dim, 1)
+            centers = self.centers.unsqueeze(0)  # (1, input_dim, grid_size)
+            gammas = self.gammas.unsqueeze(0)    # (1, input_dim, grid_size)
+            
+            # Compute distances: (B*S, input_dim, grid_size)
+            dist_sq = (x_expanded - centers).pow(2)
+            
+            # Apply RBF kernel: (B*S, input_dim, grid_size)
+            rbf_out = torch.exp(-F.softplus(gammas) * dist_sq)
+            
+            # Flatten the RBF features: (B*S, input_dim * grid_size)
+            rbf_flat = rbf_out.view(-1, input_dim * self.grid_size)
+            
+            # Project to output dimension: (B*S, output_dim)
+            local_output_flat = self.local_linear(rbf_flat)
+            
+            # Reshape back to (B, S, output_dim)
+            local_output = local_output_flat.view(batch_size, seq_len, self.output_dim)
+            # ===============================================
         
         # 4. Combine the global trend and the local correction
         output = global_output + local_output
@@ -158,53 +175,51 @@ class SplineKANLayer(nn.Module):
 
 # --- Expert 2: Fourier KAN Layer (Unchanged) ---
 
+# ===== Memory-Efficient FourierKANLayer =====
 class FourierKANLayer(nn.Module):
-    """
-    Backward-compatible memory-efficient Fourier expert for periodic patterns.
-    """
+    """Ultra memory-efficient Fourier expert using per-feature processing."""
     def __init__(self, input_dim: int, output_dim: int, n_harmonics: int = 16):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.n_harmonics = n_harmonics
         
-        # KEEP SAME parameter structure for compatibility with existing models
         self.cos_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
         self.sin_coeffs = nn.Parameter(torch.randn(input_dim, n_harmonics, output_dim) * 0.1)
         self.frequencies = nn.Parameter(torch.randn(input_dim, n_harmonics) * 0.1)
         self.bias = nn.Parameter(torch.zeros(output_dim))
-
+    
     def forward(self, t: torch.Tensor) -> torch.Tensor:
-        if t.dim() == 2: 
+        if t.dim() == 2:
             t = t.unsqueeze(-1)
         
         batch_size, seq_len, input_dim = t.shape
-        
-        # MEMORY FIX: Process in flattened form to avoid 5D tensors
         t_flat = t.view(-1, input_dim)  # (B*S, input_dim)
         
-        # Compute frequency arguments efficiently
-        t_expanded = t_flat.unsqueeze(-1)  # (B*S, input_dim, 1)
-        freqs = self.frequencies.unsqueeze(0)  # (1, input_dim, n_harmonics)
+        # Initialize output
+        cos_output = torch.zeros(t_flat.shape[0], self.output_dim, 
+                                 device=t.device, dtype=t.dtype)
+        sin_output = torch.zeros(t_flat.shape[0], self.output_dim, 
+                                 device=t.device, dtype=t.dtype)
         
-        args = t_expanded * freqs  # (B*S, input_dim, n_harmonics)
+        # Process each feature independently to avoid 3D tensors
+        for i in range(input_dim):
+            t_i = t_flat[:, i]  # (B*S,)
+            freq_i = self.frequencies[i]  # (n_harmonics,)
+            
+            # Only 2D tensors: (B*S, n_harmonics)
+            args_i = t_i.unsqueeze(-1) * freq_i.unsqueeze(0)
+            cos_vals_i = torch.cos(args_i)
+            sin_vals_i = torch.sin(args_i)
+            
+            # Accumulate: (B*S, n_harmonics) @ (n_harmonics, output_dim)
+            cos_output += torch.matmul(cos_vals_i, self.cos_coeffs[i])
+            sin_output += torch.matmul(sin_vals_i, self.sin_coeffs[i])
         
-        # Compute trigonometric functions (still manageable size)
-        cos_vals = torch.cos(args)  # (B*S, input_dim, n_harmonics)
-        sin_vals = torch.sin(args)  # (B*S, input_dim, n_harmonics)
-        
-        # MEMORY FIX: Use einsum to avoid creating huge intermediate tensors
-        cos_output = torch.einsum('bih,iho->bo', cos_vals, self.cos_coeffs)  # (B*S, output_dim)
-        sin_output = torch.einsum('bih,iho->bo', sin_vals, self.sin_coeffs)  # (B*S, output_dim)
-        
-        # Combine and add bias
         output = cos_output + sin_output + self.bias
-        
-        # Reshape back to original dimensions
         output = output.view(batch_size, seq_len, self.output_dim)
         
         return output
-
 
 # --- Expert 3: Enhanced Wavelet KAN Layer (Unchanged) ---
 
