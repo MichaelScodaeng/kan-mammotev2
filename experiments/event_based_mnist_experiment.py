@@ -318,7 +318,7 @@ class TimeEncoderClassifier(nn.Module):
             return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, fusion_strategy=encoder_type.replace('kan_mammote_lite_', ''), **kwargs)
         elif encoder_type == 'kan_mammote_full':
             # Default: K-MOTE for relative, controllable Mamba2, mamba fusion
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, mamba_headdim = 8,**kwargs)
+            return KAN_MAMMOTE(embedding_dim=embedding_dim, mamba_headdim=16)
         # KAN-MAMMOTE variants with different fusion strategies
         elif encoder_type == 'kan_mammote_concat':
             return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='concat', **kwargs)
@@ -673,19 +673,19 @@ def get_available_encoders():
     """Get list of available encoders based on imports"""
     # Always available encoders (no external dependency)
     encoders = [
-        'lstm_only',  # Baseline
+        #'lstm_only',  # Baseline
         # Ablation study encoders
-        'kmote_abs_only', 'kmote_rel_only', 
-        'sm_kernel_only',
+        #'kmote_abs_only', 'kmote_rel_only', 
+        #'sm_kernel_only',
         #'dual_stream_baseline',
         # KAN-MAMMOTE Lite variants (without Mamba)
         #'kan_mammote_lite', 'kan_mammote_lite_concat', 'kan_mammote_lite_weighted', 
         #'kan_mammote_lite_attention', 'kan_mammote_dual_kmote',
         # KAN-MAMMOTE Full variants (with different fusion strategies)
-        'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
-        'kan_mammote_concat',  # K-MOTE relative + concat fusion
-        'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
-        'kan_mammote_attention',  # K-MOTE relative + attention fusion
+        #'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
+        #'kan_mammote_concat',  # K-MOTE relative + concat fusion
+        #'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
+        #'kan_mammote_attention',  # K-MOTE relative + attention fusion
         #'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
         #'kan_mammote_sm_kernel',  # SM-kernel (legacy) + ControllableMamba2 + mamba fusion
     ]
@@ -694,12 +694,12 @@ def get_available_encoders():
     # Optional encoders (require imports)
     if LETE_AVAILABLE:
         encoders.extend(['lete', 'lete_relative'])
-    
+    '''
     if MERCER_AVAILABLE:
         encoders.extend(['mercer', 'mercer_relative'])
     if TIME2VEC_AVAILABLE:
         encoders.extend(['time2vec', 'time2vec_relative'])
-
+    '''
     """
     if BOCHNER_AVAILABLE:
         encoders.append('bochner')
@@ -1068,13 +1068,13 @@ def main():
                         help='Number of training epochs (default: 50)')
     parser.add_argument('--batch_size', type=int, default=512,
                         help='Batch size (default: 512)')
-    parser.add_argument('--embedding_dim', type=int, default=64,
+    parser.add_argument('--embedding_dim', type=int, default=32,
                         help='Time embedding dimension (default: 32)')
     parser.add_argument('--hidden_dim', type=int, default=128,
                         help='LSTM hidden dimension (default: 128)')
     
-    parser.add_argument('--expert_dim', type=int, default=32,
-                        help='Expert dimension for K-MOTE (default: 32)')
+    parser.add_argument('--expert_dim', type=int, default=64,
+                        help='Expert dimension for K-MOTE (default: 64)')
     parser.add_argument('--mamba_d_state', type=int, default=16,
                         help='Mamba state dimension (default: 16)')
     parser.add_argument('--mamba_d_conv', type=int, default=4,

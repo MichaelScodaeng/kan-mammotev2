@@ -95,12 +95,23 @@ class Spline(nn.Module):
         grid = grid.expand(self.dim_spline, -1).contiguous()
         self.register_buffer("grid", grid)
 
+
+        #This follows original LeTE implementation but it causes bug
+        '''
         # Base weight for the linear+activation branch
         self.base_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline))
 
         # Spline coefficients
         self.spline_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline))
+        '''
+        self.base_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline) / np.sqrt(self.dim_spline)
+        )
 
+        self.spline_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline) /
+            (np.sqrt(self.dim_spline) * np.sqrt(self.grid_size_spline + self.order_spline))
+        )
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         original_shape = x.shape
         x = x.reshape(-1, self.dim_spline)  # flatten all but the last dimension
@@ -173,7 +184,7 @@ class LeTE(BaseTimeEncoder):
     """
     
     def __init__(self, time_dim: int, p: float = 0.5, layer_norm: bool = True, 
-                 scale: bool = True, parameter_requires_grad: bool = True, device: str = 'cpu'):
+                 scale: bool = True, parameter_requires_grad: bool = True, device: str = 'cuda'):
         """
         Initialize LeTE encoder.
         

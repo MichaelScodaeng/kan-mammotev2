@@ -48,6 +48,9 @@ class CombinedLeTE(nn.Module):
             self.w1_fourier.weight = nn.Parameter(torch.from_numpy(fourier_vals).reshape(self.dim_fourier, -1))
             self.w1_fourier.bias = nn.Parameter(torch.zeros(self.dim_fourier))
 
+
+
+        
         # Initialize w1_spline similarly
         if self.dim_spline > 0:
             self.w1_spline = nn.Linear(1, self.dim_spline)
@@ -227,6 +230,14 @@ class Spline(nn.Module):
         # Spline coefficients
         self.spline_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline))
 
+        self.base_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline) / np.sqrt(self.dim_spline)
+        )
+
+        self.spline_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline) /
+            (np.sqrt(self.dim_spline) * np.sqrt(self.grid_size_spline + self.order_spline))
+        )
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         original_shape = x.shape
         x = x.reshape(-1, self.dim_spline)  # flatten all but the last dimension
