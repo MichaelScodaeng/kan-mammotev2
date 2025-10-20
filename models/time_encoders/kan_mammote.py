@@ -72,7 +72,7 @@ class KAN_MAMMOTE(nn.Module):
         self.fusion_strategy = fusion_strategy
         self.separate_modulation_pathway = separate_modulation_pathway  # Store the config
         self.dropout_rate = dropout  # Store for logging
-        self.rel_to_content_alpha = nn.Parameter(torch.tensor(0.0))
+        #self.rel_to_content_alpha = nn.Parameter(torch.tensor(0.0))
         # Enhanced K-MOTE for absolute time with configurable wavelet type
         self.k_mote_abs = KMOTE(
             input_dim=1, 
@@ -420,7 +420,7 @@ class KAN_MAMMOTE(nn.Module):
                 # - Content pathway: pure absolute time (u_k)
                 # - Modulation pathway: relative time controls dynamics via FiLM gates
                 combined_input = u_k  # Pure absolute time
-                combined_input = u_k + self.rel_to_content_alpha * v_k
+                #combined_input = u_k + self.rel_to_content_alpha * v_k
                 if debug or hasattr(self, '_debug_mode'):
                     print(f"🔗 SEPARATE MODULATION PATHWAY (ControllableMamba2 default):")
                     print(f"   combined_input = u_k (pure absolute)")
