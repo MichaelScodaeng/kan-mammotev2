@@ -43,7 +43,7 @@ class KAN_MAMMOTE(nn.Module):
                  use_controllable_mamba: bool = True,  # Only for fusion_strategy='mamba'
                  use_kmote_for_relative: bool = True,  # Default: K-MOTE (SM-kernel is legacy)
                  fusion_strategy: str = 'mamba',  # NEW: 'mamba', 'concat', 'weighted', 'attention'
-                 separate_modulation_pathway: bool = True,dropout: float = 0.1,  # NEW: For ControllableMamba2 only
+                 separate_modulation_pathway: bool = True,dropout: float = 0.2,  # NEW: For ControllableMamba2 only
                  **kwargs):
         super().__init__()
         
@@ -71,8 +71,7 @@ class KAN_MAMMOTE(nn.Module):
         self.use_kmote_for_relative = use_kmote_for_relative
         self.fusion_strategy = fusion_strategy
         self.separate_modulation_pathway = separate_modulation_pathway  # Store the config
-        self.dropout_rate = dropout  # Store for logging
-        self.rel_to_content_alpha = nn.Parameter(torch.tensor(0.0))
+        self.dropout = dropout
         # Enhanced K-MOTE for absolute time with configurable wavelet type
         self.k_mote_abs = KMOTE(
             input_dim=1, 
@@ -117,25 +116,21 @@ class KAN_MAMMOTE(nn.Module):
                 print(f"   ├─ d_state: {mamba_d_state}")
                 print(f"   ├─ d_conv: {mamba_d_conv}")
                 print(f"   ├─ expand: {mamba_expand}")
-                print(f"   ├─ headdim: {mamba_headdim}")
+                print(f"   └─ headdim: {mamba_headdim}")
                 
-                # ✅ FIXED: Fusion MLP without internal LayerNorm (prevents Δt signal loss)
+                # Fusion architecture: relative features → expert_dim (for residual addition)
                 self.fusion_mlp_base = nn.Sequential(
                     nn.Linear(rel_time_dim, expert_dim),
+                    nn.LayerNorm(expert_dim),
                     nn.GELU(),
-                    nn.Dropout(dropout),  # ✅ Dropout after activation
                     nn.Linear(expert_dim, expert_dim)
                 )
                 
-                # ✅ NEW: Post-residual LayerNorm (applied in forward after residual connection)
-                self.fusion_norm = nn.LayerNorm(expert_dim)
-                
-                # ✅ FIXED: Modulator head with dropout before final projection (not on FiLM params)
+                # Path 2: Additional head for temporal modulators
                 self.modulator_head = nn.Sequential(
                     nn.Linear(expert_dim, expert_dim // 2),
                     nn.GELU(),
-                    nn.Dropout(dropout),  # ✅ Dropout before final linear
-                    nn.Linear(expert_dim // 2, self.mamba2.nheads * 2)  # No dropout on gamma/beta!
+                    nn.Linear(expert_dim // 2, self.mamba2.nheads * 2)  # gamma and beta
                 )
                 
             else:
@@ -148,14 +143,14 @@ class KAN_MAMMOTE(nn.Module):
                     headdim=mamba_headdim
                 )
                 
-                # ✅ FIXED: Same clean structure as ControllableMamba2
+                # Same fusion architecture as ControllableMamba2 base
                 self.fusion_mlp_base = nn.Sequential(
                     nn.Linear(rel_time_dim, expert_dim),
+                    nn.LayerNorm(expert_dim),
                     nn.GELU(),
-                    nn.Dropout(dropout),
                     nn.Linear(expert_dim, expert_dim)
                 )
-                self.fusion_norm = nn.LayerNorm(expert_dim)
+                # No modulator head for vanilla
             
             print(f"   ├─ Mamba2 parameters:")
             print(f"   │  ├─ nheads: {self.mamba2.nheads}")
@@ -164,21 +159,14 @@ class KAN_MAMMOTE(nn.Module):
             print(f"   │  ├─ expand: {self.mamba2.expand}")
             print(f"   │  └─ headdim: {self.mamba2.headdim}")
             
-            # ✅ NEW: Dropout after Mamba2 (before output projection)
-            self.mamba_dropout = nn.Dropout(dropout)
-            
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
+            # Output projection
             if expert_dim != embedding_dim:
                 self.output_projection = nn.Sequential(
                     nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
                     nn.LayerNorm(embedding_dim)
                 )
+            else:
+                self.output_projection = nn.Identity()
             
         elif fusion_strategy == 'concat':
             # ===== CONCAT FUSION (Lite variant) =====
@@ -186,14 +174,13 @@ class KAN_MAMMOTE(nn.Module):
             self.mamba2 = None
             concat_dim = expert_dim + rel_time_dim
             
-            # ✅ FIXED: Cleaner MLP without internal LayerNorm
             self.fusion_mlp = nn.Sequential(
                 nn.Linear(concat_dim, expert_dim),
+                nn.LayerNorm(expert_dim),
                 nn.GELU(),
-                nn.Dropout(dropout),  # ✅ After activation
+                nn.Dropout(0.1),
                 nn.Linear(expert_dim, embedding_dim),
-                nn.Dropout(dropout),  # ✅ Before final norm
-                nn.LayerNorm(embedding_dim)  # ✅ Norm is last
+                nn.LayerNorm(embedding_dim)
             )
             self.output_projection = nn.Identity()
             print(f"   └─ Concat dimension: {concat_dim} → {embedding_dim}")
@@ -203,31 +190,24 @@ class KAN_MAMMOTE(nn.Module):
             print("   ├─ Learnable weighted sum fusion")
             self.mamba2 = None
             
-            # ✅ FIXED: Clear projection with dropout
+            # Project relative time to same dimension as absolute if needed
             if rel_time_dim != expert_dim:
-                self.rel_projection = nn.Sequential(
-                    nn.Linear(rel_time_dim, expert_dim),
-                    nn.Dropout(dropout)
-                )
+                self.rel_projection = nn.Linear(rel_time_dim, expert_dim)
             else:
-                self.rel_projection = nn.Identity()  # ✅ Clear, not bare dropout
+                self.rel_projection = nn.Identity()
             
             # Learnable weights
             self.weight_abs = nn.Parameter(torch.tensor(0.5))
             self.weight_rel = nn.Parameter(torch.tensor(0.5))
             
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
+            # Output projection
             if expert_dim != embedding_dim:
                 self.output_projection = nn.Sequential(
                     nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
                     nn.LayerNorm(embedding_dim)
                 )
+            else:
+                self.output_projection = nn.Identity()
             print(f"   └─ Weighted sum: {expert_dim} → {embedding_dim}")
             
         elif fusion_strategy == 'attention':
@@ -235,42 +215,32 @@ class KAN_MAMMOTE(nn.Module):
             print("   ├─ Cross-attention fusion")
             self.mamba2 = None
             
-            # ✅ FIXED: Clear projection with dropout
+            # Project relative time to same dimension as absolute if needed
             if rel_time_dim != expert_dim:
-                self.rel_projection = nn.Sequential(
-                    nn.Linear(rel_time_dim, expert_dim),
-                    nn.Dropout(dropout)
-                )
+                self.rel_projection = nn.Linear(rel_time_dim, expert_dim)
             else:
-                self.rel_projection = nn.Identity()  # ✅ Clear, not bare dropout
+                self.rel_projection = nn.Identity()
             
-            # ✅ Cross-attention with configurable dropout
+            # Cross-attention: absolute attends to relative
             self.cross_attention = nn.MultiheadAttention(
                 embed_dim=expert_dim,
                 num_heads=4,
-                dropout=dropout,  # ✅ Use configurable dropout
+                dropout=0.1,
                 batch_first=True
             )
             self.norm_after_attn = nn.LayerNorm(expert_dim)
             
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
+            # Output projection
             if expert_dim != embedding_dim:
                 self.output_projection = nn.Sequential(
                     nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
                     nn.LayerNorm(embedding_dim)
                 )
+            else:
+                self.output_projection = nn.Identity()
             print(f"   └─ Cross-attention: {expert_dim} → {embedding_dim}")
 
-        print(f"✅ Initialized KAN-MAMMOTE with proper dropout:")
-        print(f"   ├─ Dropout rate: {dropout}")
-        print(f"   ├─ Dropout locations: after activations, before final norms")
-        print(f"   ├─ Residual + post-LN pattern enabled")
+        print(f"✅ Initialized KAN-MAMMOTE:")
         print(f"   ├─ Wavelet type: {wavelet_type}")
         print(f"   ├─ Fusion strategy: {fusion_strategy}")
         print(f"   ├─ Relative encoder: {'K-MOTE' if use_kmote_for_relative else 'SM-Kernel (legacy)'}")
@@ -420,7 +390,7 @@ class KAN_MAMMOTE(nn.Module):
                 # - Content pathway: pure absolute time (u_k)
                 # - Modulation pathway: relative time controls dynamics via FiLM gates
                 combined_input = u_k  # Pure absolute time
-                combined_input = u_k + self.rel_to_content_alpha * v_k
+                
                 if debug or hasattr(self, '_debug_mode'):
                     print(f"🔗 SEPARATE MODULATION PATHWAY (ControllableMamba2 default):")
                     print(f"   combined_input = u_k (pure absolute)")
@@ -429,13 +399,11 @@ class KAN_MAMMOTE(nn.Module):
                 # VARIANT 2: Combined pathways (legacy/vanilla Mamba2)
                 # - Both absolute and relative information in main data flow
                 # - For vanilla Mamba2 or legacy experiments
-                # ✅ FIXED: Residual + Post-LN pattern (Transformer best practice)
                 combined_input = u_k + fusion_features  # Residual connection
-                combined_input = self.fusion_norm(combined_input)  # ✅ LayerNorm AFTER residual
                 
                 if debug or hasattr(self, '_debug_mode'):
-                    print(f"🔗 COMBINED INPUT PATHWAY (vanilla Mamba2 or legacy) + Post-LN:")
-                    print(f"   combined_input = fusion_norm(u_k + fusion_features)")
+                    print(f"🔗 COMBINED INPUT PATHWAY (vanilla Mamba2 or legacy):")
+                    print(f"   combined_input = u_k + fusion_features")
                     print(f"   combined_input shape: {combined_input.shape}")
             
             if self.use_controllable_mamba:
@@ -460,11 +428,8 @@ class KAN_MAMMOTE(nn.Module):
                     print(f"⚙️  VANILLA MAMBA2 (no modulation)")
                 mamba_output = self.mamba2(combined_input)
             
-            # ✅ FIXED: Apply dropout after Mamba2 (Transformer best practice)
-            mamba_output = self.mamba_dropout(mamba_output)
-            
             if debug or hasattr(self, '_debug_mode'):
-                print(f"🐍 MAMBA OUTPUT (after dropout):")
+                print(f"🐍 MAMBA OUTPUT:")
                 print(f"   mamba_output shape: {mamba_output.shape}")
             
             final_embedding = self.output_projection(mamba_output)
