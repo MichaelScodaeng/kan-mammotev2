@@ -27,32 +27,96 @@ QUICK_ENCODERS = ['mercer', 'kan_mammote_dual_kmote']
 
 
 def check_evaluation_results_exist(model: str, dataset: str, encoder: str, neg_strategy: str = None) -> Tuple[bool, List[str], Dict]:
-    """Check if evaluation results already exist for the given combination"""
+    """
+    Check if evaluation results already exist for the given combination.
     
-    # Check for existing evaluation results with the specific pattern:
-    # ./saved_results/{model}/{dataset}/{model}_{encoder}_seed{X}_{timestamp}.json
-    result_pattern = f"./saved_results/{model}/{dataset}/{model}_{encoder}_seed0_*.json"
+    File naming patterns:
+    - Random (default): {model}_{encoder}_seed{N}_{timestamp}.json
+    - Historical: historical_negative_sampling_{model}_{encoder}_seed{N}.json
+    - Inductive: inductive_negative_sampling_{model}_{encoder}_seed{N}.json
+    
+    Args:
+        model: Model name (e.g., 'JODIE', 'TGN')
+        dataset: Dataset name (e.g., 'wikipedia', 'reddit')
+        encoder: Time encoder type (e.g., 'time2vec', 'kan_mammote_dual_kmote')
+        neg_strategy: Negative sampling strategy ('random', 'historical', 'inductive', or None to check all)
+    
+    Returns:
+        Tuple of (exists: bool, files: List[str], info: Dict)
+    """
+    
+    base_dir = f"./saved_results/{model}/{dataset}"
+    
+    if neg_strategy is None or neg_strategy == 'random':
+        # Random strategy: {model}_{encoder}_seed0_{timestamp}.json
+        # Also matches patterns with validation suffixes like *_val_*
+        result_pattern = f"{base_dir}/{model}_{encoder}_seed0*.json"
+    elif neg_strategy == 'historical':
+        # Historical strategy: historical_negative_sampling_{model}_{encoder}_seed0.json
+        result_pattern = f"{base_dir}/historical_negative_sampling_{model}_{encoder}_seed0*.json"
+    elif neg_strategy == 'inductive':
+        # Inductive strategy: inductive_negative_sampling_{model}_{encoder}_seed0.json
+        result_pattern = f"{base_dir}/inductive_negative_sampling_{model}_{encoder}_seed0*.json"
+    else:
+        raise ValueError(f"Unknown neg_strategy: {neg_strategy}. Must be 'random', 'historical', 'inductive', or None.")
     
     existing_results = glob.glob(result_pattern)
+    
+    # Filter out validation files if looking for baseline (no _val_ in filename)
+    if neg_strategy is not None:
+        # Keep only files that match the expected pattern exactly
+        if neg_strategy == 'random':
+            # Exclude historical/inductive prefixed files
+            existing_results = [f for f in existing_results 
+                              if not os.path.basename(f).startswith('historical_negative_sampling_')
+                              and not os.path.basename(f).startswith('inductive_negative_sampling_')]
     
     result_info = {
         'pattern': result_pattern,
         'count': len(existing_results),
-        'files': existing_results
+        'files': existing_results,
+        'neg_strategy': neg_strategy
     }
     
     if existing_results:
         # Check if results contain actual evaluation metrics
-        return 1, True, True
+        return True, existing_results, result_info
     
-    return 0, [], False
+    return False, [], result_info
 
 
-def get_metrics_from_result_file(model: str, dataset: str, encoder: str) -> Optional[Dict]:
-    """Extract test metrics from result JSON file for the given combination"""
+def get_metrics_from_result_file(model: str, dataset: str, encoder: str, neg_strategy: str = 'random') -> Optional[Dict]:
+    """
+    Extract test metrics from result JSON file for the given combination.
     
-    result_pattern = f"./saved_results/{model}/{dataset}/{model}_{encoder}_seed0_*.json"
+    Args:
+        model: Model name
+        dataset: Dataset name
+        encoder: Time encoder type
+        neg_strategy: Negative sampling strategy ('random', 'historical', 'inductive')
+    
+    Returns:
+        Dictionary of metrics or None if file not found
+    """
+    
+    base_dir = f"./saved_results/{model}/{dataset}"
+    
+    if neg_strategy == 'random':
+        result_pattern = f"{base_dir}/{model}_{encoder}_seed0_*.json"
+    elif neg_strategy == 'historical':
+        result_pattern = f"{base_dir}/historical_negative_sampling_{model}_{encoder}_seed0*.json"
+    elif neg_strategy == 'inductive':
+        result_pattern = f"{base_dir}/inductive_negative_sampling_{model}_{encoder}_seed0*.json"
+    else:
+        raise ValueError(f"Unknown neg_strategy: {neg_strategy}")
+    
     existing_results = glob.glob(result_pattern)
+    
+    # Filter out unwanted files for random strategy
+    if neg_strategy == 'random':
+        existing_results = [f for f in existing_results 
+                          if not os.path.basename(f).startswith('historical_negative_sampling_')
+                          and not os.path.basename(f).startswith('inductive_negative_sampling_')]
     
     if not existing_results:
         return None
@@ -134,6 +198,117 @@ def create_completion_matrix(combinations: List, check_func, matrix_name: str, o
     print(f"   ✅ Completed: {matrix.sum().sum()}/{matrix.size} ({matrix.sum().sum()/matrix.size*100:.1f}%)")
     
     return matrix
+
+
+def create_comprehensive_results_table(models: List[str], datasets: List[str], 
+                                      encoders: List[str], neg_strategies: List[str],
+                                      output_dir: str) -> pd.DataFrame:
+    """
+    Create a comprehensive long-format table with all results across all strategies.
+    
+    Table columns: Model | Dataset | Encoder | Strategy | Test_AP | Test_AUC | New_Node_AP | New_Node_AUC | ...
+    
+    Args:
+        models: List of models
+        datasets: List of datasets
+        encoders: List of time encoders
+        neg_strategies: List of negative sampling strategies
+        output_dir: Directory to save the table
+    
+    Returns:
+        DataFrame in long format with all results
+    """
+    
+    print(f"\n📊 Creating comprehensive results table...")
+    print(f"   Models: {len(models)}")
+    print(f"   Datasets: {len(datasets)}")
+    print(f"   Encoders: {len(encoders)}")
+    print(f"   Strategies: {neg_strategies}")
+    
+    results_list = []
+    
+    total_combinations = len(models) * len(datasets) * len(encoders) * len(neg_strategies)
+    processed = 0
+    found = 0
+    
+    for model in sorted(models):
+        for dataset in sorted(datasets):
+            for encoder in sorted(encoders):
+                for neg_strategy in neg_strategies:
+                    processed += 1
+                    
+                    # Get metrics for this combination
+                    metrics = get_metrics_from_result_file(model, dataset, encoder, neg_strategy)
+                    
+                    if metrics:
+                        found += 1
+                        # Create a row for this combination
+                        row = {
+                            'model': model,
+                            'dataset': dataset,
+                            'encoder': encoder,
+                            'neg_strategy': neg_strategy
+                        }
+                        
+                        # Extract test metrics
+                        if 'test_metrics' in metrics and metrics['test_metrics']:
+                            for metric_name, metric_value in metrics['test_metrics'].items():
+                                row[f'test_{metric_name}'] = metric_value
+                        
+                        # Extract new node test metrics
+                        if 'new_node_test_metrics' in metrics and metrics['new_node_test_metrics']:
+                            for metric_name, metric_value in metrics['new_node_test_metrics'].items():
+                                row[f'new_node_test_{metric_name}'] = metric_value
+                        
+                        # Extract validation metrics (optional)
+                        if 'validate_metrics' in metrics and metrics['validate_metrics']:
+                            for metric_name, metric_value in metrics['validate_metrics'].items():
+                                row[f'val_{metric_name}'] = metric_value
+                        
+                        # Extract new node validation metrics (optional)
+                        if 'new_node_validate_metrics' in metrics and metrics['new_node_validate_metrics']:
+                            for metric_name, metric_value in metrics['new_node_validate_metrics'].items():
+                                row[f'new_node_val_{metric_name}'] = metric_value
+                        
+                        results_list.append(row)
+                    
+                    # Progress indicator
+                    if processed % 100 == 0:
+                        print(f"   Progress: {processed}/{total_combinations} ({processed/total_combinations*100:.1f}%) - Found: {found}")
+    
+    # Create DataFrame
+    if results_list:
+        df = pd.DataFrame(results_list)
+        
+        # Reorder columns for readability
+        base_cols = ['model', 'dataset', 'encoder', 'neg_strategy']
+        other_cols = [col for col in df.columns if col not in base_cols]
+        df = df[base_cols + sorted(other_cols)]
+        
+        # Save to CSV
+        os.makedirs(output_dir, exist_ok=True)
+        csv_path = os.path.join(output_dir, "comprehensive_results_table.csv")
+        df.to_csv(csv_path, index=False)
+        
+        print(f"\n   💾 Saved comprehensive table to: {csv_path}")
+        print(f"   ✅ Total rows: {len(df)}")
+        print(f"   📊 Coverage: {len(df)}/{total_combinations} ({len(df)/total_combinations*100:.1f}%)")
+        
+        # Also create a pivot table for quick reference (Test AP only)
+        if 'test_average_precision' in df.columns:
+            pivot_df = df.pivot_table(
+                index=['model', 'dataset'],
+                columns=['encoder', 'neg_strategy'],
+                values='test_average_precision'
+            )
+            pivot_path = os.path.join(output_dir, "test_ap_pivot_table.csv")
+            pivot_df.to_csv(pivot_path)
+            print(f"   💾 Saved pivot table (Test AP) to: {pivot_path}")
+        
+        return df
+    else:
+        print(f"   ⚠️  No results found!")
+        return pd.DataFrame()
 
 
 def create_time_encoder_metrics_matrix(time_encoder: str, models: List[str], datasets: List[str], 
@@ -431,6 +606,8 @@ def parse_arguments():
                         help='Generate completion matrix for specific time encoder (models vs datasets)')
     parser.add_argument('--time_encoder_metrics', type=str, choices=ALL_TIME_ENCODERS,
                         help='Generate metrics matrix for specific time encoder with actual metric values')
+    parser.add_argument('--comprehensive_table', action='store_true',
+                        help='Generate comprehensive long-format table with all strategies')
     parser.add_argument('--neg_strategies', nargs='+', choices=ALL_NEG_STRATEGIES,
                         help='Check specific negative sampling strategies only')
     parser.add_argument('--output_dir', type=str, default='completion_analysis',
@@ -512,6 +689,30 @@ if __name__ == "__main__":
         print(f"   - Individual metric CSV files")
         print(f"   - time_encoder_{args.time_encoder_metrics}_all_metrics.json")
         print(f"   - time_encoder_{args.time_encoder_metrics}_completion_summary.csv")
+        sys.exit(0)
+    
+    # Check if we're doing comprehensive table generation
+    if args.comprehensive_table:
+        print(f"\n🎯 Comprehensive Results Table Generation")
+        print(f"   This will include ALL negative sampling strategies in long format")
+        
+        # Generate comprehensive table
+        comprehensive_df = create_comprehensive_results_table(
+            models=models,
+            datasets=datasets,
+            encoders=encoders,
+            neg_strategies=neg_strategies,
+            output_dir=args.output_dir
+        )
+        
+        print(f"\n✅ Comprehensive table generation completed!")
+        print(f"📁 Generated files:")
+        print(f"   - {args.output_dir}/comprehensive_results_table.csv (long format)")
+        print(f"   - {args.output_dir}/test_ap_pivot_table.csv (pivot view)")
+        print(f"\n💡 Usage tips:")
+        print(f"   - Use Excel/Pandas to filter by model, dataset, encoder, or strategy")
+        print(f"   - Compare strategies side-by-side for same model+dataset+encoder")
+        print(f"   - Pivot table shows Test AP across all combinations")
         sys.exit(0)
     
     if args.verbose:
