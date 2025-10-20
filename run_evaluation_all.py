@@ -39,7 +39,7 @@ ALL_TIME_ENCODERS = ['mercer', 'bochner', 'time2vec', 'lete', 'kan_mammote', 'ka
 ALL_MODELS = ['TGAT', 'JODIE', 'TGN', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'TCL']  # Exclude CAWN
 ALL_DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
                 'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
-ALL_NEG_STRATEGIES = ['random', 'historical', 'inductive']
+ALL_NEG_STRATEGIES = ['historical', 'inductive'] #'random', 
 
 # Quick test configurations
 QUICK_DATASETS = ['wikipedia', 'reddit', 'mooc']
