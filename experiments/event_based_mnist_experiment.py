@@ -2,7 +2,7 @@
 
 
 # Global training configuration
-MAX_EPOCHS = 200
+MAX_EPOCHS = 9
 
 import os
 import sys
@@ -855,8 +855,9 @@ def resume_specific_encoder(experiment_dir, encoder_name, additional_epochs=50):
 def get_available_encoders():
     """Get list of available encoders based on imports"""
     # Always available encoders (no external dependency)
+    
     encoders = [
-        #'lstm_only',  # Baseline
+        'lstm_only',  # Baseline
         
         # K-MOTE variants with different transform modes (default: uses absolute positions)
         #'k_mote',  # Default: adapter mode with affine adapters
@@ -866,14 +867,14 @@ def get_available_encoders():
         #'k_mote_adapter_linear',  # Adapter mode with linear adapters
         
         # K-MOTE Absolute Time variants (explicitly using absolute pixel positions)
-        #'k_mote_abs',  # Default adapter with absolute time
+        'k_mote_abs',  # Default adapter with absolute time
         #'k_mote_shared_abs',  # Shared transform with absolute time
         #'k_mote_per_expert_abs',  # Per-expert with absolute time
         #'k_mote_adapter_affine_abs',  # Affine adapter with absolute time
         #'k_mote_adapter_linear_abs',  # Linear adapter with absolute time
         
         # K-MOTE Relative Time variants (using time differences)
-        #'k_mote_rel',  # Default adapter with relative time
+        'k_mote_rel',  # Default adapter with relative time
         #'k_mote_shared_rel',  # Shared transform with relative time
         #'k_mote_per_expert_rel',  # Per-expert with relative time
         #'k_mote_adapter_affine_rel',  # Affine adapter with relative time
@@ -890,23 +891,24 @@ def get_available_encoders():
         'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
         #'kan_mammote_concat',  # K-MOTE relative + concat fusion
         'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
-        'kan_mammote_attention',  # K-MOTE relative + attention fusion
-        'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
+        #'kan_mammote_attention',  # K-MOTE relative + attention fusion
+        #'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
         #'kan_mammote_sm_kernel',  # SM-kernel (legacy) + ControllableMamba2 + mamba fusion
     ]
 
     
     # Optional encoders (require imports)
-    '''
+    
     if LETE_AVAILABLE:
         encoders.extend(['lete', 'lete_relative'])
     
+    """
     if MERCER_AVAILABLE:
         encoders.extend(['mercer', 'mercer_relative'])
     if TIME2VEC_AVAILABLE:
         encoders.extend(['time2vec', 'time2vec_relative'])
-    '''
-    """
+    
+    
     if BOCHNER_AVAILABLE:
         encoders.append('bochner')
     """
@@ -1313,6 +1315,10 @@ def main():
                         help='Disable checkpoint saving (not recommended for long training)')
     
     args = parser.parse_args()
+    
+    #set random seed
+    torch.manual_seed(42)
+    np.random.seed(42)
     
     # Handle resume experiment mode
     if args.resume_experiment:

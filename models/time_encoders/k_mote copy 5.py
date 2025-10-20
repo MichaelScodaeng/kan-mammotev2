@@ -21,37 +21,39 @@ class SplineKANLayer(nn.Module):
     This version includes a powerful MLP-based global branch for global trend fitting,
     and a local branch (B-spline or RBF) for fine-grained, local adjustments.
     """
-    def __init__(self, input_dim: int, output_dim: int, grid_size: int = 5, basis_function: str = 'b_spline', order: int = 3, grid_range: list = [-1, 1]):
+    def __init__(self, input_dim: int, output_dim: int, grid_size: int = 8, basis_function: str = 'b_spline'):
         super().__init__()
         if basis_function not in ['b_spline', 'rbf']:
             raise ValueError("basis_function must be 'b_spline' or 'rbf'")
         self.basis_function = basis_function
         self.grid_size = grid_size
         self.output_dim = output_dim
-        self.input_dim = input_dim
-        self.order = order
+
+        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
+        # self.input_projection = nn.Linear(input_dim, input_dim)
+        # ===== END REMOVE =====
+
+        # --- FIX: A powerful MLP to learn the GLOBAL trend ---
+        hidden_dim = 32 # A small hidden layer
+        self.global_branch = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+        # Initialize the final layer of the global branch to be small
+        nn.init.xavier_uniform_(self.global_branch[-1].weight, gain=0.1)
+        nn.init.zeros_(self.global_branch[-1].bias)
+
+        # --- FIX: Removed the redundant self.base_weight parameter ---
+        # self.base_weight = nn.Parameter(torch.Tensor(self.output_dim, input_dim)) # This is no longer needed
 
         if self.basis_function == 'b_spline':
-            # TRUE B-SPLINE IMPLEMENTATION (copied from LeTE)
-            # Compute grid spacing
-            h = (grid_range[1] - grid_range[0]) / float(self.grid_size)
-            
-            # Build the grid for each input dimension
-            grid = torch.arange(-self.order, self.grid_size + self.order + 1)
-            grid = grid * h + grid_range[0]
-            grid = grid.expand(self.input_dim, -1).contiguous()
-            self.register_buffer("grid", grid)
-            
-            # Base weight for the linear+activation branch (like LeTE)
-            self.base_weight = nn.Parameter(
-                torch.randn(self.input_dim, self.output_dim) / math.sqrt(self.input_dim)
-            )
-            
-            # Spline coefficients (like LeTE)
-            self.spline_weight = nn.Parameter(
-                torch.randn(self.input_dim, self.output_dim, self.grid_size + self.order) /
-                (math.sqrt(self.input_dim) * math.sqrt(self.grid_size + self.order))
-            )
+            # Parameters for the LOCAL spline branch - following LeTE's approach
+            self.num_knots = self.grid_size + 3  # Similar to LeTE's knot count
+            # Learnable knot positions in [0, 1] range (like LeTE)
+            self.knots = nn.Parameter(torch.linspace(0, 1, self.num_knots))
+            # Learnable coefficients (like LeTE's coeffs)
+            self.spline_coeffs = nn.Parameter(torch.randn(self.output_dim, self.num_knots) * 0.1)
             
         else: # RBF implementation
             # Parameters for the LOCAL RBF branch
@@ -64,60 +66,80 @@ class SplineKANLayer(nn.Module):
 
     def b_splines(self, x: torch.Tensor) -> torch.Tensor:
         """
-        TRUE Cox-de Boor B-spline implementation (copied exactly from LeTE).
-        This replaces the incorrect RBF kernel implementation.
+        Compute B-spline basis functions following LeTE's approach.
+        Uses sigmoid normalization and L1 distance like LeTE.
         """
-        # grid: (input_dim, grid_size + 2*order + 1)
-        grid = self.grid
-        x = x.unsqueeze(-1)  # shape: (N, input_dim, 1)
-
-        # bases will mark where x lies between [grid_i, grid_{i+1})
-        bases = ((x >= grid[:, :-1]) & (x < grid[:, 1:])).to(x.dtype)  # shape: (N, input_dim, ?)
-
-        # Recursively elevate the basis to higher spline orders (Cox-de Boor recursion)
-        for k in range(1, self.order + 1):
-            # Segment lengths in the left and right directions
-            left_num = (x - grid[:, :-(k + 1)])
-            left_den = (grid[:, k:-1] - grid[:, :-(k + 1)])
-
-            right_num = (grid[:, k + 1:] - x)
-            right_den = (grid[:, k + 1:] - grid[:, 1:-k])
-
-            bases = (left_num / left_den) * bases[:, :, :-1] + (right_num / right_den) * bases[:, :, 1:]
-
-        return bases.contiguous()
+        # Normalize input to [0, 1] range using sigmoid (like LeTE)
+        x_norm = torch.sigmoid(x)  # Maps any real input to [0, 1]
+        
+        # Handle different input dimensions properly
+        original_shape = x_norm.shape
+        
+        # Flatten to 2D for processing: (batch_size * seq_len, input_dim)
+        if x_norm.dim() > 2:
+            x_flat = x_norm.view(-1, x_norm.shape[-1])  # Flatten all but last dim
+        else:
+            x_flat = x_norm
+        
+        # Extract the last dimension (should be 1 for time encoding)
+        if x_flat.shape[-1] == 1:
+            x_values = x_flat.squeeze(-1)  # (batch_size * seq_len,)
+        else:
+            # Take mean across features if multiple features
+            x_values = x_flat.mean(dim=-1)  # (batch_size * seq_len,)
+        
+        # Reshape for broadcasting with knots
+        x_values = x_values.unsqueeze(-1)  # (batch_size * seq_len, 1)
+        knots = self.knots.unsqueeze(0)  # (1, num_knots)
+        
+        # Compute distances using L1 norm (like LeTE)
+        distances = torch.abs(x_values - knots)  # (batch_size * seq_len, num_knots)
+        
+        # RBF kernel as B-spline approximation (like LeTE)
+        basis = torch.exp(-distances * 5.0)  # (batch_size * seq_len, num_knots)
+        
+        # Apply learnable coefficients using matrix multiplication (like LeTE)
+        # basis: (batch_size * seq_len, num_knots)
+        # spline_coeffs: (output_dim, num_knots)
+        # Want output: (batch_size * seq_len, output_dim)
+        spline_output = torch.matmul(basis, self.spline_coeffs.T)  # (batch_size * seq_len, output_dim)
+        
+        # Reshape back to original batch/sequence dimensions
+        if len(original_shape) == 3:  # (batch_size, seq_len, input_dim)
+            spline_output = spline_output.view(original_shape[0], original_shape[1], self.output_dim)
+        elif len(original_shape) == 2:  # (batch_size, input_dim)
+            spline_output = spline_output.view(original_shape[0], self.output_dim)
+        else:  # (batch_size,)
+            spline_output = spline_output.view(original_shape[0], self.output_dim)
+        
+        return spline_output
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass using TRUE B-spline implementation (copied from LeTE).
+        Forward pass that combines the global MLP branch with the local spline/RBF branch.
         """
         if x.dim() == 2:
             x = x.unsqueeze(-1)
-        
-        original_shape = x.shape
         batch_size, seq_len, input_dim = x.shape
         
+        # --- FIX: Rewritten forward logic ---
+
+        # 1. Calculate the global trend using the powerful MLP branch on the raw input
+        global_output = self.global_branch(x)
+
+        # ===== REMOVE: input_projection (now handled at K-MOTE level) =====
+        # 2. Use input directly for local branch (preprocessing done at K-MOTE level)
+        x_proj = x  # No additional projection needed
+        # ===== END REMOVE =====
+        
+        # 3. Calculate the local correction using the specialized branch
         if self.basis_function == 'b_spline':
-            # TRUE B-SPLINE FORWARD (exactly like LeTE)
-            x_flat = x.reshape(-1, input_dim)  # flatten all but the last dimension
-
-            # Base branch: tanh + linear (like LeTE)
-            base_output = F.linear(torch.tanh(x_flat), self.base_weight.T)  # shape: (N, output_dim)
-
-            # If the input batch is empty, return a zero-like tensor
-            if x_flat.size(0) == 0:
-                spline_output = torch.zeros_like(base_output)
-            else:
-                # CLEARER: Explicit reshape instead of view chains
-                B = self.b_splines(x_flat).reshape(x_flat.size(0), -1)  # (N, I*(G+O))
-                W = self.spline_weight.permute(0, 2, 1).reshape(-1, self.output_dim)  # (I*(G+O), O)
-                spline_output = B @ W  # (N, O)
-
-            output = base_output + spline_output
-            output = output.reshape(batch_size, seq_len, self.output_dim)
+            # Use the corrected B-spline implementation (following LeTE)
+            spline_output = self.b_splines(x_proj)  # Direct output, no einsum needed
+            local_output = spline_output  # Already in correct shape
             
         else: # RBF forward pass
-            x_expanded = x.unsqueeze(-1).unsqueeze(-1)
+            x_expanded = x_proj.unsqueeze(-1).unsqueeze(-1)
             centers = self.centers.unsqueeze(0).unsqueeze(0)
             gammas = self.gammas.unsqueeze(0).unsqueeze(0)
 
@@ -126,7 +148,10 @@ class SplineKANLayer(nn.Module):
             rbf_activated = rbf_out.sum(dim=3)
             
             rbf_flat = rbf_activated.view(batch_size, seq_len, -1)
-            output = self.local_linear(rbf_flat)
+            local_output = self.local_linear(rbf_flat)
+        
+        # 4. Combine the global trend and the local correction
+        output = global_output + local_output
             
         return output
 
@@ -178,21 +203,28 @@ class FourierKANLayer(nn.Module):
         # (B*S, input_dim) @ (input_dim, output_dim) = (B*S, output_dim)
         base_output = torch.matmul(t_flat, self.base_weight)
         
-         # FIXED: Corrected Fourier computation
+        # Step 2: Fourier component (like LeTE's vectorized approach)
+        # Create frequency indices: k = [1, 2, 3, 4, 5]
         k = torch.arange(1, self.n_harmonics + 1, device=t.device, dtype=t.dtype)
-        args = t_flat.unsqueeze(-1) * k  # (B*S, input_dim, n_harmonics)
+        k = k.reshape(1, 1, 1, self.n_harmonics)  # (1, 1, 1, n_harmonics)
+        
+        # Reshape input for broadcasting
+        t_reshaped = t_flat.reshape(-1, 1, input_dim, 1)  # (B*S, 1, input_dim, 1)
+        
+        # Compute arguments: (B*S, 1, input_dim, 1) * (1, 1, 1, n_harmonics)
+        # Result: (B*S, 1, input_dim, n_harmonics)
+        args = k * t_reshaped
         
         # Compute cos and sin (vectorized across all features)
         c = torch.cos(args)  # (B*S, 1, input_dim, n_harmonics)
         s = torch.sin(args)  # (B*S, 1, input_dim, n_harmonics)
         
-        # ✅ FIXED: Correct einsum contraction (3D input, not 4D)
-        # c: (B*S, input_dim, n_harmonics)
+        # Apply Fourier weights using efficient einsum
+        # c: (B*S, 1, input_dim, n_harmonics)
         # fourier_weight[0]: (input_dim, output_dim, n_harmonics)
         # Result: (B*S, output_dim)
-        cos_output = torch.einsum('bih,ioh->bo', c, self.fourier_weight[0])
-        sin_output = torch.einsum('bih,ioh->bo', s, self.fourier_weight[1])
-        # ✅ END FIX
+        cos_output = torch.einsum('bjih,joh->bo', c, self.fourier_weight[0])
+        sin_output = torch.einsum('bjih,joh->bo', s, self.fourier_weight[1])
         
         # Combine all components
         output = base_output + cos_output + sin_output + self.bias  # (B*S, output_dim)
@@ -384,7 +416,7 @@ class KMOTE(nn.Module):
 
         # ===== EXPERTS: Now use hidden_dim for input =====
         self.experts = nn.ModuleList([
-            SplineKANLayer(self.hidden_dim, output_dim, basis_function='b_spline', grid_size=5, order=3, grid_range=[-1, 1]),
+            SplineKANLayer(self.hidden_dim, output_dim, basis_function='b_spline', grid_size=8),
             FourierKANLayer(self.hidden_dim, output_dim, n_harmonics=8),
             WaveletKANLayer(self.hidden_dim, output_dim, n_wavelets=8, wavelet_type=wavelet_type),
         ])

@@ -25,7 +25,7 @@ class MetricsLogger:
     """
     
     def __init__(self, save_dir: str, model_name: str, dataset_name: str, 
-                 encoder_type: str, run_id: int = 0):
+                 encoder_type: str, run_id: int = 0, save_model_name: str = None):
         """
         Initialize the metrics logger.
         
@@ -35,6 +35,8 @@ class MetricsLogger:
             dataset_name: Name of the dataset (e.g., 'wikipedia')
             encoder_type: Type of time encoder (e.g., 'kan_mammote')
             run_id: Run/seed identifier for multiple runs
+            save_model_name: Full save model name (overrides auto-generated name if provided)
+                            This is used to support --save_model_name_suffix for isolated experiments
         """
         self.save_dir = save_dir
         self.model_name = model_name
@@ -42,10 +44,16 @@ class MetricsLogger:
         self.encoder_type = encoder_type
         self.run_id = run_id
         
+        # ✅ FIX: Use provided save_model_name if available (includes suffix for isolation)
+        # Otherwise auto-generate for backward compatibility
+        if save_model_name:
+            dir_name = save_model_name  # Use full name with suffix (e.g., *_val_lastfm_jodie)
+        else:
+            dir_name = f"{model_name}_{encoder_type}_seed{run_id}"  # Legacy fallback
+        
         # Create save directory
         self.metrics_dir = os.path.join(
-            save_dir, model_name, dataset_name, 
-            f"{model_name}_{encoder_type}_seed{run_id}"
+            save_dir, model_name, dataset_name, dir_name
         )
         os.makedirs(self.metrics_dir, exist_ok=True)
         
@@ -295,10 +303,15 @@ def create_metrics_logger(args, run_id: int = 0) -> MetricsLogger:
     else:
         save_dir = "./saved_metrics"
     
+    # ✅ FIX: Pass args.save_model_name if it exists (includes suffix for isolation)
+    # This ensures validation experiments don't overwrite baseline metrics
+    save_model_name = getattr(args, 'save_model_name', None)
+    
     return MetricsLogger(
         save_dir=save_dir,
         model_name=args.model_name,
         dataset_name=args.dataset_name,
         encoder_type=args.time_encoder_type,
-        run_id=run_id
+        run_id=run_id,
+        save_model_name=save_model_name  # ✅ NEW: Respects --save_model_name_suffix
     )
