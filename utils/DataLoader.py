@@ -73,12 +73,16 @@ class Data:
         for i, time_id in enumerate(sorted(self.uni_time_ids)):
             self.time_to_int_map[time_id] = i+1
 
-def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float,seed: int=42,data_ratio:float=1.0):
+def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, seed: int = 42, 
+                            data_ratio: float = 1.0, train_only_ratio: bool = False):
     """
     generate data for link prediction task (inductive & transductive settings)
     :param dataset_name: str, dataset name
     :param val_ratio: float, validation data ratio
     :param test_ratio: float, test data ratio
+    :param seed: int, random seed for reproducibility
+    :param data_ratio: float, fraction of data to use (0.0-1.0)
+    :param train_only_ratio: bool, if True, apply data_ratio only to training set (keeps val/test at 100%)
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data, (Data object)
     """
@@ -100,9 +104,71 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
 
     assert NODE_FEAT_DIM == node_raw_features.shape[1] and EDGE_FEAT_DIM == edge_raw_features.shape[1], 'Unaligned feature dimensions after feature padding!'
 
-    # get the timestamp of validate and test set
-    val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
+    # ⭐ NEW: Smart data ratio application
+    # If train_only_ratio=True, apply ratio only to training set (for hyperparameter tuning)
+    # Otherwise, apply ratio to entire dataset (old behavior)
+    
+    if train_only_ratio and data_ratio < 1.0:
+        print(f"\n🎯 TRAIN-ONLY RATIO MODE (Hyperparameter Tuning)")
+        print(f"   Original dataset: {len(graph_df)} interactions")
+        
+        # STEP 1: Split on FULL dataset first
+        val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
+        
+        # Create masks for train/val/test on full data
+        train_mask_full = graph_df.ts <= val_time
+        val_mask_full = np.logical_and(graph_df.ts <= test_time, graph_df.ts > val_time)
+        test_mask_full = graph_df.ts > test_time
+        
+        # STEP 2: Apply data_ratio ONLY to training portion
+        train_df_full = graph_df[train_mask_full].reset_index(drop=True)
+        train_cutoff = int(len(train_df_full) * data_ratio)
+        
+        # Take first N% of training data chronologically (temporal prefix)
+        train_df_reduced = train_df_full.iloc[:train_cutoff].reset_index(drop=True)
+        
+        # Keep val/test at 100%
+        val_df_full = graph_df[val_mask_full].reset_index(drop=True)
+        test_df_full = graph_df[test_mask_full].reset_index(drop=True)
+        
+        # STEP 3: Recombine reduced train + full val + full test
+        graph_df = pd.concat([train_df_reduced, val_df_full, test_df_full], ignore_index=True)
+        
+        # Also reduce corresponding edge features
+        train_edge_feat = edge_raw_features[train_mask_full][:train_cutoff]
+        val_edge_feat = edge_raw_features[val_mask_full]
+        test_edge_feat = edge_raw_features[test_mask_full]
+        edge_raw_features = np.concatenate([train_edge_feat, val_edge_feat, test_edge_feat])
+        
+        print(f"   Training set: {len(train_df_full)} → {len(train_df_reduced)} ({data_ratio*100:.1f}%)")
+        print(f"   Validation set: {len(val_df_full)} (100% - FULL)")
+        print(f"   Test set: {len(test_df_full)} (100% - FULL)")
+        print(f"   Total after reduction: {len(graph_df)} interactions")
+        
+        # Recalculate split times on the new combined dataset
+        val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
+    
+    elif data_ratio < 1.0:
+        # OLD BEHAVIOR: Apply ratio to entire dataset before splitting
+        print(f"\n📊 FULL DATASET RATIO MODE (Standard Training)")
+        print(f"   Original dataset: {len(graph_df)} interactions")
+        
+        # Sort by timestamp and take first N% chronologically
+        graph_df = graph_df.sort_values(by=['ts']).reset_index(drop=True)
+        cutoff_idx = int(len(graph_df) * data_ratio)
+        graph_df = graph_df.iloc[:cutoff_idx].reset_index(drop=True)
+        edge_raw_features = edge_raw_features[:cutoff_idx]
+        
+        print(f"   Reduced to: {len(graph_df)} ({data_ratio*100:.1f}%)")
+        
+        # Then split the reduced dataset
+        val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
+    
+    else:
+        # No ratio applied, use full dataset
+        val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
 
+    # Continue with rest of the data loading (same for both modes)
     src_node_ids = graph_df.u.values.astype(np.longlong)
     dst_node_ids = graph_df.i.values.astype(np.longlong)
     node_interact_times = graph_df.ts.values.astype(np.float64)

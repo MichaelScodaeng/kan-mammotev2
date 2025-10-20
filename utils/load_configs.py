@@ -66,6 +66,8 @@ def get_link_prediction_args(is_evaluation: bool = False):
     # Data and experiment control arguments
     parser.add_argument('--data_ratio', type=float, default=1.0, 
                         help='ratio of data to use for experiments (e.g., 0.1 for 10%% of data)')
+    parser.add_argument('--train_only_ratio', action='store_true', default=False,
+                        help='Apply data_ratio only to training set, keep val/test at 100%% (recommended for hyperparameter tuning)')
     parser.add_argument('--seed', type=int, default=42,
                         help='random seed for reproducible data splits and sampling (default: 42)')
     parser.add_argument('--save_model_name_suffix', type=str, default='', 
@@ -78,7 +80,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='Mamba state dimension (for kan_mammote encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=4, 
                         help='Mamba convolution dimension (for kan_mammote encoder)')
-    parser.add_argument('--mamba_expand', type=int, default=2, 
+    parser.add_argument('--mamba_expand', type=int, default=4, 
                         help='Mamba expansion factor (for kan_mammote encoder)')
     parser.add_argument('--mamba_headdim', type=int, default=64, 
                         help='Mamba head dimension (for kan_mammote encoder)')

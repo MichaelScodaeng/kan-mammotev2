@@ -49,7 +49,8 @@ if __name__ == "__main__":
             val_ratio=args.val_ratio, 
             test_ratio=args.test_ratio,
             seed=args.seed,  # ✅ Same seed as training
-            data_ratio=args.data_ratio  # ✅ Same data_ratio as training
+            data_ratio=args.data_ratio,  # ✅ Same data_ratio as training
+            train_only_ratio=getattr(args, 'train_only_ratio', False)  # ⭐ NEW: Train-only ratio mode
         )
 
     # initialize validation and test neighbor sampler to retrieve temporal graph

@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -N hptune_wikipedia_JODIE_c001
+#PBS -l select=1:ncpus=4:mem=16gb:ngpus=1:gpu_type=RTX6000
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o hptune_test/logs/hptune_wikipedia_JODIE_c001.log
+
+# Load environment
+cd $PBS_O_WORKDIR
+source /home/s2516027/kan-mammotev2/.venv/bin/activate
+
+# Print job info
+echo "========================================="
+echo "Job: hptune_wikipedia_JODIE_c001"
+echo "Dataset: wikipedia"
+echo "Model: JODIE"
+echo "Config Index: 1"
+echo "Config: {
+  "expert_dim": 128,
+  "mamba_d_state": 128,
+  "mamba_expand": 4,
+  "dropout": 0.1,
+  "mamba_headdim": 64,
+  "mamba_d_conv": 4
+}"
+echo ""
+echo "Mamba2 Validation:"
+echo "  expert_dim × mamba_expand = 128 × 4 = 512"
+echo "  inner_dim / mamba_headdim = 512 / 64 = 8 (ngroups)"
+echo "  ngroups % 8 = 0 ✓ (valid)" 
+echo ""
+echo "Start Time: $(date)"
+echo "========================================="
+
+# Run experiment
+python experiments/train_link_prediction.py --dataset_name wikipedia --model_name JODIE --time_encoder_type kan_mammote_dual_kmote --expert_dim 128 --mamba_d_state 128 --mamba_expand 4 --dropout 0.1 --mamba_headdim 64 --mamba_d_conv 4 --data_ratio 0.1 --num_epochs 10 --patience 3 --num_runs 1 --seed 0 --test_interval_epochs 1 --checkpoint_strategy minimal --disable_progress_bar --save_model_name_suffix hptune_c001_ed128_ds128_ex4 --ablation_dir ./hptune_results/wikipedia/JODIE
+
+# Print completion
+echo "========================================="
+echo "End Time: $(date)"
+echo "========================================="

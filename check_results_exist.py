@@ -250,25 +250,37 @@ def create_comprehensive_results_table(models: List[str], datasets: List[str],
                             'neg_strategy': neg_strategy
                         }
                         
-                        # Extract test metrics
+                        # Extract test metrics - CONVERT TO FLOAT
                         if 'test_metrics' in metrics and metrics['test_metrics']:
                             for metric_name, metric_value in metrics['test_metrics'].items():
-                                row[f'test_{metric_name}'] = metric_value
+                                try:
+                                    row[f'test_{metric_name}'] = float(metric_value)
+                                except (ValueError, TypeError):
+                                    row[f'test_{metric_name}'] = None
                         
-                        # Extract new node test metrics
+                        # Extract new node test metrics - CONVERT TO FLOAT
                         if 'new_node_test_metrics' in metrics and metrics['new_node_test_metrics']:
                             for metric_name, metric_value in metrics['new_node_test_metrics'].items():
-                                row[f'new_node_test_{metric_name}'] = metric_value
+                                try:
+                                    row[f'new_node_test_{metric_name}'] = float(metric_value)
+                                except (ValueError, TypeError):
+                                    row[f'new_node_test_{metric_name}'] = None
                         
-                        # Extract validation metrics (optional)
+                        # Extract validation metrics - CONVERT TO FLOAT
                         if 'validate_metrics' in metrics and metrics['validate_metrics']:
                             for metric_name, metric_value in metrics['validate_metrics'].items():
-                                row[f'val_{metric_name}'] = metric_value
+                                try:
+                                    row[f'val_{metric_name}'] = float(metric_value)
+                                except (ValueError, TypeError):
+                                    row[f'val_{metric_name}'] = None
                         
-                        # Extract new node validation metrics (optional)
+                        # Extract new node validation metrics - CONVERT TO FLOAT
                         if 'new_node_validate_metrics' in metrics and metrics['new_node_validate_metrics']:
                             for metric_name, metric_value in metrics['new_node_validate_metrics'].items():
-                                row[f'new_node_val_{metric_name}'] = metric_value
+                                try:
+                                    row[f'new_node_val_{metric_name}'] = float(metric_value)
+                                except (ValueError, TypeError):
+                                    row[f'new_node_val_{metric_name}'] = None
                         
                         results_list.append(row)
                     
@@ -296,10 +308,14 @@ def create_comprehensive_results_table(models: List[str], datasets: List[str],
         
         # Also create a pivot table for quick reference (Test AP only)
         if 'test_average_precision' in df.columns:
+            # Ensure numeric type before pivot
+            df['test_average_precision'] = pd.to_numeric(df['test_average_precision'], errors='coerce')
+            
             pivot_df = df.pivot_table(
                 index=['model', 'dataset'],
                 columns=['encoder', 'neg_strategy'],
-                values='test_average_precision'
+                values='test_average_precision',
+                aggfunc='mean'  # Use mean in case of duplicates
             )
             pivot_path = os.path.join(output_dir, "test_ap_pivot_table.csv")
             pivot_df.to_csv(pivot_path)
