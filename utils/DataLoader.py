@@ -115,10 +115,10 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
         # STEP 1: Split on FULL dataset first
         val_time, test_time = list(np.quantile(graph_df.ts, [(1 - val_ratio - test_ratio), (1 - test_ratio)]))
         
-        # Create masks for train/val/test on full data
-        train_mask_full = graph_df.ts <= val_time
-        val_mask_full = np.logical_and(graph_df.ts <= test_time, graph_df.ts > val_time)
-        test_mask_full = graph_df.ts > test_time
+        # Create masks for train/val/test on full data (as numpy arrays for edge features)
+        train_mask_full = (graph_df.ts.values <= val_time)
+        val_mask_full = np.logical_and(graph_df.ts.values <= test_time, graph_df.ts.values > val_time)
+        test_mask_full = (graph_df.ts.values > test_time)
         
         # STEP 2: Apply data_ratio ONLY to training portion
         train_df_full = graph_df[train_mask_full].reset_index(drop=True)
@@ -134,7 +134,11 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
         # STEP 3: Recombine reduced train + full val + full test
         graph_df = pd.concat([train_df_reduced, val_df_full, test_df_full], ignore_index=True)
         
-        # Also reduce corresponding edge features
+        # Also reduce corresponding edge features (masks must match edge_raw_features length)
+        # Verify dimensions match before applying masks
+        assert len(train_mask_full) == len(edge_raw_features), \
+            f"Mask length {len(train_mask_full)} != edge features length {len(edge_raw_features)}"
+        
         train_edge_feat = edge_raw_features[train_mask_full][:train_cutoff]
         val_edge_feat = edge_raw_features[val_mask_full]
         test_edge_feat = edge_raw_features[test_mask_full]
