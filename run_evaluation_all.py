@@ -35,8 +35,8 @@ from typing import List, Dict, Tuple, Optional
 from pathlib import Path
 
 # All configurations - same as test_integration.py
-ALL_TIME_ENCODERS = ['mercer', 'bochner', 'time2vec', 'lete', 'kan_mammote', 'kan_mammote_lite', 'kan_mammote_dual_kmote', 'original']
-ALL_MODELS = ['TGAT', 'JODIE', 'TGN', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'TCL']  # Exclude CAWN
+ALL_TIME_ENCODERS = ['mercer','time2vec', 'lete', 'original'] #, 'kan_mammote_dual_kmote',
+ALL_MODELS = ['TGAT', 'JODIE', 'TGN',  'DyGFormer', 'DyGMamba', 'TCL']  # Exclude CAWN
 ALL_DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
                 'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
 ALL_NEG_STRATEGIES = ['historical', 'inductive'] #'random', 
@@ -243,21 +243,110 @@ def check_model_availability(model: str, dataset: str, encoder: str) -> Tuple[bo
     return len(found_models) > 0, found_models
 
 def check_evaluation_results_exist(model: str, dataset: str, encoder: str, neg_strategy: str) -> Tuple[bool, List[str]]:
-    """Check if evaluation results already exist for the given combination"""
+    """
+    Check if evaluation results already exist for the given combination.
+    
+    Handles multiple file naming patterns:
+    1. Strategy-specific files: {strategy}_negative_sampling_{model}_{encoder}_seed*.json
+    2. Main result file (random): {model}_{encoder}_seed*_{timestamp}.json (not comprehensive)
+    3. Comprehensive file: {model}_{encoder}_seed*_comprehensive_{timestamp}.json (contains all strategies)
+    
+    Returns:
+        Tuple[bool, List[str]]: (exists, list_of_matching_files)
+    """
     import glob
+    base_dir = f"./saved_results/{model}/{dataset}"
     
-    # Check for existing evaluation results with the specific pattern:
-    # ./saved_results/{model}/{dataset}/{model}_{encoder}_seed{X}_{timestamp}.json
-    result_pattern = f"./saved_results/{model}/{dataset}/{model}_{encoder}_seed*.json"
+    if not os.path.exists(base_dir):
+        return False, []
     
-    existing_results = glob.glob(result_pattern)
+    existing_results = []
     
-    if existing_results:
-        # If any results exist for this model/dataset/encoder combination, skip
-        # (regardless of negative strategy, since evaluation covers all strategies)
-        return True, existing_results
+    # Pattern 1: Check for strategy-specific file (historical/inductive)
+    if neg_strategy in ['historical', 'inductive']:
+        strategy_pattern = f"{base_dir}/{neg_strategy}_negative_sampling_{model}_{encoder}_seed*.json"
+        strategy_files = glob.glob(strategy_pattern)
+        existing_results.extend(strategy_files)
     
-    return False, []
+    # Pattern 2: Check for main result file (random strategy)
+    elif neg_strategy == 'random':
+        # Match files like: JODIE_time2vec_seed0_1760583545.480092.json
+        # But NOT: JODIE_time2vec_seed0_comprehensive_1760583545.480092.json
+        main_pattern = f"{base_dir}/{model}_{encoder}_seed*.json"
+        main_files = glob.glob(main_pattern)
+        # Filter out comprehensive and strategy-specific files
+        main_files = [f for f in main_files 
+                     if 'comprehensive' not in f 
+                     and 'historical' not in f 
+                     and 'inductive' not in f]
+        existing_results.extend(main_files)
+    
+    # Pattern 3: Also check comprehensive file (contains all strategies)
+    comprehensive_pattern = f"{base_dir}/{model}_{encoder}_seed*_comprehensive_*.json"
+    comprehensive_files = glob.glob(comprehensive_pattern)
+    
+    if comprehensive_files:
+        # If comprehensive file exists, verify it contains the requested strategy
+        for comp_file in comprehensive_files:
+            try:
+                with open(comp_file, 'r') as f:
+                    data = json.load(f)
+                    # Check if this strategy's results exist in comprehensive file
+                    if 'strategies' in data and neg_strategy in data['strategies']:
+                        existing_results.append(comp_file)
+            except (json.JSONDecodeError, IOError):
+                # Skip corrupted files
+                continue
+    
+    return len(existing_results) > 0, existing_results
+
+def check_all_strategies_complete(model: str, dataset: str, encoder: str) -> Tuple[bool, Dict[str, bool]]:
+    """
+    Check if ALL negative sampling strategies are complete for a model/dataset/encoder combination.
+    
+    A combination is considered complete if:
+    - ALL THREE individual strategy files exist (random + historical + inductive), OR
+    - A comprehensive file exists that contains all three strategies
+    
+    Returns:
+        Tuple[bool, Dict[str, bool]]: (all_complete, strategy_status_dict)
+    """
+    base_dir = f"./saved_results/{model}/{dataset}"
+    
+    if not os.path.exists(base_dir):
+        return False, {'random': False, 'historical': False, 'inductive': False}
+    
+    strategies = ['random', 'historical', 'inductive']
+    strategy_status = {}
+    
+    # First, check if comprehensive file exists with all strategies
+    comprehensive_pattern = f"{base_dir}/{model}_{encoder}_seed*_comprehensive_*.json"
+    comprehensive_files = glob.glob(comprehensive_pattern)
+    
+    if comprehensive_files:
+        # Check if comprehensive file contains all three strategies
+        for comp_file in comprehensive_files:
+            try:
+                with open(comp_file, 'r') as f:
+                    data = json.load(f)
+                    if 'strategies' in data:
+                        # Check if all three strategies are present
+                        has_all = all(strat in data['strategies'] for strat in strategies)
+                        if has_all:
+                            # Comprehensive file has everything - mark all as complete
+                            return True, {strat: True for strat in strategies}
+            except (json.JSONDecodeError, IOError):
+                continue
+    
+    # If no comprehensive file, check individual strategy files
+    for strategy in strategies:
+        exists, files = check_evaluation_results_exist(model, dataset, encoder, strategy)
+        strategy_status[strategy] = exists
+    
+    # All complete only if ALL THREE individual files exist
+    all_complete = all(strategy_status.values())
+    
+    return all_complete, strategy_status
 
 def run_evaluation(model: str, dataset: str, encoder: str, neg_strategy: str,
                   timeout_minutes: int = 15, data_ratio: float = 1.0, 
@@ -468,10 +557,42 @@ def main():
     
     # Run evaluations
     count = 0
+    # Track which combinations we've already determined are complete (to skip all their strategies)
+    skip_all_strategies_for = set()
+    
     for model, dataset, encoder, neg_strategy in itertools.product(models, datasets, encoders, neg_strategies):
         count += 1
         combo_name = f"{model}-{dataset}-{encoder}-{neg_strategy}"
+        combo_key = f"{model}|{dataset}|{encoder}"  # Key without strategy
+        
         print(f"\n[{count}/{total_combinations}] Evaluating: {combo_name}")
+        
+        # If we've already determined all strategies are complete for this combo, skip
+        if combo_key in skip_all_strategies_for:
+            print(f"   ⏭️  Skipping: All strategies already complete for {model}-{dataset}-{encoder}")
+            status.add_skipped(model, dataset, encoder, neg_strategy, 
+                             "All strategies already evaluated (checked earlier)")
+            continue
+        
+        # Check if ALL strategies are already complete for this model/dataset/encoder
+        all_complete, strategy_status = check_all_strategies_complete(model, dataset, encoder)
+        
+        if all_complete:
+            print(f"   ✅ All strategies already complete for {model}-{dataset}-{encoder}:")
+            for strat, status_val in strategy_status.items():
+                print(f"      - {strat}: {'✓' if status_val else '✗'}")
+            
+            # Mark this combination to skip all strategies
+            skip_all_strategies_for.add(combo_key)
+            
+            # Record skips for all strategies
+            for strat in ['random', 'historical', 'inductive']:
+                if strat in neg_strategies:
+                    status.add_skipped(model, dataset, encoder, strat, 
+                                     "All strategies already evaluated (found existing results)")
+            
+            print(f"   ⏭️  Skipping all remaining strategies for this combination")
+            continue
         
         # Check if trained model exists
         model_exists, found_models = check_model_availability(model, dataset, encoder)
@@ -481,16 +602,17 @@ def main():
             status.add_skipped(model, dataset, encoder, neg_strategy, "No trained model found")
             continue
         
-        # Check if evaluation results already exist
+        # Check if THIS SPECIFIC strategy's results already exist
         results_exist, existing_results = check_evaluation_results_exist(model, dataset, encoder, neg_strategy)
         
-        if not results_exist:
-            print(f"   ⏭️  Skipping: No existing results found")
-            status.add_skipped(model, dataset, encoder, neg_strategy, "No existing results found")
+        print(existing_results)
+        print(found_models)
+        if not (results_exist and model_exists):
+            print(f"   🔄 Strategy '{neg_strategy}' not yet evaluated - so it means training is not completed even we have models")
+            status.add_skipped(model, dataset, encoder, neg_strategy, 
+                             "No existing results found - training may not be completed")
             continue
-        
-        # Only run evaluation if BOTH model AND results exist
-        print(f"   🎯 Both model and results exist - proceeding with evaluation")
+        print(f"   ✅ Found trained models for evaluation and found results so we can start evaluating")
         
         if args.verbose:
             print(f"   📁 Found models: {[os.path.basename(f) for f in found_models[:3]]}")
