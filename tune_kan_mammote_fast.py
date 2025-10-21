@@ -216,7 +216,7 @@ GNN_MODELS = [
 
 # Fixed hyperparameters for fast tuning
 FAST_TUNING_PARAMS = {
-    'data_ratio': 0.1,  # Use 10% of training data
+    'train_only_ratio': 0.1,  # Use 10% of training data
     'num_epochs': 10,   # Quick training
     'patience': 3,      # Early stopping
     'num_runs': 1,      # Single seed for speed
@@ -318,8 +318,7 @@ def create_experiment_command(dataset, model, config, config_idx):
         '--mamba_d_conv', str(config['mamba_d_conv']),
         
         # Fast tuning parameters
-        '--data_ratio', str(FAST_TUNING_PARAMS['data_ratio']),
-        '--train_only_ratio',  # ⭐ NEW: Only reduce training set, keep val/test at 100%
+        '--data_ratio', str(1.0) if model in ['JODIE', 'TCL'] else str(FAST_TUNING_PARAMS['train_only_ratio']),
         '--num_epochs', str(FAST_TUNING_PARAMS['num_epochs']),
         '--patience', str(FAST_TUNING_PARAMS['patience']),
         '--num_runs', str(FAST_TUNING_PARAMS['num_runs']),
@@ -327,20 +326,18 @@ def create_experiment_command(dataset, model, config, config_idx):
         '--test_interval_epochs', str(FAST_TUNING_PARAMS['test_interval_epochs']),
         '--checkpoint_strategy', FAST_TUNING_PARAMS['checkpoint_strategy'],
         
-        # Progress bar control
-        '--disable_progress_bar' if FAST_TUNING_PARAMS['disable_progress_bar'] else '',
-        
-        # Experiment tracking (ensures organized output)
-        # Saved files will be named with config details for easy identification:
-        # - saved_models/{model}_{dataset}_hptune_c{idx}_ed{expert_dim}_ds{d_state}_seed{seed}.pth
-        # - saved_results/{model}/{dataset}/hptune_c{idx}_ed{expert_dim}_ds{d_state}_*.json
-        # - saved_metrics/{model}_{dataset}_hptune_c{idx}_ed{expert_dim}_ds{d_state}_seed{seed}.pkl
+        # Experiment tracking
         '--save_model_name_suffix', f'hptune_c{config_idx:03d}_ed{config["expert_dim"]}_ds{config["mamba_d_state"]}_ex{config["mamba_expand"]}',
         '--ablation_dir', f'./hptune_results/{dataset}/{model}'
     ]
     
-    # Remove empty strings
-    cmd = [c for c in cmd if c]
+    # Add --train_only_ratio flag (no value) for JODIE and TCL
+    if model in ['JODIE', 'TCL']:
+        cmd.append('--train_only_ratio')
+    
+    # Add progress bar flag conditionally
+    if FAST_TUNING_PARAMS['disable_progress_bar']:
+        cmd.append('--disable_progress_bar')
     
     return ' '.join(cmd)
 
@@ -455,6 +452,8 @@ def main():
                         help='Generate scripts without submitting')
     parser.add_argument('--max_configs', type=int, default=None,
                         help='Maximum configs per dataset/model (for testing)')
+    parser.add_argument('--auto_submit', action='store_true',
+                        help='Automatically submit jobs without prompting')
     
     args = parser.parse_args()
     
@@ -531,12 +530,23 @@ def main():
     print(f"   python {output_dir}/analyze_results.py")
     
     if not args.dry_run:
-        response = input("\n🚀 Submit all jobs now? [y/N]: ")
-        if response.lower() == 'y':
+        if sys.stdin.isatty() and not args.auto_submit:
+            try:
+                response = input("\n🚀 Submit all jobs now? [y/N]: ")
+                if response.lower() == 'y':
+                    subprocess.run(['bash', str(submit_script)])
+                    print("✅ Jobs submitted!")
+                else:
+                    print("Jobs not submitted. Run the submit script manually when ready.")
+            except (EOFError, KeyboardInterrupt):
+                print("\nJobs not submitted. Run the submit script manually when ready.")
+        elif args.auto_submit:
+            print("\n🚀 Auto-submitting jobs...")
             subprocess.run(['bash', str(submit_script)])
             print("✅ Jobs submitted!")
         else:
-            print("Jobs not submitted. Run the submit script manually when ready.")
+            print("\n💡 Running in non-interactive mode. Jobs not submitted.")
+            print(f"   To submit, run: bash {submit_script}")
 
 def create_analysis_script(output_dir):
     """Create script to analyze tuning results"""
