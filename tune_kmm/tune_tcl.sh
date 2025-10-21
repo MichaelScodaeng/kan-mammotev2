@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -j oe
-#PBS -q GPU-1A
+#PBS -q GPU-1
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -13,4 +13,4 @@ module load cuda/12.1
 conda activate kan_mammote
 mkdir -p tune_kmm/tcl
 # Run your experiment
-python tune_kan_mammote_direct.py --models TCL > tune_kmm/tcl/tune_tcl.log 2>&1
+python -u tune_kan_mammote_direct.py --models TCL > tune_kmm/tcl/tune_tcl.log 2>&1

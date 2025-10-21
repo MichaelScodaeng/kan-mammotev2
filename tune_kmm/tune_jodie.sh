@@ -13,4 +13,4 @@ module load cuda/12.1
 conda activate kan_mammote
 mkdir -p tune_kmm/jodie
 # Run your experiment
-python tune_kan_mammote_direct.py --models JODIE > tune_kmm/jodie/tune_jodie.log 2>&1
+python -u tune_kan_mammote_direct.py --models JODIE > tune_kmm/jodie/tune_jodie.log 2>&1

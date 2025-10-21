@@ -72,6 +72,7 @@ class KAN_MAMMOTE(nn.Module):
         self.fusion_strategy = fusion_strategy
         self.separate_modulation_pathway = separate_modulation_pathway  # Store the config
         self.dropout_rate = dropout  # Store for logging
+        self.num_mixtures = expert_dim  # Store for logging
         #self.rel_to_content_alpha = nn.Parameter(torch.tensor(0.0))
         # Enhanced K-MOTE for absolute time with configurable wavelet type
         self.k_mote_abs = KMOTE(
@@ -119,24 +120,18 @@ class KAN_MAMMOTE(nn.Module):
                 print(f"   ├─ expand: {mamba_expand}")
                 print(f"   ├─ headdim: {mamba_headdim}")
                 
-                # ✅ FIXED: Fusion MLP without internal LayerNorm (prevents Δt signal loss)
-                self.fusion_mlp_base = nn.Sequential(
-                    nn.Linear(rel_time_dim, expert_dim),
-                    nn.GELU(),
-                    nn.Dropout(dropout),  # ✅ Dropout after activation
-                    nn.Linear(expert_dim, expert_dim)
-                )
-                
-                # ✅ NEW: Post-residual LayerNorm (applied in forward after residual connection)
-                self.fusion_norm = nn.LayerNorm(expert_dim)
-                
-                # ✅ FIXED: Modulator head with dropout before final projection (not on FiLM params)
+                # ✅ SIMPLIFIED: Direct v_k → modulator_head (no intermediate fusion_mlp_base)
+                # Clean separation: relative time directly generates control signals
                 self.modulator_head = nn.Sequential(
-                    nn.Linear(expert_dim, expert_dim // 2),
+                    nn.Linear(rel_time_dim, expert_dim // 2),
                     nn.GELU(),
                     nn.Dropout(dropout),  # ✅ Dropout before final linear
-                    nn.Linear(expert_dim // 2, self.mamba2.nheads * 2)  # No dropout on gamma/beta!
+                    nn.Linear(expert_dim // 2, self.mamba2.nheads * 2)  # Direct to gamma/beta
                 )
+                
+                # ✅ Remove redundant components for ControllableMamba2
+                self.fusion_mlp_base = None
+                self.fusion_norm = None
                 
             else:
                 print("   ├─ Using vanilla Mamba2 (no FiLM modulation)")
@@ -164,22 +159,15 @@ class KAN_MAMMOTE(nn.Module):
             print(f"   │  ├─ expand: {self.mamba2.expand}")
             print(f"   │  └─ headdim: {self.mamba2.headdim}")
             
-            # ✅ NEW: Dropout after Mamba2 (before output projection)
             self.mamba_dropout = nn.Dropout(dropout)
             
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
-            if expert_dim != embedding_dim:
-                self.output_projection = nn.Sequential(
-                    nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
-                    nn.LayerNorm(embedding_dim)
-                )
             
+            self.output_projection = nn.Sequential(
+                nn.Linear(expert_dim, embedding_dim),
+                nn.LayerNorm(embedding_dim)
+            )
+
+
         elif fusion_strategy == 'concat':
             # ===== CONCAT FUSION (Lite variant) =====
             print("   ├─ Concatenation + MLP fusion")
@@ -216,18 +204,11 @@ class KAN_MAMMOTE(nn.Module):
             self.weight_abs = nn.Parameter(torch.tensor(0.5))
             self.weight_rel = nn.Parameter(torch.tensor(0.5))
             
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
-            if expert_dim != embedding_dim:
-                self.output_projection = nn.Sequential(
-                    nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
-                    nn.LayerNorm(embedding_dim)
-                )
+            self.output_projection = nn.Sequential(
+                nn.Linear(expert_dim, embedding_dim),
+                nn.Dropout(dropout),
+                nn.LayerNorm(embedding_dim)
+            )
             print(f"   └─ Weighted sum: {expert_dim} → {embedding_dim}")
             
         elif fusion_strategy == 'attention':
@@ -253,18 +234,11 @@ class KAN_MAMMOTE(nn.Module):
             )
             self.norm_after_attn = nn.LayerNorm(expert_dim)
             
-            # ✅ FIXED: Output projection with dropout BEFORE final norm
-            if expert_dim != embedding_dim:
-                self.output_projection = nn.Sequential(
-                    nn.Linear(expert_dim, embedding_dim),
-                    nn.Dropout(dropout),  # ✅ Dropout before norm
-                    nn.LayerNorm(embedding_dim)  # ✅ Norm is last
-                )
-            else:
-                self.output_projection = nn.Sequential(
-                    nn.Dropout(dropout),
-                    nn.LayerNorm(embedding_dim)
-                )
+            self.output_projection = nn.Sequential(
+                nn.Linear(expert_dim, embedding_dim),
+                nn.Dropout(dropout),
+                nn.LayerNorm(embedding_dim)
+            )
             print(f"   └─ Cross-attention: {expert_dim} → {embedding_dim}")
 
         print(f"✅ Initialized KAN-MAMMOTE with proper dropout:")
@@ -407,57 +381,46 @@ class KAN_MAMMOTE(nn.Module):
         # ===== Apply fusion strategy =====
         if self.fusion_strategy == 'mamba':
             # ===== MAMBA FUSION (Original KAN-MAMMOTE) =====
-            # Fuse relative time features to expert_dim
-            fusion_features = self.fusion_mlp_base(v_k)  # (B, S, expert_dim)
             
-            if debug or hasattr(self, '_debug_mode'):
-                print(f"🔧 MAMBA FUSION:")
-                print(f"   fusion_features shape: {fusion_features.shape}")
-            
-            # Choose input strategy based on configuration
-            if self.use_controllable_mamba and self.separate_modulation_pathway:
-                # VARIANT 1 (DEFAULT for ControllableMamba2): Separate pathways
-                # - Content pathway: pure absolute time (u_k)
-                # - Modulation pathway: relative time controls dynamics via FiLM gates
-                combined_input = u_k  # Pure absolute time
-                #combined_input = u_k + self.rel_to_content_alpha * v_k
+            if self.use_controllable_mamba:
+                # ✅ SIMPLIFIED: Direct v_k → modulator_head (no fusion_mlp_base)
+                modulator_logits = self.modulator_head(v_k)  # (B, S, nheads * 2)
+                
+                # Split into gamma and beta with improved parameterization
+                gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
+                gamma = F.softplus(gamma_logits)  # Clean softplus (no bias needed)
+                temporal_modulators = (gamma, beta)
+                
+                # Pure absolute time as content (separate pathway)
+                combined_input = u_k
+                
                 if debug or hasattr(self, '_debug_mode'):
-                    print(f"🔗 SEPARATE MODULATION PATHWAY (ControllableMamba2 default):")
+                    print(f"🔧 CONTROLLABLE MAMBA2 (SIMPLIFIED):")
+                    print(f"   Direct v_k → modulator_head (no fusion_mlp_base)")
+                    print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
+                    print(f"   beta range: [{beta.min().item():.3f}, {beta.max().item():.3f}]")
                     print(f"   combined_input = u_k (pure absolute)")
                     print(f"   combined_input shape: {combined_input.shape}")
+                
+                mamba_output = self.mamba2(u=combined_input, temporal_modulators=temporal_modulators)
+                
             else:
-                # VARIANT 2: Combined pathways (legacy/vanilla Mamba2)
-                # - Both absolute and relative information in main data flow
-                # - For vanilla Mamba2 or legacy experiments
+                # Vanilla Mamba2: No temporal modulation
+                #fusion_features = self.fusion_mlp_base(v_k)  # (B, S, expert_dim)
+                fusion_features = v_k
+                if debug or hasattr(self, '_debug_mode'):
+                    print(f"� VANILLA MAMBA2:")
+                    print(f"   fusion_features shape: {fusion_features.shape}")
+                
                 # ✅ FIXED: Residual + Post-LN pattern (Transformer best practice)
                 combined_input = u_k + fusion_features  # Residual connection
                 combined_input = self.fusion_norm(combined_input)  # ✅ LayerNorm AFTER residual
                 
                 if debug or hasattr(self, '_debug_mode'):
-                    print(f"🔗 COMBINED INPUT PATHWAY (vanilla Mamba2 or legacy) + Post-LN:")
+                    print(f"🔗 COMBINED INPUT PATHWAY (vanilla Mamba2) + Post-LN:")
                     print(f"   combined_input = fusion_norm(u_k + fusion_features)")
                     print(f"   combined_input shape: {combined_input.shape}")
-            
-            if self.use_controllable_mamba:
-                # ControllableMamba2: Add temporal modulation
-                modulator_logits = self.modulator_head(fusion_features)  # (B, S, nheads * 2)
                 
-                # Split into gamma and beta
-                gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
-                gamma = torch.sigmoid(gamma_logits) + 0.5  # Range: [0.5, 1.5]
-                temporal_modulators = (gamma, beta)
-                
-                if debug or hasattr(self, '_debug_mode'):
-                    print(f"⚙️  CONTROLLABLE MAMBA2 MODULATION:")
-                    print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
-                    print(f"   beta range: [{beta.min().item():.3f}, {beta.max().item():.3f}]")
-                    print(f"   Relative time info flows through: {'gates only' if self.separate_modulation_pathway else 'gates + input'}")
-                
-                mamba_output = self.mamba2(u=combined_input, temporal_modulators=temporal_modulators)
-            else:
-                # Vanilla Mamba2: No modulation
-                if debug or hasattr(self, '_debug_mode'):
-                    print(f"⚙️  VANILLA MAMBA2 (no modulation)")
                 mamba_output = self.mamba2(combined_input)
             
             # ✅ FIXED: Apply dropout after Mamba2 (Transformer best practice)
