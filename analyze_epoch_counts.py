@@ -13,7 +13,7 @@ def analyze_training_metrics():
     """Analyze all validation metrics files to find which ones ended at 100 epochs with good performance."""
     
     # Find all validation metrics files
-    metrics_files = glob.glob("/home/s2516027/kan-mammotev2/saved_metrics/*/*/*/val_metrics_*.csv")
+    metrics_files = glob.glob("./saved_metrics/*/*/*/val_metrics_*.csv")
     
     results = []
     experiments_to_rerun = []
@@ -164,11 +164,11 @@ def analyze_training_metrics():
     
     # Save detailed results to CSV
     df_results = pd.DataFrame(results)
-    df_results.to_csv('/home/s2516027/kan-mammotev2/validation_analysis_results.csv', index=False)
+    df_results.to_csv('./validation_analysis_results.csv', index=False)
     
     df_rerun = pd.DataFrame(experiments_to_rerun)
     if not df_rerun.empty:
-        df_rerun.to_csv('/home/s2516027/kan-mammotev2/validation_experiments_to_rerun.csv', index=False)
+        df_rerun.to_csv('./validation_experiments_to_rerun.csv', index=False)
     
     print(f"\nDetailed results saved to: validation_analysis_results.csv")
     if not df_rerun.empty:

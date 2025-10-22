@@ -603,7 +603,7 @@ def main():
             continue
         
         # Check if THIS SPECIFIC strategy's results already exist
-        results_exist, existing_results = check_evaluation_results_exist(model, dataset, encoder, neg_strategy)
+        results_exist, existing_results = check_evaluation_results_exist(model, dataset, encoder, "random")
         
         print(existing_results)
         print(found_models)
