@@ -10,7 +10,7 @@ cd "$PBS_O_WORKDIR"
 source ~/.bashrc
 module purge
 module load cuda/12.8u1
-conda activate kan_mammotev2
+conda activate kan_mammote
 mkdir -p sh_scripts/thiti/sh_logs/mercer/dygmamba
 # Run your experiment - DyGMamba with lete encoder
 python experiment_unified.py --single_encoder lete --models DyGMamba \
