@@ -10,7 +10,7 @@ cd "$PBS_O_WORKDIR"
 source ~/.bashrc
 module purge
 module load cuda/12.8u1
-conda activate kan_mammotev2
+conda activate kan_mammote
 mkdir -p sh_scripts/thin/231068_sh/sh_logs/mercer/tgn
 # Run your experiment - TGN medium datasets
 python experiment_unified.py --models "TGN" --single_encoder "mercer" --datasets Flights UNvote \

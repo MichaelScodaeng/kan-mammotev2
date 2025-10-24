@@ -10,7 +10,7 @@ cd "$PBS_O_WORKDIR"
 source ~/.bashrc
 module purge
 module load cuda/12.8u1
-conda activate kan_mammotev2
+conda activate kan_mammote
 mkdir -p sh_scripts/thiti/sh_logs/mercer/dygmamba
 # Task assignments - Heaviest combinations (DyGMamba + heaviest datasets)
 # Task 1 on GPU 0
