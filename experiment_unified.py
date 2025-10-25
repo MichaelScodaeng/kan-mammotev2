@@ -113,6 +113,23 @@ def parse_arguments():
                         help='Maximum number of retries for failed experiments (default: 2)')
     parser.add_argument('--disable_progress_bar', action='store_true', default=False,
                         help='Disable tqdm progress bars (useful for logging to files in batch jobs)')
+    
+    # Add hyperparameter arguments to forward to training script
+    parser.add_argument('--expert_dim', type=int, default=None,
+                        help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
+    parser.add_argument('--mamba_d_state', type=int, default=None,
+                        help='Mamba state dimension (for kan_mammote encoder)')
+    parser.add_argument('--mamba_expand', type=int, default=None,
+                        help='Mamba expansion factor (for kan_mammote encoder)')
+    parser.add_argument('--encoder_dropout', type=float, default=None,
+                        help='dropout rate for GNN backbone')
+    parser.add_argument('--num_mixtures', type=int, default=None,
+                        help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
+    parser.add_argument('--mamba_d_conv', type=int, default=None,
+                        help='Mamba convolution dimension (for kan_mammote encoder)')
+    parser.add_argument('--mamba_headdim', type=int, default=None,
+                        help='Mamba head dimension (for kan_mammote encoder)')
+    
     return parser.parse_args()
 
 def get_encoder_log_dir(time_encoder):
@@ -629,6 +646,22 @@ def build_training_command(model, dataset, time_encoder_name, args,
     # Add disable_progress_bar if specified
     if args.disable_progress_bar:
         command.append('--disable_progress_bar')
+    
+    # Add hyperparameters if specified
+    if args.expert_dim is not None:
+        command.extend(['--expert_dim', str(args.expert_dim)])
+    if args.mamba_d_state is not None:
+        command.extend(['--mamba_d_state', str(args.mamba_d_state)])
+    if args.mamba_expand is not None:
+        command.extend(['--mamba_expand', str(args.mamba_expand)])
+    if args.encoder_dropout is not None:
+        command.extend(['--encoder_dropout', str(args.encoder_dropout)])
+    if args.num_mixtures is not None:
+        command.extend(['--num_mixtures', str(args.num_mixtures)])
+    if args.mamba_d_conv is not None:
+        command.extend(['--mamba_d_conv', str(args.mamba_d_conv)])
+    if args.mamba_headdim is not None:
+        command.extend(['--mamba_headdim', str(args.mamba_headdim)])
     
     # Add encoder-specific arguments
     encoder_args = get_time_encoder_args(time_encoder_name)
