@@ -77,7 +77,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='directory to save all ablation study outputs (models, metrics, results)')
     
     # Mamba-specific arguments for KAN-MAMMOTE
-    parser.add_argument('--mamba_d_state', type=int, default=256, 
+    parser.add_argument('--mamba_d_state', type=int, default=64, 
                         help='Mamba state dimension (for kan_mammote encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=4, 
                         help='Mamba convolution dimension (for kan_mammote encoder)')

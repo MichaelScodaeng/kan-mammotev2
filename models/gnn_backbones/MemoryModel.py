@@ -92,7 +92,8 @@ class MemoryModel(torch.nn.Module):
             raise ValueError(f'Not implemented error for model_name {self.model_name}!')
 
     def compute_src_dst_node_temporal_embeddings(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray, node_interact_times: np.ndarray,
-                                                 edge_ids: np.ndarray, edges_are_positive: bool = True, num_neighbors: int = 20):
+                                                 edge_ids: np.ndarray, edges_are_positive: bool = True, num_neighbors: int = 20,
+                                                 apply_pending_raw_messages: bool = True):
         """
         compute source and destination node temporal embeddings
         :param src_node_ids: ndarray, shape (batch_size, )
@@ -112,8 +113,13 @@ class MemoryModel(torch.nn.Module):
         # so we return all nodes' memory with shape (num_nodes, ) by using self.get_updated_memory
         # updated_node_memories, Tensor, shape (num_nodes, memory_dim)
         # updated_node_last_updated_times, Tensor, shape (num_nodes, )
+        # Optionally incorporate any pending raw messages stored in the memory bank when computing
+        # updated memories. For evaluation of negative edges we often want to compute embeddings
+        # without applying pending messages (to avoid changing memory order / using stale messages)
+        node_raw_messages_for_update = self.memory_bank.node_raw_messages if apply_pending_raw_messages else {}
+
         updated_node_memories, updated_node_last_updated_times = self.get_updated_memories(node_ids=np.array(range(self.num_nodes)),
-                                                                                           node_raw_messages=self.memory_bank.node_raw_messages)
+                                                                                          node_raw_messages=node_raw_messages_for_update)
         # compute the node temporal embeddings using the embedding module
         if self.model_name == 'JODIE':
             # compute differences between the time the memory of a node was last updated, and the time for which we want to compute the embedding of a node
@@ -311,10 +317,18 @@ class MessageAggregator(nn.Module):
         unique_node_messages, unique_node_timestamps, to_update_node_ids = [], [], []
 
         for node_id in unique_node_ids:
-            if len(node_raw_messages[node_id]) > 0:
+            # normalize node_id to a plain Python int to avoid key-type mismatches (np.int64 vs int)
+            try:
+                normalized_node_id = int(node_id)
+            except Exception:
+                normalized_node_id = node_id
+
+            # Safely get messages for the node; default to empty list if missing
+            node_msgs = node_raw_messages.get(normalized_node_id, []) if isinstance(node_raw_messages, dict) else node_raw_messages.get(normalized_node_id, [])
+            if len(node_msgs) > 0:
                 to_update_node_ids.append(node_id)
-                unique_node_messages.append(node_raw_messages[node_id][-1][0])
-                unique_node_timestamps.append(node_raw_messages[node_id][-1][1])
+                unique_node_messages.append(node_msgs[-1][0])
+                unique_node_timestamps.append(node_msgs[-1][1])
 
         # ndarray, shape (num_unique_node_ids, ), array of unique node ids
         to_update_node_ids = np.array(to_update_node_ids)
