@@ -18,7 +18,7 @@ import argparse
 DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
            'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
 
-MODELS = ['TGAT',]  #'TGN', 'TCL', 'DyGFormer', 'DyGMamba''JODIE', 
+MODELS = ['TGAT',]  # 
 
 ENCODERS = ["kan_mammote_dual_kmote_tgat",] # , 'mercer', 'time2vec' , 'lete', 'kan_mammote_dual_kmote'
 

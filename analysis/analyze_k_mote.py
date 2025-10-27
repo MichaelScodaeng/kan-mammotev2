@@ -8,7 +8,7 @@ import sys
 from tqdm import tqdm
 
 # Global training configuration
-MAX_EPOCHS = 10000
+MAX_EPOCHS = 2
 
 # Add the parent directory to Python path to import models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -242,8 +242,7 @@ def run_fitting_analysis():
         "B-Spline Expert": SingleExpertModel(SplineKANLayer, basis_function='b_spline'),
         "Fourier Expert": SingleExpertModel(FourierKANLayer),
         "Wavelet Expert": SingleExpertModel(WaveletKANLayer, wavelet_type='shock'),  # Use more stable wavelet
-        "RBF Expert": SingleExpertModel(SplineKANLayer, basis_function='rbf'),
-        "Full K-MOTE (4 Experts)": KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
+        "Full K-MOTE (3 Experts)": KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')
     }
     
     # 3. เทรนและพล็อตผลลัพธ์แต่ละแบบ
@@ -436,7 +435,7 @@ def run_interpretability_analysis():
     
     print("[INFO] Training K-MOTE on mixed pattern data...")
     k_mote_model = KMOTE(input_dim=1, output_dim=1, wavelet_type='shock')  # Use stable wavelet
-    train_model(k_mote_model, t_mixed, y_mixed, max_epochs=20000, lr=2e-4)
+    train_model(k_mote_model, t_mixed, y_mixed, max_epochs=MAX_EPOCHS, lr=2e-4)
     
     # 2. ดึงค่า prediction และ gating weights ออกมา
     k_mote_model.eval()
@@ -589,7 +588,7 @@ def run_expert_capability_matrix():
             model = expert_factory()
             
             # Train and get final loss
-            final_loss = train_model_with_loss_return(model, t, y_data, max_epochs=20000, lr=2e-4)
+            final_loss = train_model_with_loss_return(model, t, y_data, max_epochs=MAX_EPOCHS, lr=2e-4)
             results_matrix[dataset_name][expert_name] = final_loss
             
             print(f"Loss: {final_loss:.6f}")

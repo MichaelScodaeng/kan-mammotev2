@@ -650,7 +650,8 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times,
                                                                           edge_ids=None,
                                                                           edges_are_positive=False,
-                                                                          num_neighbors=args.num_neighbors)
+                                                                          num_neighbors=args.num_neighbors,
+                                                                          apply_pending_raw_messages=False)
 
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)

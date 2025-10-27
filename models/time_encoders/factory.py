@@ -451,6 +451,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_d_state=mamba_d_state,
             mamba_d_conv=mamba_d_conv,
             mamba_expand=mamba_expand,
+            mamba_headdim=mamba_headdim,
+            dropout=encoder_dropout,  # Use encoder-specific dropout
             use_kmote_for_relative=True  # Force dual K-MOTE mode
         )
         
