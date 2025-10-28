@@ -15,15 +15,15 @@ mkdir -p sh_scripts/kmm_aftertune/sh_logs/dygformer
 
 # Run experiments for DyGFormer with kan_mammote_dual_kmote time encoder
 # Second batch (GPU-S): mooc, lastfm
-
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True 
 # MOOC (no best config for DyGFormer, using defaults: expert_dim=128, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.1)
-python experiment_unified.py --single_encoder kan_mammote_dual_kmote --models DyGFormer \
- --datasets mooc --disable_progress_bar --num_runs 1 \
- --expert_dim 128 --mamba_d_state 64 --mamba_expand 4 --encoder_dropout 0.1 \
+python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models DyGFormer \
+ --datasets mooc --num_runs 1 \
+ --expert_dim 64 --mamba_d_state 128 --mamba_expand 4  --encoder_dropout 0.1 \
  > sh_scripts/kmm_aftertune/sh_logs/dygformer/dygformer_mooc_kmote.log 2>&1
 
-# LastFM (has best config: expert_dim=256, mamba_d_state=512, mamba_expand=2, encoder_dropout=0.2)
-python experiment_unified.py --single_encoder kan_mammote_dual_kmote --models DyGFormer \
- --datasets lastfm --disable_progress_bar --num_runs 1 \
- --expert_dim 256 --mamba_d_state 64 --mamba_expand 2 --encoder_dropout 0.2 \
+# LastFM (has best config: expert_dim=256, mamba_d_state=128, mamba_expand=4, encoder_dropout=0.1)
+python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models DyGFormer \
+ --datasets lastfm --num_runs 1 \
+ --expert_dim 64 --mamba_d_state 64 --encoder_dropout 0.1 --mamba_headdim 32 \
  > sh_scripts/kmm_aftertune/sh_logs/dygformer/dygformer_lastfm_kmote.log 2>&1
