@@ -18,13 +18,14 @@ mkdir -p sh_scripts/kmm_aftertune/sh_logs/tgat
 
 # Wikipedia (has best config: expert_dim=256, mamba_d_state=128, mamba_expand=4, encoder_dropout=0.2)
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True 
-python experiment_unified.py --single_encoder kan_mammote_dual_kmote --models TGAT \
+
+python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets wikipedia --disable_progress_bar --num_runs 1 \
- --expert_dim 128 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 16 --encoder_dropout 0.2 \
+ --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 16 --encoder_dropout 0.2 \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_wikipedia_kmote.log 2>&1
 
 # Reddit (no best config for TGAT, using defaults: expert_dim=128, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.1)
-python experiment_unified.py --single_encoder kan_mammote_dual_kmote --models TGAT \
+python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets reddit --disable_progress_bar --num_runs 1 \
  --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.1 \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_reddit_kmote.log 2>&1

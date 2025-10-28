@@ -19,7 +19,7 @@ mkdir -p sh_scripts/kmm_aftertune/sh_logs/dygformer
 # Wikipedia (has best config: expert_dim=256, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.1)
 python experiment_unified.py --single_encoder kan_mammote_dual_kmote --models DyGFormer \
  --datasets wikipedia --disable_progress_bar --num_runs 1 \
- --expert_dim 256 --mamba_d_state 64 --mamba_expand 4 --encoder_dropout 0.1 \
+ --expert_dim 128 --mamba_d_state 64 --mamba_expand 4 --encoder_dropout 0.1 \
  > sh_scripts/kmm_aftertune/sh_logs/dygformer/dygformer_wikipedia_kmote.log 2>&1
 
 # Reddit (no best config for DyGFormer, using defaults: expert_dim=128, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.1)
