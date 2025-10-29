@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -j oe
-#PBS -q GPU-1
+#PBS -q GPU-1A
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -9,7 +9,7 @@ cd "$PBS_O_WORKDIR"
 
 source ~/.bashrc
 module purge
-module load cuda/12.8u1
+module load cuda/12.1
 conda activate kan_mammote
 mkdir -p sh_scripts/kmm_aftertune/sh_logs/tgat
 
@@ -19,11 +19,11 @@ mkdir -p sh_scripts/kmm_aftertune/sh_logs/tgat
 # MOOC (has best config: expert_dim=128, mamba_d_state=512, mamba_expand=4, encoder_dropout=0.1)
 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets mooc --disable_progress_bar --num_runs 1 \
- --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --encoder_dropout 0.1 \
+ --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.1 \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_mooc_kmote.log 2>&1
 
 # LastFM (has best config: expert_dim=128, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.0)
 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets lastfm --disable_progress_bar --num_runs 1 \
- --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --encoder_dropout 0.0 \
+ --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.0 \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_lastfm_kmote.log 2>&1
