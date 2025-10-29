@@ -23,11 +23,13 @@ echo "PBS-assigned GPUs: $CUDA_VISIBLE_DEVICES"
 CUDA_VISIBLE_DEVICES=0 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
   --datasets SocialEvo --disable_progress_bar --num_runs 1 \
   --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.1 \
+  --use_amp --use_gradient_checkpointing \
   > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_socialevo_kmote02.log 2>&1 &
 
 CUDA_VISIBLE_DEVICES=1 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
   --datasets Flights --disable_progress_bar --num_runs 1 \
   --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.1 \
+  --use_amp --use_gradient_checkpointing \
   > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_flights_kmote02.log 2>&1 &
 
 wait

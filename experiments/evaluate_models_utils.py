@@ -18,7 +18,8 @@ from utils.DataLoader import Data
 
 def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_sampler: NeighborSampler, evaluate_idx_data_loader: DataLoader,
                                    evaluate_neg_edge_sampler: NegativeEdgeSampler, evaluate_data: Data, loss_func: nn.Module,
-                                   num_neighbors: int = 20, time_gap: int = 2000, disable_progress_bar: bool = False):
+                                   num_neighbors: int = 20, time_gap: int = 2000, disable_progress_bar: bool = False,
+                                   use_amp: bool = False):
     """
     evaluate models on the link prediction task
     :param model_name: str, name of the model
@@ -164,27 +165,29 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
                 raise ValueError(f"Wrong value for model_name {model_name}!")
             # get positive and negative probabilities, shape (batch_size, )
 
-            if model_name in ['DyGMamba']:
-                positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_embeddings).squeeze(dim=-1).sigmoid()
-                negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_embeddings).squeeze(dim=-1).sigmoid()
-            else:
-                positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
-                negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings,
-                                                    input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+            # Use autocast when requested to allow mixed precision during forward
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                if model_name in ['DyGMamba']:
+                    positive_logits = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_embeddings).squeeze(dim=-1)
+                    negative_logits = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_embeddings).squeeze(dim=-1)
+                else:
+                    positive_logits = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1)
+                    negative_logits = model[1](input_1=batch_neg_src_node_embeddings,
+                                                input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1)
 
-            # Clamp probabilities to prevent BCELoss assertion errors
-            """eps = 1e-7
-            positive_probabilities = torch.clamp(positive_probabilities, min=eps, max=1.0-eps)
-            negative_probabilities = torch.clamp(negative_probabilities, min=eps, max=1.0-eps)"""
+                # Concatenate logits for loss computation
+                predicts_logits = torch.cat([positive_logits, negative_logits], dim=0)
+                labels = torch.cat([torch.ones_like(positive_logits), torch.zeros_like(negative_logits)], dim=0)
 
-            predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
-            labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
+                # Compute loss using logits (BCEWithLogitsLoss expects raw logits)
+                loss = loss_func(input=predicts_logits, target=labels)
 
-            loss = loss_func(input=predicts, target=labels)
+                # For metrics (AP / ROC) convert to probabilities
+                with torch.no_grad():
+                    predicts_probs = torch.sigmoid(predicts_logits)
 
             evaluate_losses.append(loss.item())
-
-            evaluate_metrics.append(get_link_prediction_metrics(predicts=predicts, labels=labels))
+            evaluate_metrics.append(get_link_prediction_metrics(predicts=predicts_probs, labels=labels))
 
             # Update progress description only if tqdm is enabled
             if use_tqdm:

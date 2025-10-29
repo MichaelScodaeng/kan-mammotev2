@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -j oe
-#PBS -q GPU-1A
+#PBS -q GPU-1
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -20,10 +20,12 @@ mkdir -p sh_scripts/kmm_aftertune/sh_logs/tgat
 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets mooc --disable_progress_bar --num_runs 1 \
  --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.1 \
+    --use_amp --use_gradient_checkpointing \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_mooc_kmote.log 2>&1
 
 # LastFM (has best config: expert_dim=128, mamba_d_state=256, mamba_expand=4, encoder_dropout=0.0)
 python experiment_unified2.py --single_encoder kan_mammote_dual_kmote --models TGAT \
  --datasets lastfm --disable_progress_bar --num_runs 1 \
  --expert_dim 64 --mamba_d_state 64 --mamba_expand 4 --mamba_headdim 32 --encoder_dropout 0.0 \
+ --use_amp --use_gradient_checkpointing \
  > sh_scripts/kmm_aftertune/sh_logs/tgat/tgat_lastfm_kmote.log 2>&1

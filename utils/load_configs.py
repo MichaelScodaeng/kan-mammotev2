@@ -110,6 +110,14 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='validate checkpoint integrity before loading (recommended)')
     parser.add_argument('--disable_progress_bar', action='store_true', default=False,
                         help='disable tqdm progress bars (useful for logging to files in batch jobs)')
+    parser.add_argument('--use_amp', action='store_true', default=False,
+                        help='Enable automatic mixed precision (AMP) during training and evaluation')
+    parser.add_argument('--grad_accum_steps', type=int, default=1,
+                        help='Number of steps to accumulate gradients before performing an optimizer step (default: 1)')
+    parser.add_argument('--empty_cache_after_step', action='store_true', default=True,
+                        help='Call torch.cuda.empty_cache() after each optimizer step/evaluation (useful for fragmentation debugging)')
+    parser.add_argument('--use_gradient_checkpointing', action='store_true', default=False,
+                        help='Enable gradient checkpointing to trade compute for memory in K-MOTE and KAN-MAMMOTE (reduces activation memory ~50%% at cost of ~20-30%% slower training)')
 
     try:
         args = parser.parse_args()

@@ -213,7 +213,8 @@ if __name__ == "__main__":
                         new_node_raw_messages.append((node_raw_message[0].to(args.device), node_raw_message[1]))
                     model[0].memory_bank.node_raw_messages[node_id] = new_node_raw_messages
 
-            loss_func = nn.BCELoss()
+            # Use BCEWithLogitsLoss so evaluation is compatible with models trained with logits
+            loss_func = nn.BCEWithLogitsLoss()
 
             # evaluate the best model
             logger.info(f'get final performance on dataset {args.dataset_name}...')
@@ -229,7 +230,8 @@ if __name__ == "__main__":
                                                                          loss_func=loss_func,
                                                                          num_neighbors=args.num_neighbors,
                                                                          time_gap=args.time_gap,
-                                                                         disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                         disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                         use_amp=getattr(args, 'use_amp', False))
             
                 new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                                                                                            model=model,
@@ -240,7 +242,8 @@ if __name__ == "__main__":
                                                                                            loss_func=loss_func,
                                                                                            num_neighbors=args.num_neighbors,
                                                                                            time_gap=args.time_gap,
-                                                                                           disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                                           disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                                           use_amp=getattr(args, 'use_amp', False))
 
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # the memory in the best model has seen the validation edges, we need to backup the memory for new testing nodes
@@ -255,7 +258,8 @@ if __name__ == "__main__":
                                                                        loss_func=loss_func,
                                                                        num_neighbors=args.num_neighbors,
                                                                        time_gap=args.time_gap,
-                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                       use_amp=getattr(args, 'use_amp', False))
 
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # reload validation memory bank for new testing nodes
@@ -270,7 +274,8 @@ if __name__ == "__main__":
                                                                                          loss_func=loss_func,
                                                                                          num_neighbors=args.num_neighbors,
                                                                                          time_gap=args.time_gap,
-                                                                                         disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                                         disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                                         use_amp=getattr(args, 'use_amp', False))
             # store the evaluation metrics at the current run
             val_metric_dict, new_node_val_metric_dict, test_metric_dict, new_node_test_metric_dict = {}, {}, {}, {}
 

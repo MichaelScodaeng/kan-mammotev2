@@ -52,6 +52,8 @@ def parse_arguments():
                         help='Maximum number of retries for failed experiments (default: 2)')
     parser.add_argument('--disable_progress_bar', action='store_true', default=False,
                         help='Disable tqdm progress bars (useful for logging to files in batch jobs)')
+    parser.add_argument('--use_amp', action='store_true', default=False,
+                        help='Enable automatic mixed precision (AMP) during training and evaluation')
     
     # Add hyperparameter arguments to forward to training script
     parser.add_argument('--expert_dim', type=int, default=None,
@@ -68,6 +70,8 @@ def parse_arguments():
                         help='Mamba convolution dimension (for kan_mammote encoder)')
     parser.add_argument('--mamba_headdim', type=int, default=None,
                         help='Mamba head dimension (for kan_mammote encoder)')
+    parser.add_argument('--use_gradient_checkpointing', action='store_true', default=False,
+                        help='Enable gradient checkpointing to trade compute for memory in K-MOTE and KAN-MAMMOTE')
     
     return parser.parse_args()
 
@@ -586,6 +590,14 @@ def build_training_command(model, dataset, time_encoder_name, args,
     if args.disable_progress_bar:
         command.append('--disable_progress_bar')
     
+    # Add AMP if specified
+    if args.use_amp:
+        command.append('--use_amp')
+    
+    # Add gradient checkpointing if specified
+    if args.use_gradient_checkpointing:
+        command.append('--use_gradient_checkpointing')
+    
     # Add hyperparameters if specified
     if args.expert_dim is not None:
         command.extend(['--expert_dim', str(args.expert_dim)])
@@ -606,6 +618,10 @@ def build_training_command(model, dataset, time_encoder_name, args,
     encoder_args = get_time_encoder_args(time_encoder_name)
     if encoder_args:
         command.extend(encoder_args.split())
+
+    # Forward AMP flag if requested
+    if getattr(args, 'use_amp', False):
+        command.append('--use_amp')
     
     return command
 

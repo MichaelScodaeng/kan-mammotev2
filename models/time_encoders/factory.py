@@ -348,6 +348,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
             # NEW: Support for dual K-MOTE mode
             use_kmote_for_relative = getattr(args, 'use_kmote_for_relative', kwargs.get('use_kmote_for_relative', False))
+            # NEW: Gradient checkpointing support
+            use_gradient_checkpointing = getattr(args, 'use_gradient_checkpointing', kwargs.get('use_gradient_checkpointing', False))
         else:
             # Get from kwargs or use defaults
             print("INFO: Extracting KAN-MAMMOTE parameters from kwargs or using defaults.")
@@ -361,6 +363,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             num_neighbors = kwargs.get('num_neighbors', 20)
             # NEW: Support for dual K-MOTE mode
             use_kmote_for_relative = kwargs.get('use_kmote_for_relative', False)
+            # NEW: Gradient checkpointing support
+            use_gradient_checkpointing = kwargs.get('use_gradient_checkpointing', False)
         
         print(f"KAN-MAMMOTE parameters:")
         print(f"  - embedding_dim: {time_dim}")
@@ -378,7 +382,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_d_state=mamba_d_state,
             mamba_d_conv=mamba_d_conv,
             mamba_expand=mamba_expand,
-            use_kmote_for_relative=use_kmote_for_relative
+            use_kmote_for_relative=use_kmote_for_relative,
+            use_gradient_checkpointing=use_gradient_checkpointing
         )
         
         # SM-Kernel Initialization (if data is provided)
@@ -424,6 +429,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
             mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
             encoder_dropout = getattr(args, 'encoder_dropout', getattr(args, 'dropout', 0.1))  # Use encoder_dropout, fallback to dropout
+            use_gradient_checkpointing = getattr(args, 'use_gradient_checkpointing', kwargs.get('use_gradient_checkpointing', False))
         else:
             # Get from kwargs or use defaults
             print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from kwargs or using defaults.")
@@ -433,6 +439,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_d_conv = kwargs.get('mamba_d_conv', 4)
             mamba_expand = kwargs.get('mamba_expand', 2)
             mamba_headdim = kwargs.get('mamba_headdim', 64)
+            encoder_dropout = kwargs.get('encoder_dropout', 0.1)
+            use_gradient_checkpointing = kwargs.get('use_gradient_checkpointing', False)
             encoder_dropout = kwargs.get('encoder_dropout', kwargs.get('dropout', 0.1))
         
         print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
@@ -453,7 +461,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_expand=mamba_expand,
             mamba_headdim=mamba_headdim,
             dropout=encoder_dropout,  # Use encoder-specific dropout
-            use_kmote_for_relative=True  # Force dual K-MOTE mode
+            use_kmote_for_relative=True,  # Force dual K-MOTE mode
+            use_gradient_checkpointing=use_gradient_checkpointing
         )
         
         print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
@@ -483,15 +492,15 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_headdim = kwargs.get('mamba_headdim', 64)
             encoder_dropout = kwargs.get('encoder_dropout', kwargs.get('dropout', 0.1))
         
-        print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
-        print(f"  - embedding_dim: {time_dim}")
-        print(f"  - expert_dim: {expert_dim}")
-        print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
-        print(f"  - mamba_d_state: {mamba_d_state}")
-        print(f"  - mamba_d_conv: {mamba_d_conv}")
-        print(f"  - mamba_expand: {mamba_expand}")
-        print(f"  - encoder_dropout: {encoder_dropout}")
-        print(f"  - use_kmote_for_relative: True (dual K-MOTE mode)")
+            print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
+            print(f"  - embedding_dim: {time_dim}")
+            print(f"  - expert_dim: {expert_dim}")
+            print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
+            print(f"  - mamba_d_state: {mamba_d_state}")
+            print(f"  - mamba_d_conv: {mamba_d_conv}")
+            print(f"  - mamba_expand: {mamba_expand}")
+            print(f"  - encoder_dropout: {encoder_dropout}")
+            print(f"  - use_kmote_for_relative: True (dual K-MOTE mode)")
         
         time_encoder = KAN_MAMMOTE(
             embedding_dim=time_dim,
@@ -502,7 +511,8 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_expand=mamba_expand,
             mamba_headdim=mamba_headdim,
             dropout=encoder_dropout,  # Use encoder-specific dropout
-            use_kmote_for_relative=True  # Force dual K-MOTE mode
+            use_kmote_for_relative=True,  # Force dual K-MOTE mode
+            use_gradient_checkpointing = use_gradient_checkpointing
         )
         
         print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")

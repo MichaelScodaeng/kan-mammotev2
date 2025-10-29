@@ -10,6 +10,7 @@ import shutil
 import json
 import torch
 import torch.nn as nn
+import traceback
 
 # Add parent directory to Python path to import models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -209,6 +210,36 @@ def cleanup_old_checkpoints(save_model_folder, max_to_keep, logger):
                 
     except Exception as e:
         logger.warning(f'Error during checkpoint cleanup: {e}')
+
+
+def _log_cuda_mem(logger, note: str = "", device=None, full_summary: bool = False):
+    """Lightweight CUDA memory logger.
+
+    Logs allocated/reserved/max_alloc (GiB). If full_summary=True it will also log
+    torch.cuda.memory_summary() (may be long).
+    """
+    return
+    try:
+        if not torch.cuda.is_available():
+            return
+        dev = device if device is not None else torch.device('cuda')
+        alloc = torch.cuda.memory_allocated(dev)
+        reserved = torch.cuda.memory_reserved(dev)
+        max_alloc = torch.cuda.max_memory_allocated(dev)
+        logger.debug(f"[CUDA MEM] {note} allocated={alloc/1024**3:.3f} GiB reserved={reserved/1024**3:.3f} GiB max_alloc={max_alloc/1024**3:.3f} GiB")
+        if full_summary:
+            try:
+                summary = torch.cuda.memory_summary(dev, abbreviated=True)
+                logger.debug(f"[CUDA MEM SUMMARY] {note} \n{summary}")
+            except Exception:
+                # Best-effort, don't crash logging
+                pass
+    except Exception:
+        # Never let logging crash training
+        try:
+            logger.debug(f"[CUDA MEM] Could not query CUDA memory: {traceback.format_exc()}")
+        except Exception:
+            pass
 
 if __name__ == "__main__":
 
@@ -565,7 +596,24 @@ if __name__ == "__main__":
                 args.checkpoint_interval = max(20, args.num_epochs // 3)  # Only 3 checkpoints total
 
         
-        loss_func = nn.BCELoss()
+        # Use BCEWithLogitsLoss so we can feed raw logits and be compatible with AMP
+        loss_func = nn.BCEWithLogitsLoss()
+
+        # Setup AMP scaler if requested
+        use_amp = getattr(args, 'use_amp', False)
+        if use_amp:
+            try:
+                from torch.cuda.amp import GradScaler, autocast
+                scaler = GradScaler()
+            except Exception:
+                scaler = None
+                use_amp = False
+        else:
+            scaler = None
+        # Gradient accumulation and optional cache clearing settings
+        grad_accum_steps = max(1, int(getattr(args, 'grad_accum_steps', 1)))
+        empty_cache_after_step = bool(getattr(args, 'empty_cache_after_step', False))
+        print(f"Gradient accumulation steps: {grad_accum_steps}, empty_cache_after_step: {empty_cache_after_step}")
         for epoch in range(start_epoch, args.num_epochs):
 
             model.train()
@@ -621,121 +669,206 @@ if __name__ == "__main__":
                 _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids))
                 batch_neg_src_node_ids = batch_src_node_ids
 
-                # we need to compute for positive and negative edges respectively, because the new sampling strategy (for evaluation) allows the negative source nodes to be
-                # different from the source nodes, this is different from previous works that just replace destination nodes with negative destination nodes
-                if args.model_name in ['TGAT', 'CAWN', 'TCL']:
-                    # get temporal embedding of source and destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
-                                                                          dst_node_ids=batch_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          num_neighbors=args.num_neighbors)
+                # Local copy of neighbor count so we can reduce it on OOM retry attempts
+                local_num_neighbors = getattr(args, 'num_neighbors', 0)
+                oom_retries = getattr(args, 'oom_max_retries', 0)  # number of retries after the first attempt
+                attempt = 0
+                while True:
+                    try:
+                        # we need to compute for positive and negative edges respectively, because the new sampling strategy (for evaluation) allows the negative source nodes to be
+                        # different from the source nodes, this is different from previous works that just replace destination nodes with negative destination nodes
+                        if args.model_name in ['TGAT', 'CAWN', 'TCL']:
+                            # get temporal embedding of source and destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_src_node_embeddings, batch_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                                  dst_node_ids=batch_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  num_neighbors=local_num_neighbors)
 
-                    # get temporal embedding of negative source and negative destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
-                                                                          dst_node_ids=batch_neg_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          num_neighbors=args.num_neighbors)
-                elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
-                    # note that negative nodes do not change the memories while the positive nodes change the memories,
-                    # we need to first compute the embeddings of negative nodes for memory-based models
-                    # get temporal embedding of negative source and negative destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
-                                                                          dst_node_ids=batch_neg_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          edge_ids=None,
-                                                                          edges_are_positive=False,
-                                                                          num_neighbors=args.num_neighbors,
-                                                                          apply_pending_raw_messages=False)
+                            # get temporal embedding of negative source and negative destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                                  dst_node_ids=batch_neg_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  num_neighbors=local_num_neighbors)
+                        elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
+                            # note that negative nodes do not change the memories while the positive nodes change the memories,
+                            # we need to first compute the embeddings of negative nodes for memory-based models
+                            # get temporal embedding of negative source and negative destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                                  dst_node_ids=batch_neg_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  edge_ids=None,
+                                                                                  edges_are_positive=False,
+                                                                                  num_neighbors=local_num_neighbors,
+                                                                                  apply_pending_raw_messages=False)
 
-                    # get temporal embedding of source and destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
-                                                                          dst_node_ids=batch_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          edge_ids=batch_edge_ids,
-                                                                          edges_are_positive=True,
-                                                                          num_neighbors=args.num_neighbors)
-                elif args.model_name in ['GraphMixer']:
-                    # get temporal embedding of source and destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
-                                                                          dst_node_ids=batch_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          num_neighbors=args.num_neighbors,
-                                                                          time_gap=args.time_gap)
+                            # get temporal embedding of source and destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_src_node_embeddings, batch_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                                  dst_node_ids=batch_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  edge_ids=batch_edge_ids,
+                                                                                  edges_are_positive=True,
+                                                                                  num_neighbors=local_num_neighbors)
+                        elif args.model_name in ['GraphMixer']:
+                            # get temporal embedding of source and destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_src_node_embeddings, batch_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                                  dst_node_ids=batch_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  num_neighbors=local_num_neighbors,
+                                                                                  time_gap=args.time_gap)
 
-                    # get temporal embedding of negative source and negative destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
-                                                                          dst_node_ids=batch_neg_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times,
-                                                                          num_neighbors=args.num_neighbors,
-                                                                          time_gap=args.time_gap)
-                elif args.model_name in ['DyGFormer']:
-                    # get temporal embedding of source and destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_src_node_embeddings, batch_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
-                                                                          dst_node_ids=batch_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times)
+                            # get temporal embedding of negative source and negative destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                                  dst_node_ids=batch_neg_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times,
+                                                                                  num_neighbors=local_num_neighbors,
+                                                                                  time_gap=args.time_gap)
+                        elif args.model_name in ['DyGFormer']:
+                            # get temporal embedding of source and destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_src_node_embeddings, batch_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                                  dst_node_ids=batch_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times)
 
-                    # get temporal embedding of negative source and negative destination nodes
-                    # two Tensors, with shape (batch_size, node_feat_dim)
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
-                                                                          dst_node_ids=batch_neg_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times)
-                elif args.model_name in ['DyGMamba']:
-                    # get temporal embedding of source , destination nodes and time difference
-                    # three Tensors, with shape (batch_size, node_feat_dim)
+                            # get temporal embedding of negative source and negative destination nodes
+                            # two Tensors, with shape (batch_size, node_feat_dim)
+                            batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                                  dst_node_ids=batch_neg_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times)
+                        elif args.model_name in ['DyGMamba']:
+                            # get temporal embedding of source , destination nodes and time difference
+                            # three Tensors, with shape (batch_size, node_feat_dim)
 
-                    batch_src_node_embeddings, batch_dst_node_embeddings, batch_time_diff_emb = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
-                                                                          dst_node_ids=batch_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times)
+                            batch_src_node_embeddings, batch_dst_node_embeddings, batch_time_diff_emb = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                                  dst_node_ids=batch_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times)
 
-                    # get temporal embedding of negative source , destination nodes and time difference
-                    # three Tensors, with shape (batch_size, node_feat_dim)
-                    batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings, batch_neg_time_diff_emb = \
-                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
-                                                                          dst_node_ids=batch_neg_dst_node_ids,
-                                                                          node_interact_times=batch_node_interact_times)
-                else:
-                    raise ValueError(f"Wrong value for model_name {args.model_name}!")
-                debug_mamba = False
-                if args.model_name in ['DyGMamba']:
-                    positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
-                    negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
-                else:
-                    positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
-                    negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings,
-                                                    input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+                            # get temporal embedding of negative source , destination nodes and time difference
+                            # three Tensors, with shape (batch_size, node_feat_dim)
+                            batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings, batch_neg_time_diff_emb = \
+                                model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                                  dst_node_ids=batch_neg_dst_node_ids,
+                                                                                  node_interact_times=batch_node_interact_times)
+                        else:
+                            raise ValueError(f"Wrong value for model_name {args.model_name}!")
+                        debug_mamba = False
 
-                predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
-                labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
+                        # log memory before forward if configured
+                        if batch_idx % getattr(args, 'mem_log_interval', 50) == 0:
+                            _log_cuda_mem(logger, note=f"before forward epoch{epoch+1}-batch{batch_idx}", device=args.device,
+                                         full_summary=getattr(args, 'mem_log_full_summary', False))
 
-                loss = loss_func(input=predicts, target=labels)
-                train_losses.append(loss.item())
-                train_metrics.append(get_link_prediction_metrics(predicts=predicts, labels=labels))
+                        # Forward pass under autocast if using AMP
+                        with torch.cuda.amp.autocast(enabled=use_amp):
+                            if args.model_name in ['DyGMamba']:
+                                positive_logits = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1)
+                                negative_logits = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1)
+                            else:
+                                positive_logits = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1)
+                                negative_logits = model[1](input_1=batch_neg_src_node_embeddings,
+                                                           input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1)
 
-                optimizer.zero_grad()
-                loss.backward()
-                
-                # 🔧 GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
-                # This is critical for training stability, especially with high-capacity time encoders
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                
-                optimizer.step()
-                
+                            predicts_logits = torch.cat([positive_logits, negative_logits], dim=0)
+                            labels = torch.cat([torch.ones_like(positive_logits), torch.zeros_like(negative_logits)], dim=0)
+
+                            loss = loss_func(input=predicts_logits, target=labels)
+
+
+                            # Record metrics using probabilities
+                            # Record metrics using probabilities (no grad required for metrics)
+                            with torch.no_grad():
+                                predicts_probs = torch.sigmoid(predicts_logits)
+                                train_losses.append(loss.item())
+                                train_metrics.append(get_link_prediction_metrics(predicts=predicts_probs, labels=labels))
+
+                            # === Gradient accumulation handling ===
+                            # Zero grads at the start of accumulation interval
+                            if (batch_idx % grad_accum_steps) == 0:
+                                optimizer.zero_grad()
+
+                            # Scale loss for accumulation
+                            loss_to_back = loss / float(grad_accum_steps)
+
+                            # Backward with or without AMP (scale the divided loss)
+                            if use_amp and scaler is not None:
+                                scaler.scale(loss_to_back).backward()
+                            else:
+                                loss_to_back.backward()
+
+                            # Step only when we've accumulated enough steps or at last batch
+                            is_last_accum_step = ((batch_idx + 1) % grad_accum_steps == 0) or (batch_idx == len(train_idx_data_loader) - 1)
+                            if is_last_accum_step:
+                                if use_amp and scaler is not None:
+                                    # Unscale, clip, step, update
+                                    scaler.unscale_(optimizer)
+                                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                                    scaler.step(optimizer)
+                                    scaler.update()
+                                else:
+                                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                                    optimizer.step()
+
+                                    # Optional empty cache after step to mitigate fragmentation
+                                    if empty_cache_after_step and torch.cuda.is_available():
+                                        try:
+                                            torch.cuda.empty_cache()
+                                        except Exception:
+                                            pass
+
+                                    # Ensure grads are zeroed for next accumulation window
+                                    optimizer.zero_grad()
+
+                        # log memory after backward occasionally
+                        if batch_idx % getattr(args, 'mem_log_interval', 50) == 0:
+                            _log_cuda_mem(logger, note=f"after backward epoch{epoch+1}-batch{batch_idx}", device=args.device,
+                                         full_summary=getattr(args, 'mem_log_full_summary', False))
+
+                        # success -> break out of retry loop
+                        break
+                    except RuntimeError as e:
+                        # Handle CUDA OOM specifically
+                        msg = str(e)
+                        if 'out of memory' in msg or 'CUDA out of memory' in msg:
+                            attempt += 1
+                            logger.error(f"CUDA OOM during batch {batch_idx}, attempt {attempt}/{1 + oom_retries}: {e}")
+                            traceback.print_exc()
+                            # free cached memory and log
+                            try:
+                                torch.cuda.empty_cache()
+                            except Exception:
+                                pass
+                            _log_cuda_mem(logger, note=f"after empty_cache attempt{attempt}", device=args.device,
+                                         full_summary=getattr(args, 'mem_log_full_summary', False))
+                            # If we can retry, optionally reduce local_num_neighbors and retry
+                            if attempt <= oom_retries:
+                                if getattr(args, 'oom_retry_reduce_neighbors', True):
+                                    new_neighbors = max(0, local_num_neighbors // 2)
+                                    if new_neighbors < local_num_neighbors:
+                                        logger.info(f"Reducing local_num_neighbors {local_num_neighbors} -> {new_neighbors} and retrying")
+                                        local_num_neighbors = new_neighbors
+                                time.sleep(1)
+                                continue
+                            else:
+                                logger.error("Exceeded OOM retries — re-raising exception to abort run")
+                                raise
+                        else:
+                            # Not an OOM; re-raise
+                            raise
+
                 # Update progress bar less frequently to avoid conflicts (only if tqdm is enabled)
                 if use_tqdm and (batch_idx % 5 == 0 or batch_idx == len(train_idx_data_loader) - 1):
                     train_idx_data_loader_tqdm.set_description(
@@ -774,7 +907,8 @@ if __name__ == "__main__":
                                                                      loss_func=loss_func,
                                                                      num_neighbors=args.num_neighbors,
                                                                      time_gap=args.time_gap,
-                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                     use_amp=use_amp)
             
 
 
@@ -794,7 +928,8 @@ if __name__ == "__main__":
                                                                                        loss_func=loss_func,
                                                                                        num_neighbors=args.num_neighbors,
                                                                                        time_gap=args.time_gap,
-                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                                       use_amp=use_amp)
 
 
 
@@ -859,7 +994,8 @@ if __name__ == "__main__":
                                                                            loss_func=loss_func,
                                                                            num_neighbors=args.num_neighbors,
                                                                            time_gap=args.time_gap,
-                                                                           disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                           disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                           use_amp=use_amp)
 
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -875,7 +1011,8 @@ if __name__ == "__main__":
                                                                                              loss_func=loss_func,
                                                                                              num_neighbors=args.num_neighbors,
                                                                                              time_gap=args.time_gap,
-                                                                                             disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                                             disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                                             use_amp=use_amp)
 
 
                 if args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -999,7 +1136,8 @@ if __name__ == "__main__":
                                                                      loss_func=loss_func,
                                                                      num_neighbors=args.num_neighbors,
                                                                      time_gap=args.time_gap,
-                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                     use_amp=use_amp)
         
             new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                                                                                        model=model,
@@ -1010,37 +1148,40 @@ if __name__ == "__main__":
                                                                                        loss_func=loss_func,
                                                                                        num_neighbors=args.num_neighbors,
                                                                                        time_gap=args.time_gap,
-                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                                                       disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                                                       use_amp=use_amp)
 
         if args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # the memory in the best model has seen the validation edges, we need to backup the memory for new testing nodes
             val_backup_memory_bank = model[0].memory_bank.backup_memory_bank()
 
         test_losses, test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
-                                                                   model=model,
-                                                                   neighbor_sampler=full_neighbor_sampler,
-                                                                   evaluate_idx_data_loader=test_idx_data_loader,
-                                                                   evaluate_neg_edge_sampler=test_neg_edge_sampler,
-                                                                   evaluate_data=test_data,
-                                                                   loss_func=loss_func,
-                                                                   num_neighbors=args.num_neighbors,
-                                                                   time_gap=args.time_gap,
-                                                                   disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                    model=model,
+                                    neighbor_sampler=full_neighbor_sampler,
+                                    evaluate_idx_data_loader=test_idx_data_loader,
+                                    evaluate_neg_edge_sampler=test_neg_edge_sampler,
+                                    evaluate_data=test_data,
+                                    loss_func=loss_func,
+                                    num_neighbors=args.num_neighbors,
+                                    time_gap=args.time_gap,
+                                    disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                    use_amp=use_amp)
 
         if args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # reload validation memory bank for new testing nodes
             model[0].memory_bank.reload_memory_bank(val_backup_memory_bank)
 
         new_node_test_losses, new_node_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
-                                                                                     model=model,
-                                                                                     neighbor_sampler=full_neighbor_sampler,
-                                                                                     evaluate_idx_data_loader=new_node_test_idx_data_loader,
-                                                                                     evaluate_neg_edge_sampler=new_node_test_neg_edge_sampler,
-                                                                                     evaluate_data=new_node_test_data,
-                                                                                     loss_func=loss_func,
-                                                                                     num_neighbors=args.num_neighbors,
-                                                                                     time_gap=args.time_gap,
-                                                                                     disable_progress_bar=getattr(args, 'disable_progress_bar', False))
+                                                model=model,
+                                                neighbor_sampler=full_neighbor_sampler,
+                                                evaluate_idx_data_loader=new_node_test_idx_data_loader,
+                                                evaluate_neg_edge_sampler=new_node_test_neg_edge_sampler,
+                                                evaluate_data=new_node_test_data,
+                                                loss_func=loss_func,
+                                                num_neighbors=args.num_neighbors,
+                                                time_gap=args.time_gap,
+                                                disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                                                use_amp=use_amp)
         # store the evaluation metrics at the current run
         val_metric_dict, new_node_val_metric_dict, test_metric_dict, new_node_test_metric_dict = {}, {}, {}, {}
 
@@ -1212,7 +1353,8 @@ if __name__ == "__main__":
                 loss_func=loss_func,
                 num_neighbors=args.num_neighbors,
                 time_gap=args.time_gap,
-                disable_progress_bar=getattr(args, 'disable_progress_bar', False)
+                disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                use_amp=use_amp
             )
             
             # Reload memory for inductive test
@@ -1230,7 +1372,8 @@ if __name__ == "__main__":
                 loss_func=loss_func,
                 num_neighbors=args.num_neighbors,
                 time_gap=args.time_gap,
-                disable_progress_bar=getattr(args, 'disable_progress_bar', False)
+                disable_progress_bar=getattr(args, 'disable_progress_bar', False),
+                use_amp=use_amp
             )
             
             # Compute average metrics

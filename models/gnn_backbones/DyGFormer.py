@@ -314,27 +314,33 @@ class DyGFormer(nn.Module):
         assert padded_nodes_neighbor_node_raw_features.shape[1] % patch_size == 0
         num_patches = padded_nodes_neighbor_node_raw_features.shape[1] // patch_size
 
-        # list of Tensors with shape (num_patches, ), each Tensor with shape (batch_size, patch_size, node_feat_dim)
-        patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, \
-        patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features = [], [], [], []
+        # Prefer a reshape-based view (avoids building many small temporaries and calling torch.stack)
+        batch_size = padded_nodes_neighbor_node_raw_features.shape[0]
+        try:
+            # padded shape: (batch_size, max_seq_length, feat_dim)
+            # we can reshape to (batch_size, num_patches, patch_size, feat_dim) and then flatten the patch dims
+            patches_nodes_neighbor_node_raw_features = padded_nodes_neighbor_node_raw_features.reshape(batch_size, num_patches, patch_size, self.node_feat_dim).reshape(batch_size, num_patches, patch_size * self.node_feat_dim)
+            patches_nodes_edge_raw_features = padded_nodes_edge_raw_features.reshape(batch_size, num_patches, patch_size, self.edge_feat_dim).reshape(batch_size, num_patches, patch_size * self.edge_feat_dim)
+            patches_nodes_neighbor_time_features = padded_nodes_neighbor_time_features.reshape(batch_size, num_patches, patch_size, self.time_feat_dim).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
+            patches_nodes_neighbor_co_occurrence_features = padded_nodes_neighbor_co_occurrence_features.reshape(batch_size, num_patches, patch_size, self.neighbor_co_occurrence_feat_dim).reshape(batch_size, num_patches, patch_size * self.neighbor_co_occurrence_feat_dim)
+        except Exception:
+            # Fall back to the original (safe) stacking approach if reshape fails for some reason
+            patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, \
+            patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features = [], [], [], []
+            print("fallback to the original (safe) stacking approach for getting patches!")
+            for patch_id in range(num_patches):
+                start_idx = patch_id * patch_size
+                end_idx = patch_id * patch_size + patch_size
+                patches_nodes_neighbor_node_raw_features.append(padded_nodes_neighbor_node_raw_features[:, start_idx: end_idx, :])
+                patches_nodes_edge_raw_features.append(padded_nodes_edge_raw_features[:, start_idx: end_idx, :])
+                patches_nodes_neighbor_time_features.append(padded_nodes_neighbor_time_features[:, start_idx: end_idx, :])
+                patches_nodes_neighbor_co_occurrence_features.append(padded_nodes_neighbor_co_occurrence_features[:, start_idx: end_idx, :])
 
-        for patch_id in range(num_patches):
-            start_idx = patch_id * patch_size
-            end_idx = patch_id * patch_size + patch_size
-            patches_nodes_neighbor_node_raw_features.append(padded_nodes_neighbor_node_raw_features[:, start_idx: end_idx, :])
-            patches_nodes_edge_raw_features.append(padded_nodes_edge_raw_features[:, start_idx: end_idx, :])
-            patches_nodes_neighbor_time_features.append(padded_nodes_neighbor_time_features[:, start_idx: end_idx, :])
-            patches_nodes_neighbor_co_occurrence_features.append(padded_nodes_neighbor_co_occurrence_features[:, start_idx: end_idx, :])
-
-        batch_size = len(padded_nodes_neighbor_node_raw_features)
-        # Tensor, shape (batch_size, num_patches, patch_size * node_feat_dim)
-        patches_nodes_neighbor_node_raw_features = torch.stack(patches_nodes_neighbor_node_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.node_feat_dim)
-        # Tensor, shape (batch_size, num_patches, patch_size * edge_feat_dim)
-        patches_nodes_edge_raw_features = torch.stack(patches_nodes_edge_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.edge_feat_dim)
-        # Tensor, shape (batch_size, num_patches, patch_size * time_feat_dim)
-        patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
-
-        patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * self.neighbor_co_occurrence_feat_dim)
+            # Now stack
+            patches_nodes_neighbor_node_raw_features = torch.stack(patches_nodes_neighbor_node_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.node_feat_dim)
+            patches_nodes_edge_raw_features = torch.stack(patches_nodes_edge_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.edge_feat_dim)
+            patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
+            patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * self.neighbor_co_occurrence_feat_dim)
 
         return patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features
 

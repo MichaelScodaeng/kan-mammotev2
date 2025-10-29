@@ -306,6 +306,9 @@ class KMOTE(nn.Module):
     - transform_mode='shared': Single time transform shared by all experts (MoE approach)
     - transform_mode='per_expert': Per-expert time transforms (LeTE-style specialization)
     - transform_mode='adapter' (DEFAULT): Shared base + lightweight expert adapters
+    
+    Memory optimization:
+    - use_gradient_checkpointing: Trade compute for memory by checkpointing expert computations
     """
     def __init__(self, input_dim: int, output_dim: int,
                  hidden_dim: int = None,
@@ -314,9 +317,12 @@ class KMOTE(nn.Module):
                  use_scale: bool = True,
                  gating_temp: float = 1.0,
                  transform_mode: str = 'adapter',
-                 adapter_type: str = 'affine'):
+                 adapter_type: str = 'affine',
+                 use_gradient_checkpointing: bool = False):
         super().__init__()
         self.adapter_type = adapter_type
+        self.use_gradient_checkpointing = use_gradient_checkpointing
+        
         # This architecture is designed for a 1D time input.
         if input_dim != 1:
             raise ValueError("K-MOTE requires input_dim=1 for the time input.")
@@ -407,6 +413,10 @@ class KMOTE(nn.Module):
             else:
                 transform_type = "shared" if transform_mode == 'shared' else "per-expert"
                 print(f"Initialized K-MOTE with {transform_type} transform, hidden_dim={self.hidden_dim}")
+            if use_gradient_checkpointing:
+                print(f"   ├─ Gradient checkpointing: ENABLED (per-expert level)")
+            else:
+                print(f"   ├─ Gradient checkpointing: disabled")
         else:
             self.layer_norm = nn.Identity()
 
@@ -459,7 +469,27 @@ class KMOTE(nn.Module):
             self.time_transforms[2].weight.copy_(freqs_wavelet.unsqueeze(1))
             self.time_transforms[2].bias.zero_()
 
-    def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
+    def _checkpoint_expert(self, expert, t_input, skip_checkpointing=False):
+        """
+        Helper function to conditionally apply gradient checkpointing to expert forward pass.
+        
+        Args:
+            expert: The expert module to run
+            t_input: Input tensor for the expert
+            skip_checkpointing: If True, always use normal forward pass
+            
+        Returns:
+            Output from the expert
+        """
+        if self.use_gradient_checkpointing and self.training and not skip_checkpointing:
+            # Use gradient checkpointing to save memory during training
+            return torch.utils.checkpoint.checkpoint(expert, t_input, use_reentrant=False)
+        else:
+            # Normal forward pass (evaluation, checkpointing disabled, or explicitly skipped)
+            return expert(t_input)
+    
+    def _forward_impl(self, t, return_weights=False):
+        """Internal forward implementation (for checkpointing the entire K-MOTE)"""
         if t.dim() == 2:
             t = t.unsqueeze(-1) # Ensure shape (B, S, 1)
 
@@ -472,14 +502,21 @@ class KMOTE(nn.Module):
             gating_logits = self.gating_network(t_transformed)
             gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
             
-            expert_outputs = [expert(t_transformed) for expert in self.experts]
+            # Apply checkpointing to expert computations (skip for Fourier expert - index 1)
+            expert_outputs = [
+                self._checkpoint_expert(expert, t_transformed, skip_checkpointing=(i == 1)) 
+                for i, expert in enumerate(self.experts)
+            ]
             
         elif self.transform_mode == 'per_expert':
             # Option B: Per-expert transforms - each expert gets its own specialized input
             t_transformed = [transform(t) for transform in self.time_transforms]  # List of (B, S, hidden_dim)
             
-            # Each expert processes its specialized input
-            expert_outputs = [expert(t_trans) for expert, t_trans in zip(self.experts, t_transformed)]
+            # Each expert processes its specialized input with checkpointing (skip for Fourier expert - index 1)
+            expert_outputs = [
+                self._checkpoint_expert(expert, t_trans, skip_checkpointing=(i == 1)) 
+                for i, (expert, t_trans) in enumerate(zip(self.experts, t_transformed))
+            ]
             
             # Gating network uses the average of all transformed inputs
             t_for_gating = torch.stack(t_transformed, dim=0).mean(dim=0)  # (B, S, hidden_dim)
@@ -490,7 +527,7 @@ class KMOTE(nn.Module):
             # Option C: Shared base + expert adapters (DEFAULT)
             t_base = self.time_base_transform(t)  # (B, S, hidden_dim)
             
-            # Apply expert-specific adaptations
+            # Apply expert-specific adaptations and checkpointing
             expert_outputs = []
             for i, expert in enumerate(self.experts):
                 if self.adapter_type == 'affine':
@@ -500,7 +537,9 @@ class KMOTE(nn.Module):
                     # Linear adapter
                     t_adapted = self.expert_adapters[i](t_base)
                 
-                expert_outputs.append(expert(t_adapted))
+                # Apply checkpointing to expert computations (skip for Fourier expert - index 1)
+                expert_output = self._checkpoint_expert(expert, t_adapted, skip_checkpointing=(i == 1))
+                expert_outputs.append(expert_output)
             
             # Gating network uses the shared base representation
             gating_logits = self.gating_network(t_base)
@@ -521,3 +560,11 @@ class KMOTE(nn.Module):
         if return_weights:
             return output_embedding, gating_weights.squeeze(-2)
         return output_embedding
+
+    def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
+        """
+        Forward pass with per-expert gradient checkpointing.
+        
+        Checkpointing strategy: Checkpoint individual expert forward passes only.
+        """
+        return self._forward_impl(t, return_weights)

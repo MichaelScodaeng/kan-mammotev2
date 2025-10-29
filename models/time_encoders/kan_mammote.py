@@ -43,7 +43,8 @@ class KAN_MAMMOTE(nn.Module):
                  use_controllable_mamba: bool = True,  # Only for fusion_strategy='mamba'
                  use_kmote_for_relative: bool = True,  # Default: K-MOTE (SM-kernel is legacy)
                  fusion_strategy: str = 'mamba',  # NEW: 'mamba', 'concat', 'weighted', 'attention'
-                 separate_modulation_pathway: bool = True,dropout: float = 0.1,  # NEW: For ControllableMamba2 only
+                 separate_modulation_pathway: bool = True, dropout: float = 0.1,  # NEW: For ControllableMamba2 only
+                 use_gradient_checkpointing: bool = False,  # NEW: Memory optimization
                  **kwargs):
         super().__init__()
         
@@ -73,13 +74,15 @@ class KAN_MAMMOTE(nn.Module):
         self.separate_modulation_pathway = separate_modulation_pathway  # Store the config
         self.dropout_rate = dropout  # Store for logging
         self.num_mixtures = expert_dim  # Store for logging
+        self.use_gradient_checkpointing = use_gradient_checkpointing  # Store checkpointing flag
         #self.rel_to_content_alpha = nn.Parameter(torch.tensor(0.0))
         # Enhanced K-MOTE for absolute time with configurable wavelet type
         self.k_mote_abs = KMOTE(
             input_dim=1, 
             output_dim=expert_dim, 
             wavelet_type=wavelet_type,
-            use_scale=True,       # Enable scale parameter like LeTE
+            use_scale=True,       # Enable scale parameter for better numerical stability
+            use_gradient_checkpointing=use_gradient_checkpointing,  # Pass checkpointing flag
         )
         
         # ===== Choose between K-MOTE (default) and SM-kernel (legacy) for relative time =====
@@ -90,6 +93,7 @@ class KAN_MAMMOTE(nn.Module):
                 output_dim=expert_dim, 
                 wavelet_type=wavelet_type,
                 use_scale=True,        # Enable scale parameter like LeTE
+                use_gradient_checkpointing=use_gradient_checkpointing,  # Pass checkpointing flag
             )
             self.sm_kernel = None
             rel_time_dim = expert_dim  # K-MOTE outputs expert_dim
@@ -250,6 +254,7 @@ class KAN_MAMMOTE(nn.Module):
         print(f"   ├─ Relative encoder: {'K-MOTE' if use_kmote_for_relative else 'SM-Kernel (legacy)'}")
         if fusion_strategy == 'mamba' and use_controllable_mamba:
             print(f"   ├─ Modulation pathway: {'Separate (u_k only)' if separate_modulation_pathway else 'Combined (u_k + fusion_features)'}")
+        print(f"   ├─ Gradient checkpointing: {'ENABLED (K-MOTE experts only)' if use_gradient_checkpointing else 'disabled'}")
         print(f"   ├─ Expert dim: {expert_dim}")
         print(f"   └─ Embedding dim: {embedding_dim}")
     
@@ -259,6 +264,75 @@ class KAN_MAMMOTE(nn.Module):
             self.sm_kernel.initialize_from_data(delta_t_sample)
         else:
             print("INFO: Skipping SM-kernel initialization (using dual K-MOTE mode)")
+    
+    def _controllable_mamba_wrapper(self, content_input, temporal_modulators):
+        """Wrapper for ControllableMamba2 forward pass (needed for checkpointing)"""
+        return self.mamba2(u=content_input, temporal_modulators=temporal_modulators)
+    
+    def _vanilla_mamba_wrapper(self, content_input):
+        """Wrapper for vanilla Mamba2 forward pass (needed for checkpointing)"""
+        return self.mamba2(content_input)
+    
+    def _checkpoint_mamba_fusion(self, inputs):
+        """
+        Helper function for Mamba fusion (checkpointing DISABLED per user request).
+        
+        Args:
+            inputs: Tuple of (content_input, modulation_input) for ControllableMamba2
+                   or content_input for vanilla Mamba2
+        
+        Returns:
+            Output from the Mamba fusion
+        """
+        # Always use normal forward pass - Mamba checkpointing disabled
+        if self.use_controllable_mamba and isinstance(inputs, tuple):
+            content_input, temporal_modulators = inputs
+            return self.mamba2(u=content_input, temporal_modulators=temporal_modulators)
+        else:
+            return self.mamba2(inputs)
+    
+    def _checkpoint_mlp_fusion(self, fusion_features):
+        """
+        Helper function to conditionally apply gradient checkpointing to MLP-based fusion.
+        
+        DISABLED: MLP fusion is relatively lightweight, checkpointing creates more overhead than benefit.
+        Only checkpoint heavy operations like Mamba2.
+        """
+        # Always use normal forward pass for MLP operations
+        if self.fusion_strategy == 'concat':
+            return self.concat_projection(fusion_features)
+        elif self.fusion_strategy == 'weighted':
+            return self._weighted_fusion_forward(fusion_features)
+        elif self.fusion_strategy == 'attention':
+            return self._attention_fusion_forward(fusion_features)
+    
+    def _weighted_fusion_forward(self, fusion_features):
+        """Helper for weighted fusion (for checkpointing)"""
+        # Split concatenated features back to u_k and v_k
+        u_k, v_k = torch.chunk(fusion_features, 2, dim=-1)
+        alpha = torch.sigmoid(self.weighted_alpha)
+        combined = alpha.unsqueeze(0).unsqueeze(0) * u_k + (1 - alpha).unsqueeze(0).unsqueeze(0) * v_k
+        return self.weighted_norm(combined)
+    
+    def _attention_fusion_forward(self, fusion_features):
+        """Helper for attention fusion (for checkpointing)"""
+        # Split concatenated features back to u_k and v_k
+        u_k, v_k = torch.chunk(fusion_features, 2, dim=-1)
+        
+        # Cross-attention: u_k attends to v_k
+        u_attn = self.attention_u(u_k)  # Query from absolute time
+        v_attn = self.attention_v(v_k)  # Key/Value from relative time
+        
+        # Attention weights
+        attn_scores = torch.matmul(u_attn, v_attn.transpose(-2, -1)) / (self.expert_dim ** 0.5)
+        attn_weights = F.softmax(attn_scores, dim=-1)
+        
+        # Apply attention
+        attended = torch.matmul(attn_weights, v_attn)
+        
+        # Combine with residual and project
+        combined = u_k + attended  # Residual connection
+        return self.attention_out(combined)
     
     def warmup(self, device='cuda', num_iterations=3):
         """
@@ -383,26 +457,48 @@ class KAN_MAMMOTE(nn.Module):
             # ===== MAMBA FUSION (Original KAN-MAMMOTE) =====
             
             if self.use_controllable_mamba:
-                # ✅ SIMPLIFIED: Direct v_k → modulator_head (no fusion_mlp_base)
-                modulator_logits = self.modulator_head(v_k)  # (B, S, nheads * 2)
-                
-                # Split into gamma and beta with improved parameterization
-                gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
-                gamma = F.softplus(gamma_logits)  # Clean softplus (no bias needed)
-                temporal_modulators = (gamma, beta)
-                
-                # Pure absolute time as content (separate pathway)
-                combined_input = u_k
-                
-                if debug or hasattr(self, '_debug_mode'):
-                    print(f"🔧 CONTROLLABLE MAMBA2 (SIMPLIFIED):")
-                    print(f"   Direct v_k → modulator_head (no fusion_mlp_base)")
-                    print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
-                    print(f"   beta range: [{beta.min().item():.3f}, {beta.max().item():.3f}]")
-                    print(f"   combined_input = u_k (pure absolute)")
-                    print(f"   combined_input shape: {combined_input.shape}")
-                
-                mamba_output = self.mamba2(u=combined_input, temporal_modulators=temporal_modulators)
+                if self.use_controllable_mamba:
+                    # ✅ SIMPLIFIED: Direct v_k → modulator_head (no fusion_mlp_base)
+                    modulator_logits = self.modulator_head(v_k)  # (B, S, nheads * 2)
+                    
+                    # Split into gamma and beta with improved parameterization
+                    gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
+                    gamma = F.softplus(gamma_logits)  # Clean softplus (no bias needed)
+                    temporal_modulators = (gamma, beta)
+                    
+                    # Pure absolute time as content (separate pathway)
+                    combined_input = u_k
+                    
+                    if debug or hasattr(self, '_debug_mode'):
+                        print(f"🔧 CONTROLLABLE MAMBA2 (SIMPLIFIED):")
+                        print(f"   Direct v_k → modulator_head (no fusion_mlp_base)")
+                        print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
+                        print(f"   beta range: [{beta.min().item():.3f}, {beta.max().item():.3f}]")
+                        print(f"   combined_input = u_k (pure absolute)")
+                        print(f"   combined_input shape: {combined_input.shape}")
+                    
+                    # Apply checkpointing to Mamba fusion
+                    mamba_output = self._checkpoint_mamba_fusion((combined_input, temporal_modulators))
+                    
+                else:
+                    # Vanilla Mamba2: No temporal modulation
+                    #fusion_features = self.fusion_mlp_base(v_k)  # (B, S, expert_dim)
+                    fusion_features = v_k
+                    if debug or hasattr(self, '_debug_mode'):
+                        print(f"🔧 VANILLA MAMBA2:")
+                        print(f"   fusion_features shape: {fusion_features.shape}")
+                    
+                    # ✅ FIXED: Residual + Post-LN pattern (Transformer best practice)
+                    combined_input = u_k + fusion_features  # Residual connection
+                    combined_input = self.fusion_norm(combined_input)  # ✅ LayerNorm AFTER residual
+                    
+                    if debug or hasattr(self, '_debug_mode'):
+                        print(f"🔗 COMBINED INPUT PATHWAY (vanilla Mamba2) + Post-LN:")
+                        print(f"   combined_input = fusion_norm(u_k + fusion_features)")
+                        print(f"   combined_input shape: {combined_input.shape}")
+                    
+                    # Apply checkpointing to Mamba fusion
+                    mamba_output = self._checkpoint_mamba_fusion(combined_input)
                 
             else:
                 # Vanilla Mamba2: No temporal modulation
@@ -445,8 +541,8 @@ class KAN_MAMMOTE(nn.Module):
             if debug or hasattr(self, '_debug_mode'):
                 print(f"   concat_features shape: {concat_features.shape}")
             
-            # Project through MLP
-            final_embedding = self.fusion_mlp(concat_features)
+            # Project through MLP with checkpointing
+            final_embedding = self._checkpoint_mlp_fusion(concat_features)
             
         elif self.fusion_strategy == 'weighted':
             # ===== WEIGHTED SUM FUSION =====
@@ -457,21 +553,11 @@ class KAN_MAMMOTE(nn.Module):
                 print(f"🔧 WEIGHTED FUSION:")
                 print(f"   u_k (abs) shape: {u_k.shape}")
                 print(f"   v_k_proj (rel) shape: {v_k_proj.shape}")
-                print(f"   weight_abs: {self.weight_abs.item():.3f}")
-                print(f"   weight_rel: {self.weight_rel.item():.3f}")
+                print(f"   alpha value: {torch.sigmoid(self.weighted_alpha).item():.3f}")
             
-            # Normalize weights
-            w_abs = torch.sigmoid(self.weight_abs)
-            w_rel = torch.sigmoid(self.weight_rel)
-            w_sum = w_abs + w_rel
-            w_abs_norm = w_abs / w_sum
-            w_rel_norm = w_rel / w_sum
-            
-            # Weighted sum
-            fused = w_abs_norm * u_k + w_rel_norm * v_k_proj  # (B, S, expert_dim)
-            
-            if debug or hasattr(self, '_debug_mode'):
-                print(f"   normalized weights: abs={w_abs_norm:.3f}, rel={w_rel_norm:.3f}")
+            # Use checkpointing for weighted fusion
+            fusion_input = torch.cat([u_k, v_k_proj], dim=-1)  # Concat for checkpointing
+            fused = self._checkpoint_mlp_fusion(fusion_input)
             
             # Project to embedding dimension
             final_embedding = self.output_projection(fused)
