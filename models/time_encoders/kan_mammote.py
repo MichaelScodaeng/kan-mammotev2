@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.cuda.amp as amp
 
 from .k_mote import KMOTE
 from .sm_kernel import SMKernelLayer
@@ -44,8 +45,13 @@ class KAN_MAMMOTE(nn.Module):
                  use_kmote_for_relative: bool = True,  # Default: K-MOTE (SM-kernel is legacy)
                  fusion_strategy: str = 'mamba',  # NEW: 'mamba', 'concat', 'weighted', 'attention'
                  separate_modulation_pathway: bool = True,dropout: float = 0.1,  # NEW: For ControllableMamba2 only
+                 use_amp: bool = False,
                  **kwargs):
         super().__init__()
+        # whether to run internal expert/mamba ops under CUDA AMP autocast
+        self.use_amp = use_amp
+        # Extract optional gradient checkpointing flag if provided via kwargs
+        use_gc = kwargs.pop('use_gradient_checkpointing', True)
         
         # Validate fusion strategy
         valid_strategies = ['mamba', 'concat', 'weighted', 'attention']
@@ -80,6 +86,8 @@ class KAN_MAMMOTE(nn.Module):
             output_dim=expert_dim, 
             wavelet_type=wavelet_type,
             use_scale=True,       # Enable scale parameter like LeTE
+            use_gradient_checkpointing=use_gc,
+            use_amp=self.use_amp
         )
         
         # ===== Choose between K-MOTE (default) and SM-kernel (legacy) for relative time =====
@@ -90,6 +98,8 @@ class KAN_MAMMOTE(nn.Module):
                 output_dim=expert_dim, 
                 wavelet_type=wavelet_type,
                 use_scale=True,        # Enable scale parameter like LeTE
+                use_gradient_checkpointing=use_gc,
+                use_amp=self.use_amp
             )
             self.sm_kernel = None
             rel_time_dim = expert_dim  # K-MOTE outputs expert_dim
@@ -261,6 +271,7 @@ class KAN_MAMMOTE(nn.Module):
             print("INFO: Skipping SM-kernel initialization (using dual K-MOTE mode)")
     
     def warmup(self, device='cuda', num_iterations=3):
+        
         """
         Warm up the model by running a few forward passes.
         This compiles the CUDA kernels (especially for Mamba2) and caches them 
@@ -314,6 +325,7 @@ class KAN_MAMMOTE(nn.Module):
         
         print(f"✅ Warm-up complete! CUDA kernels cached for this session.")
         print(f"{'='*60}\n")
+        
         
     def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor, debug: bool = False) -> torch.Tensor:
         """
@@ -402,7 +414,9 @@ class KAN_MAMMOTE(nn.Module):
                     print(f"   combined_input = u_k (pure absolute)")
                     print(f"   combined_input shape: {combined_input.shape}")
                 
-                mamba_output = self.mamba2(u=combined_input, temporal_modulators=temporal_modulators)
+                # Run Mamba2 under autocast when AMP is enabled to save memory/compute
+                with amp.autocast(enabled=(self.use_amp and torch.cuda.is_available())):
+                    mamba_output = self.mamba2(u=combined_input, temporal_modulators=temporal_modulators)
                 
             else:
                 # Vanilla Mamba2: No temporal modulation
@@ -421,7 +435,8 @@ class KAN_MAMMOTE(nn.Module):
                     print(f"   combined_input = fusion_norm(u_k + fusion_features)")
                     print(f"   combined_input shape: {combined_input.shape}")
                 
-                mamba_output = self.mamba2(combined_input)
+                with amp.autocast(enabled=(self.use_amp and torch.cuda.is_available())):
+                    mamba_output = self.mamba2(combined_input)
             
             # ✅ FIXED: Apply dropout after Mamba2 (Transformer best practice)
             mamba_output = self.mamba_dropout(mamba_output)
@@ -511,6 +526,33 @@ class KAN_MAMMOTE(nn.Module):
             print(f"{'='*60}\n")
 
         return final_embedding
+    
+    # --- AMP convenience helpers (delegate to internal KMOTE) ---
+    def make_grad_scaler(self):
+        """Return a GradScaler if AMP is enabled and CUDA is available, else None."""
+        if self.use_amp and torch.cuda.is_available():
+            return torch.cuda.amp.GradScaler()
+        return None
+
+    def scaled_backward(self, loss: torch.Tensor, scaler):
+        """Backward using scaler when available (delegates to k_mote_abs helper)."""
+        # Prefer delegating to underlying KMOTE which implements scaled_backward
+        if hasattr(self.k_mote_abs, 'scaled_backward'):
+            return self.k_mote_abs.scaled_backward(loss, scaler)
+        if scaler is not None:
+            scaler.scale(loss).backward()
+        else:
+            loss.backward()
+
+    def scaler_step(self, scaler, optimizer):
+        """Step optimizer using scaler when available."""
+        if hasattr(self.k_mote_abs, 'scaler_step'):
+            return self.k_mote_abs.scaler_step(scaler, optimizer)
+        if scaler is not None:
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            optimizer.step()
     
     def enable_debug_mode(self):
         """Enable persistent debug mode"""

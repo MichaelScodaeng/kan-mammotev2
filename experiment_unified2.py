@@ -52,6 +52,11 @@ def parse_arguments():
                         help='Maximum number of retries for failed experiments (default: 2)')
     parser.add_argument('--disable_progress_bar', action='store_true', default=False,
                         help='Disable tqdm progress bars (useful for logging to files in batch jobs)')
+    # AMP and checkpointing options (forwarded to training script)
+    parser.add_argument('--use_amp', action='store_true', default=False,
+                        help='Enable CUDA Automatic Mixed Precision (forwarded to training script)')
+    parser.add_argument('--use_gradient_checkpointing', action='store_true', default=False,
+                        help='Enable gradient checkpointing inside time-encoder models (forwarded to training script)')
     
     # Add hyperparameter arguments to forward to training script
     parser.add_argument('--expert_dim', type=int, default=None,
@@ -606,6 +611,12 @@ def build_training_command(model, dataset, time_encoder_name, args,
     encoder_args = get_time_encoder_args(time_encoder_name)
     if encoder_args:
         command.extend(encoder_args.split())
+
+    # Forward runtime flags for AMP and gradient checkpointing to the training script
+    if hasattr(args, 'use_amp') and args.use_amp:
+        command.append('--use_amp')
+    if hasattr(args, 'use_gradient_checkpointing') and args.use_gradient_checkpointing:
+        command.append('--use_gradient_checkpointing')
     
     return command
 

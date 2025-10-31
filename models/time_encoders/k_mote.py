@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import torch.cuda.amp as amp
 
 
 
@@ -608,10 +609,13 @@ class KMOTE(nn.Module):
                  gating_temp: float = 1.0,
                  transform_mode: str = 'adapter',
                  adapter_type: str = 'affine',
-                 use_gradient_checkpointing: bool = False):
+                 use_gradient_checkpointing: bool = True,
+                 use_amp: bool = False):
         super().__init__()
         self.adapter_type = adapter_type
         self.use_gradient_checkpointing = use_gradient_checkpointing
+        # Optionally enable mixed-precision (AMP) for internal expert computations
+        self.use_amp = use_amp
         
         # This architecture is designed for a 1D time input.
         if input_dim != 1:
@@ -789,12 +793,41 @@ class KMOTE(nn.Module):
         Returns:
             Output from the expert
         """
+        # Helper to run expert under autocast when requested
+        def _run_expert(inp):
+            # Use CUDA autocast only when requested and CUDA is available
+            with amp.autocast(enabled=(self.use_amp and torch.cuda.is_available())):
+                return expert(inp)
+
         if self.use_gradient_checkpointing and self.training and not skip_checkpointing:
-            # Use gradient checkpointing to save memory during training
-            return torch.utils.checkpoint.checkpoint(expert, t_input, use_reentrant=False)
+            # Use gradient checkpointing to save memory during training.
+            # Wrap the expert call so autocast is active during recomputation as well.
+            return torch.utils.checkpoint.checkpoint(_run_expert, t_input, use_reentrant=False)
         else:
-            # Normal forward pass (evaluation, checkpointing disabled, or explicitly skipped)
-            return expert(t_input)
+            # Normal forward pass with optional autocast
+            return _run_expert(t_input)
+
+    # --- AMP convenience helpers for training scripts ---
+    def make_grad_scaler(self):
+        """Return a GradScaler if AMP is enabled and CUDA is available, else None."""
+        if self.use_amp and torch.cuda.is_available():
+            return torch.cuda.amp.GradScaler()
+        return None
+
+    def scaled_backward(self, loss: torch.Tensor, scaler):
+        """Perform backward using the provided scaler when available."""
+        if scaler is not None:
+            scaler.scale(loss).backward()
+        else:
+            loss.backward()
+
+    def scaler_step(self, scaler, optimizer):
+        """Perform optimizer step using scaler when available."""
+        if scaler is not None:
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            optimizer.step()
     
     def _forward_impl(self, t, return_weights=False):
         """Internal forward implementation (for checkpointing the entire K-MOTE)"""

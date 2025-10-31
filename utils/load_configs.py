@@ -51,7 +51,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--encoder_dropout', type=float, default=0.1, help='dropout rate for time encoder (e.g., KAN_MAMMOTE)')
     parser.add_argument('--gamma', type=float, default=0.5, help='gamma')
     parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs')
-    parser.add_argument('--optimizer', type=str, default='Adam', choices=['SGD', 'Adam', 'RMSprop'], help='name of optimizer')
+    parser.add_argument('--optimizer', type=str, default='AdamW8bit', choices=['SGD', 'Adam', 'RMSprop',"AdamW","Adam8bit","AdamW8bit"], help='name of optimizer')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='weight decay')
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
@@ -77,7 +77,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='directory to save all ablation study outputs (models, metrics, results)')
     
     # Mamba-specific arguments for KAN-MAMMOTE
-    parser.add_argument('--mamba_d_state', type=int, default=64, 
+    parser.add_argument('--mamba_d_state', type=int, default=128, 
                         help='Mamba state dimension (for kan_mammote encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=4, 
                         help='Mamba convolution dimension (for kan_mammote encoder)')

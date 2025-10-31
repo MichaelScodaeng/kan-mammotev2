@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import csv
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
+from bitsandbytes.optim import AdamW8bit
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -501,7 +502,7 @@ class TimeEncoderClassifier(nn.Module):
             return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, fusion_strategy=encoder_type.replace('kan_mammote_lite_', ''), **kwargs)
         elif encoder_type == 'kan_mammote_full':
             # Default: K-MOTE for relative, controllable Mamba2, mamba fusion
-            return KAN_MAMMOTE(embedding_dim=embedding_dim,expert_dim = 64, mamba_headdim=16)
+            return KAN_MAMMOTE(embedding_dim=embedding_dim, use_gradient_checkpointing=True, **kwargs)
         # KAN-MAMMOTE variants with different fusion strategies
         elif encoder_type == 'kan_mammote_concat':
             return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='concat', **kwargs)
@@ -625,13 +626,24 @@ class TimeEncoderClassifier(nn.Module):
         return logits
 
 
-def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False):
+def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False, use_amp: bool = False):
     """
     Train the model with proper evaluation
     """
+    # Support optional AMP via device-aware GradScaler (enabled by CLI flag)
+    # If caller passed explicit attribute, prefer it; otherwise it's controlled by run_experiment via kwargs
+    # Initialize GradScaler only when using CUDA and AMP requested
+    scaler = None
+    if use_amp and device.type == 'cuda':
+        # Prefer model-provided GradScaler helper if available (KMOTE/KAN_MAMMOTE)
+        if hasattr(model, 'make_grad_scaler'):
+            scaler = model.make_grad_scaler()
+        else:
+            scaler = torch.cuda.amp.GradScaler()
+
     # ===== CRITICAL FIX: Use Adam with lr=1e-3 (matching LeTE exactly) =====
     # Original LeTE: optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = AdamW8bit(model.parameters(), lr=1e-3, weight_decay=1e-4)
     print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
     # ===== END CRITICAL FIX =====
     
@@ -689,13 +701,22 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
                 t_rel_debug[:, 1:] = padded_events[:, 1:].float() - padded_events[:, :-1].float()
                 print(f"  t_rel range: [{t_rel_debug.min():.1f}, {t_rel_debug.max():.1f}], mean: {t_rel_debug.mean():.1f}")
             
-            # Forward pass
+            # Forward pass (with optional AMP autocast on CUDA)
             optimizer.zero_grad()
-            outputs = model(padded_events, lengths)
-            loss = criterion(outputs, labels)
-            
-            # Backward pass
-            loss.backward()
+            if scaler is not None:
+                with torch.cuda.amp.autocast():
+                    outputs = model(padded_events, lengths)
+                    loss = criterion(outputs, labels)
+                # Backward with scaler - prefer model helper when present
+                if hasattr(model, 'scaled_backward'):
+                    model.scaled_backward(loss, scaler)
+                else:
+                    scaler.scale(loss).backward()
+            else:
+                outputs = model(padded_events, lengths)
+                loss = criterion(outputs, labels)
+                # Backward pass
+                loss.backward()
             
             # ===== ADD: Gradient clipping for stability =====
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -726,7 +747,16 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
                     print(f"📊 Gradient health: {small_grads} small + {zero_grads} zero / {total_params} total ({100*(small_grads+zero_grads)/total_params:.1f}% unhealthy)")
             # ===== END OPTIONAL =====
             
-            optimizer.step()
+            # Optimizer step (handle AMP scaler if used)
+            if scaler is not None:
+                # Prefer model helper for stepping when present
+                if hasattr(model, 'scaler_step'):
+                    model.scaler_step(scaler, optimizer)
+                else:
+                    scaler.step(optimizer)
+                    scaler.update()
+            else:
+                optimizer.step()
             
             # Track metrics
             total_loss += loss.item() * labels.size(0)
@@ -746,7 +776,7 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
         train_acc = 100.0 * total_correct / total_samples
         
         # ===== Validation Phase =====
-        val_loss, val_acc = evaluate_model(model, val_loader, device, criterion)
+        val_loss, val_acc = evaluate_model(model, val_loader, device, criterion, use_amp=(scaler is not None))
         
         # Update history
         history['train_loss'].append(train_loss)
@@ -791,7 +821,7 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
     return history, best_val_acc
 
 
-def evaluate_model(model, data_loader, device, criterion):
+def evaluate_model(model, data_loader, device, criterion, use_amp: bool = False):
     """
     Evaluate model on a dataset (matches LeTE's evaluate function exactly)
     """
@@ -813,9 +843,14 @@ def evaluate_model(model, data_loader, device, criterion):
             lengths = lengths.to(device)
             labels = labels.to(device)
             
-            # Forward pass
-            outputs = model(padded_events, lengths)
-            loss = criterion(outputs, labels)
+            # Forward pass (with optional AMP autocast on CUDA)
+            if use_amp and device.type == 'cuda':
+                with torch.cuda.amp.autocast():
+                    outputs = model(padded_events, lengths)
+                    loss = criterion(outputs, labels)
+            else:
+                outputs = model(padded_events, lengths)
+                loss = criterion(outputs, labels)
             
             # Track metrics
             total_loss += loss.item() * labels.size(0)
@@ -985,8 +1020,12 @@ def find_latest_checkpoint(checkpoint_dir, encoder_name):
     if os.path.exists(checkpoint_dir):
         for file in os.listdir(checkpoint_dir):
             if file.startswith(f'checkpoint_{encoder_name}_epoch_') and file.endswith('.pth'):
-                epoch_num = int(file.split('_epoch_')[1].split('.pth')[0])
-                checkpoint_files.append((epoch_num, os.path.join(checkpoint_dir, file)))
+                try:
+                    epoch_num = int(file.split('_epoch_')[1].split('.pth')[0])
+                    checkpoint_files.append((epoch_num, os.path.join(checkpoint_dir, file)))
+                except (ValueError, IndexError):
+                    # Ignore files that don't match the expected format
+                    continue
     
     if checkpoint_files:
         # Return the checkpoint with the highest epoch number
@@ -1056,7 +1095,8 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
             mamba_d_state=args.mamba_d_state,
             mamba_d_conv=args.mamba_d_conv,
             mamba_expand=args.mamba_expand,
-            wavelet_type=args.wavelet_type
+            wavelet_type=args.wavelet_type,
+            use_amp=getattr(args, 'use_amp', False)
         ).to(device)
         
         print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
@@ -1065,7 +1105,8 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         history, best_val_acc = train_model(
             model, train_loader, val_loader, 
             args.epochs, device, encoder_name, models_dir=models_dir, 
-            checkpoint_dir=checkpoint_dir, resume_from_checkpoint=args.resume_training
+            checkpoint_dir=checkpoint_dir, resume_from_checkpoint=args.resume_training,
+            use_amp=getattr(args, 'use_amp', False)
         )
         
         # ✅ Return best_val_acc (not final_val_acc) for fair comparison
@@ -1122,7 +1163,8 @@ def test_simple_classification(encoder_type='sm_kernel_only', epochs=10):
     ).to(device)
     
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    #usebitsandbytes
+    optimizer = AdamW8bit(model.parameters(), lr=1e-3, weight_decay=1e-4)
     
     print("Testing pattern: low pixel positions (0-100) = class 0, high (600-784) = class 1")
     
@@ -1298,6 +1340,10 @@ def main():
                         help='Time embedding dimension (default: 32)')
     parser.add_argument('--hidden_dim', type=int, default=128,
                         help='LSTM hidden dimension (default: 128)')
+
+    # Mixed precision option
+    parser.add_argument('--use_amp', action='store_true',
+                        help='Enable CUDA Automatic Mixed Precision for training and evaluation')
     
     parser.add_argument('--expert_dim', type=int, default=64,
                         help='Expert dimension for K-MOTE (default: 64)')
@@ -1409,7 +1455,7 @@ def main():
     # Run experiments
     results = []
     start_time = datetime.now()
-    timestamp = "no_timestamp"
+    timestamp = "no_timestamp02"
     
     # Create experiment directory structure
     experiment_folder = os.path.join(args.experiment_dir, f"run_{timestamp}")

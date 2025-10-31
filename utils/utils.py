@@ -60,7 +60,11 @@ def create_optimizer(model: nn.Module, optimizer_name: str, learning_rate: float
     :return:
     """
     if optimizer_name == 'Adam8bit':
+        optimizer = bnb.optim.Adam8bit(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name == 'AdamW8bit':
         optimizer = bnb.optim.AdamW8bit(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name == 'AdamW':
+        optimizer = torch.optim.AdamW(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer_name == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer_name == 'SGD':
@@ -69,7 +73,7 @@ def create_optimizer(model: nn.Module, optimizer_name: str, learning_rate: float
         optimizer = torch.optim.RMSprop(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     else:
         raise ValueError(f"Wrong value for optimizer {optimizer_name}!")
-
+    print(f"Using {optimizer_name} optimizer")
     return optimizer
 
 
