@@ -2,7 +2,7 @@
 
 
 # Global training configuration
-MAX_EPOCHS = 9
+MAX_EPOCHS = 200
 
 import os
 import sys
@@ -637,6 +637,10 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
     
     criterion = nn.CrossEntropyLoss()
     
+    # Early stopping parameters
+    patience = 20
+    epochs_no_improve = 0
+    
     # Initialize tracking
     history = {
         'train_loss': [], 'train_acc': [],
@@ -755,13 +759,16 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
               f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, "
               f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
         
-        # Save best model
+        # Save best model and handle early stopping
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            epochs_no_improve = 0
             best_model_path = os.path.join(models_dir, f'best_model_{encoder_name}.pth')
             torch.save(model.state_dict(), best_model_path)
             print(f"🔥 New best validation accuracy: {val_acc:.2f}%")
             print(f"💾 Model saved to: {best_model_path}")
+        else:
+            epochs_no_improve += 1
         
         # Save checkpoint
         if checkpoint_dir:
@@ -769,6 +776,17 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
                 model, optimizer, epoch, history, best_val_acc, encoder_name, checkpoint_dir
             )
             print(f"💾 Best checkpoint saved to: {checkpoint_path}")
+        
+        # Early stopping check
+        if epochs_no_improve >= patience:
+            print(f"🛑 Early stopping triggered after {patience} epochs with no improvement.")
+            break
+        else:
+            epochs_no_improve += 1
+        
+        if epochs_no_improve >= patience:
+            print(f"⏰ Early stopping triggered (no improvement for {patience} epochs)")
+            break
     
     return history, best_val_acc
 
@@ -890,7 +908,7 @@ def get_available_encoders():
         # KAN-MAMMOTE Full variants (with different fusion strategies)
         'kan_mammote_full',  # Default: K-MOTE relative + ControllableMamba2 + mamba fusion
         #'kan_mammote_concat',  # K-MOTE relative + concat fusion
-        'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
+        #'kan_mammote_weighted',  # K-MOTE relative + weighted fusion
         #'kan_mammote_attention',  # K-MOTE relative + attention fusion
         #'kan_mammote_vanilla_mamba',  # K-MOTE relative + vanilla Mamba2 + mamba fusion
         #'kan_mammote_sm_kernel',  # SM-kernel (legacy) + ControllableMamba2 + mamba fusion
