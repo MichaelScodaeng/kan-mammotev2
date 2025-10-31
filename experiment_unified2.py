@@ -1,4 +1,3 @@
-
 import subprocess
 import itertools
 import os
@@ -30,7 +29,7 @@ def parse_arguments():
                         help='Only resume incomplete experiments')
     parser.add_argument('--generate_report', action='store_true',
                         help='Generate experiment report and exit')
-    parser.add_argument('--num_runs', type=int, default=3,
+    parser.add_argument('--num_runs', type=int, default=1,
                         help='Number of runs per experiment (default: 1)')
     parser.add_argument('--timeout_hours', type=float, default=600.0,
                         help='Timeout in hours per experiment (default: 12)')
@@ -73,6 +72,86 @@ def parse_arguments():
                         help='Mamba convolution dimension (for kan_mammote encoder)')
     parser.add_argument('--mamba_headdim', type=int, default=None,
                         help='Mamba head dimension (for kan_mammote encoder)')
+    
+    # Additional training/evaluation parameters
+    parser.add_argument('--batch_size', type=int, default=None,
+                        help='batch size')
+    parser.add_argument('--gpu', type=int, default=None,
+                        help='GPU device number')
+    parser.add_argument('--num_neighbors', type=int, default=None,
+                        help='number of neighbors to sample for each node')
+    parser.add_argument('--sample_neighbor_strategy', type=str, default=None,
+                        choices=['uniform', 'recent', 'time_interval_aware'],
+                        help='how to sample historical neighbors')
+    parser.add_argument('--time_scaling_factor', type=float, default=None,
+                        help='time scaling factor for time_interval_aware sampling')
+    parser.add_argument('--num_walk_heads', type=int, default=None,
+                        help='number of heads used for the attention in walk encoder')
+    parser.add_argument('--num_heads', type=int, default=None,
+                        help='number of heads used in attention layer')
+    parser.add_argument('--num_layers', type=int, default=None,
+                        help='number of model layers')
+    parser.add_argument('--walk_length', type=int, default=None,
+                        help='length of each random walk')
+    parser.add_argument('--time_gap', type=int, default=None,
+                        help='time gap for neighbors to compute node features')
+    parser.add_argument('--time_feat_dim', type=int, default=None,
+                        help='dimension of the time embedding')
+    parser.add_argument('--position_feat_dim', type=int, default=None,
+                        help='dimension of the position embedding')
+    parser.add_argument('--time_window_mode', type=str, default=None,
+                        choices=['fixed_proportion', 'repeat_interval'],
+                        help='how to select the time window size for time window memory')
+    parser.add_argument('--sort_neighbors_by_time', action='store_true', default=False,
+                        help='Sort sampled neighbors chronologically for Mamba-based time encoders')
+    parser.add_argument('--patch_size', type=int, default=None,
+                        help='patch size')
+    parser.add_argument('--channel_embedding_dim', type=int, default=None,
+                        help='dimension of each channel embedding')
+    parser.add_argument('--max_input_sequence_length', type=int, default=None,
+                        help='maximal length of the input sequence of each node')
+    parser.add_argument('--learning_rate', type=float, default=None,
+                        help='learning rate')
+    parser.add_argument('--dropout', type=float, default=None,
+                        help='dropout rate for GNN backbone')
+    parser.add_argument('--gamma', type=float, default=None,
+                        help='gamma parameter')
+    parser.add_argument('--optimizer', type=str, default=None,
+                        choices=['SGD', 'Adam', 'RMSprop', 'AdamW', 'Adam8bit', 'AdamW8bit'],
+                        help='name of optimizer')
+    parser.add_argument('--weight_decay', type=float, default=None,
+                        help='weight decay')
+    parser.add_argument('--patience', type=int, default=None,
+                        help='patience for early stopping')
+    parser.add_argument('--val_ratio', type=float, default=None,
+                        help='ratio of validation set')
+    parser.add_argument('--test_ratio', type=float, default=None,
+                        help='ratio of test set')
+    parser.add_argument('--test_interval_epochs', type=int, default=None,
+                        help='how many epochs to perform testing once')
+    parser.add_argument('--max_interaction_times', type=int, default=None,
+                        help='max interactions for src and dst to consider')
+    parser.add_argument('--train_only_ratio', action='store_true', default=False,
+                        help='Apply data_ratio only to training set, keep val/test at 100%')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='random seed for reproducible data splits and sampling')
+    parser.add_argument('--save_model_name_suffix', type=str, default=None,
+                        help='suffix to add to saved model names for ablation studies')
+    parser.add_argument('--ablation_dir', type=str, default=None,
+                        help='directory to save all ablation study outputs')
+    parser.add_argument('--debug_encoder', action='store_true', default=False,
+                        help='Enable comprehensive debugging for time encoders')
+    parser.add_argument('--checkpoint_interval', type=int, default=None,
+                        help='save checkpoint every N epochs')
+    parser.add_argument('--start_from_seed', type=int, default=None,
+                        help='start training from specific seed/run (for resuming)')
+    parser.add_argument('--max_checkpoints_to_keep', type=int, default=None,
+                        help='maximum number of recent checkpoints to keep')
+    parser.add_argument('--checkpoint_strategy', type=str, default=None,
+                        choices=['frequent', 'smart', 'minimal'],
+                        help='checkpoint frequency strategy')
+    parser.add_argument('--validate_checkpoints', action='store_true', default=False,
+                        help='validate checkpoint integrity before loading')
     
     return parser.parse_args()
 
@@ -607,6 +686,84 @@ def build_training_command(model, dataset, time_encoder_name, args,
     if args.mamba_headdim is not None:
         command.extend(['--mamba_headdim', str(args.mamba_headdim)])
     
+    # Forward additional training parameters
+    if args.batch_size is not None:
+        command.extend(['--batch_size', str(args.batch_size)])
+    if args.gpu is not None:
+        command.extend(['--gpu', str(args.gpu)])
+    if args.num_neighbors is not None:
+        command.extend(['--num_neighbors', str(args.num_neighbors)])
+    if args.sample_neighbor_strategy is not None:
+        command.extend(['--sample_neighbor_strategy', args.sample_neighbor_strategy])
+    if args.time_scaling_factor is not None:
+        command.extend(['--time_scaling_factor', str(args.time_scaling_factor)])
+    if args.num_walk_heads is not None:
+        command.extend(['--num_walk_heads', str(args.num_walk_heads)])
+    if args.num_heads is not None:
+        command.extend(['--num_heads', str(args.num_heads)])
+    if args.num_layers is not None:
+        command.extend(['--num_layers', str(args.num_layers)])
+    if args.walk_length is not None:
+        command.extend(['--walk_length', str(args.walk_length)])
+    if args.time_gap is not None:
+        command.extend(['--time_gap', str(args.time_gap)])
+    if args.time_feat_dim is not None:
+        command.extend(['--time_feat_dim', str(args.time_feat_dim)])
+    if args.position_feat_dim is not None:
+        command.extend(['--position_feat_dim', str(args.position_feat_dim)])
+    if args.time_window_mode is not None:
+        command.extend(['--time_window_mode', args.time_window_mode])
+    if args.sort_neighbors_by_time:
+        command.append('--sort_neighbors_by_time')
+    if args.patch_size is not None:
+        command.extend(['--patch_size', str(args.patch_size)])
+    if args.channel_embedding_dim is not None:
+        command.extend(['--channel_embedding_dim', str(args.channel_embedding_dim)])
+    if args.max_input_sequence_length is not None:
+        command.extend(['--max_input_sequence_length', str(args.max_input_sequence_length)])
+    if args.learning_rate is not None:
+        command.extend(['--learning_rate', str(args.learning_rate)])
+    if args.dropout is not None:
+        command.extend(['--dropout', str(args.dropout)])
+    if args.gamma is not None:
+        command.extend(['--gamma', str(args.gamma)])
+    if args.optimizer is not None:
+        command.extend(['--optimizer', args.optimizer])
+    if args.weight_decay is not None:
+        command.extend(['--weight_decay', str(args.weight_decay)])
+    if args.patience is not None:
+        command.extend(['--patience', str(args.patience)])
+    if args.val_ratio is not None:
+        command.extend(['--val_ratio', str(args.val_ratio)])
+    if args.test_ratio is not None:
+        command.extend(['--test_ratio', str(args.test_ratio)])
+    if args.test_interval_epochs is not None:
+        command.extend(['--test_interval_epochs', str(args.test_interval_epochs)])
+    if args.max_interaction_times is not None:
+        command.extend(['--max_interaction_times', str(args.max_interaction_times)])
+    if args.train_only_ratio:
+        command.append('--train_only_ratio')
+    if args.seed is not None:
+        command.extend(['--seed', str(args.seed)])
+    if args.save_model_name_suffix is not None:
+        command.extend(['--save_model_name_suffix', args.save_model_name_suffix])
+    if args.ablation_dir is not None:
+        command.extend(['--ablation_dir', args.ablation_dir])
+    if args.debug_encoder:
+        command.append('--debug_encoder')
+    if args.checkpoint_interval is not None:
+        command.extend(['--checkpoint_interval', str(args.checkpoint_interval)])
+    if args.max_checkpoints_to_keep is not None:
+        command.extend(['--max_checkpoints_to_keep', str(args.max_checkpoints_to_keep)])
+    if args.checkpoint_strategy is not None:
+        command.extend(['--checkpoint_strategy', args.checkpoint_strategy])
+    if args.validate_checkpoints:
+        command.append('--validate_checkpoints')
+    
+    # Forward data_ratio
+    if hasattr(args, 'data_ratio') and args.data_ratio is not None:
+        command.extend(['--data_ratio', str(args.data_ratio)])
+    
     # Add encoder-specific arguments
     encoder_args = get_time_encoder_args(time_encoder_name)
     if encoder_args:
@@ -736,6 +893,148 @@ def print_experiment_summary(completed, incomplete, time_encoder):
     
     print("="*80)
 
+
+def build_evaluation_command(model, dataset, time_encoder_name, negative_sample_strategy, args):
+    """Build evaluation command with appropriate arguments"""
+    command = [
+        'python', 'experiments/evaluate_link_prediction.py',
+        '--model_name', model,
+        '--dataset_name', dataset,
+        '--time_encoder_type', time_encoder_name,
+        '--negative_sample_strategy', negative_sample_strategy,
+        '--num_runs', str(args.num_runs),
+        '--load_best_configs'
+    ]
+
+    # Add disable_progress_bar if specified
+    if args.disable_progress_bar:
+        command.append('--disable_progress_bar')
+
+    # Forward hyperparameters
+    if args.expert_dim is not None:
+        command.extend(['--expert_dim', str(args.expert_dim)])
+    if args.mamba_d_state is not None:
+        command.extend(['--mamba_d_state', str(args.mamba_d_state)])
+    if args.mamba_expand is not None:
+        command.extend(['--mamba_expand', str(args.mamba_expand)])
+    if args.encoder_dropout is not None:
+        command.extend(['--encoder_dropout', str(args.encoder_dropout)])
+    if args.num_mixtures is not None:
+        command.extend(['--num_mixtures', str(args.num_mixtures)])
+    if args.mamba_d_conv is not None:
+        command.extend(['--mamba_d_conv', str(args.mamba_d_conv)])
+    if args.mamba_headdim is not None:
+        command.extend(['--mamba_headdim', str(args.mamba_headdim)])
+    
+    # Forward additional evaluation parameters
+    if args.batch_size is not None:
+        command.extend(['--batch_size', str(args.batch_size)])
+    if args.gpu is not None:
+        command.extend(['--gpu', str(args.gpu)])
+    if args.num_neighbors is not None:
+        command.extend(['--num_neighbors', str(args.num_neighbors)])
+    if args.sample_neighbor_strategy is not None:
+        command.extend(['--sample_neighbor_strategy', args.sample_neighbor_strategy])
+    if args.time_scaling_factor is not None:
+        command.extend(['--time_scaling_factor', str(args.time_scaling_factor)])
+    if args.num_walk_heads is not None:
+        command.extend(['--num_walk_heads', str(args.num_walk_heads)])
+    if args.num_heads is not None:
+        command.extend(['--num_heads', str(args.num_heads)])
+    if args.num_layers is not None:
+        command.extend(['--num_layers', str(args.num_layers)])
+    if args.walk_length is not None:
+        command.extend(['--walk_length', str(args.walk_length)])
+    if args.time_gap is not None:
+        command.extend(['--time_gap', str(args.time_gap)])
+    if args.time_feat_dim is not None:
+        command.extend(['--time_feat_dim', str(args.time_feat_dim)])
+    if args.position_feat_dim is not None:
+        command.extend(['--position_feat_dim', str(args.position_feat_dim)])
+    if args.time_window_mode is not None:
+        command.extend(['--time_window_mode', args.time_window_mode])
+    if args.sort_neighbors_by_time:
+        command.append('--sort_neighbors_by_time')
+    if args.patch_size is not None:
+        command.extend(['--patch_size', str(args.patch_size)])
+    if args.channel_embedding_dim is not None:
+        command.extend(['--channel_embedding_dim', str(args.channel_embedding_dim)])
+    if args.max_input_sequence_length is not None:
+        command.extend(['--max_input_sequence_length', str(args.max_input_sequence_length)])
+    if args.learning_rate is not None:
+        command.extend(['--learning_rate', str(args.learning_rate)])
+    if args.dropout is not None:
+        command.extend(['--dropout', str(args.dropout)])
+    if args.gamma is not None:
+        command.extend(['--gamma', str(args.gamma)])
+    if args.optimizer is not None:
+        command.extend(['--optimizer', args.optimizer])
+    if args.weight_decay is not None:
+        command.extend(['--weight_decay', str(args.weight_decay)])
+    if args.patience is not None:
+        command.extend(['--patience', str(args.patience)])
+    if args.val_ratio is not None:
+        command.extend(['--val_ratio', str(args.val_ratio)])
+    if args.test_ratio is not None:
+        command.extend(['--test_ratio', str(args.test_ratio)])
+    if args.test_interval_epochs is not None:
+        command.extend(['--test_interval_epochs', str(args.test_interval_epochs)])
+    if args.max_interaction_times is not None:
+        command.extend(['--max_interaction_times', str(args.max_interaction_times)])
+    if args.train_only_ratio:
+        command.append('--train_only_ratio')
+    if args.seed is not None:
+        command.extend(['--seed', str(args.seed)])
+    if args.save_model_name_suffix is not None:
+        command.extend(['--save_model_name_suffix', args.save_model_name_suffix])
+    if args.ablation_dir is not None:
+        command.extend(['--ablation_dir', args.ablation_dir])
+    if args.debug_encoder:
+        command.append('--debug_encoder')
+    
+    # Forward data_ratio
+    if hasattr(args, 'data_ratio') and args.data_ratio is not None:
+        command.extend(['--data_ratio', str(args.data_ratio)])
+
+    # Forward AMP/checkpointing flags
+    if hasattr(args, 'use_amp') and args.use_amp:
+        command.append('--use_amp')
+    if hasattr(args, 'use_gradient_checkpointing') and args.use_gradient_checkpointing:
+        command.append('--use_gradient_checkpointing')
+        
+    # Add encoder-specific arguments
+    encoder_args = get_time_encoder_args(time_encoder_name)
+    if encoder_args:
+        command.extend(encoder_args.split())
+
+    return command
+
+def run_evaluation(model, dataset, time_encoder_name, args):
+    """Run evaluation with different negative sampling strategies"""
+    print("-" * 80)
+    print(f"📊 Running evaluations for: {time_encoder_name}_{model}_{dataset}")
+    
+    strategies = ['historical', 'inductive']
+    for strategy in strategies:
+        print(f"\n🧪 Evaluating with negative sample strategy: {strategy}")
+        
+        eval_command = build_evaluation_command(model, dataset, time_encoder_name, strategy, args)
+        
+        print(f"Command: {' '.join(eval_command)}")
+        
+        if args.dry_run:
+            print("🔍 DRY RUN - Evaluation command not executed")
+            continue
+            
+        try:
+            subprocess.run(eval_command, check=True, text=True)
+            print(f"✅ Evaluation successful for strategy: {strategy}")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Evaluation failed for strategy: {strategy} with exit code {e.returncode}")
+        except Exception as e:
+            print(f"❌ An unexpected error occurred during evaluation for strategy {strategy}: {e}")
+    
+    print("-" * 80)
 # Main execution
 if __name__ == "__main__":
     args = parse_arguments()
@@ -934,6 +1233,8 @@ if __name__ == "__main__":
             if success:
                 print(f"✅ Successfully completed: {combo_key}")
                 mark_experiment_complete(combo_key, time_encoder)
+                # Run evaluation after successful training
+                run_evaluation(model, dataset, time_encoder_name, args)
             else:
                 print(f"❌ Failed after all retry attempts: {combo_key}")
                 # Leave as incomplete for potential manual investigation
@@ -953,6 +1254,8 @@ if __name__ == "__main__":
                     print(f"✅ Successfully completed: {combo_key}")
                     print(f"   Duration: {duration/3600:.2f} hours")
                     mark_experiment_complete(combo_key, time_encoder)
+                    # Run evaluation after successful training
+                    run_evaluation(model, dataset, time_encoder_name, args)
                 else:
                     print("-" * 80)
                     print(f"⚠️  Training finished but no results found: {combo_key}")

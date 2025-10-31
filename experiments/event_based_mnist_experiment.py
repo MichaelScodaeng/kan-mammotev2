@@ -641,9 +641,7 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
         else:
             scaler = torch.cuda.amp.GradScaler()
 
-    # ===== CRITICAL FIX: Use Adam with lr=1e-3 (matching LeTE exactly) =====
-    # Original LeTE: optimizer = optim.Adam(model.parameters(), lr=1e-3)
-    optimizer = AdamW8bit(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    optimizer = AdamW8bit(model.parameters(), lr=1e-4, weight_decay=1e-3)
     print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
     # ===== END CRITICAL FIX =====
     
