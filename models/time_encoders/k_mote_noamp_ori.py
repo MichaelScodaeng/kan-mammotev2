@@ -5,305 +5,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+# Note: We implement custom B-splines instead of using efficient_kan for better control
+# and numerical stability in temporal modeling applications
 
+# --- Expert 1: Spline/RBF KAN Layer (Corrected with Learnable Projection) ---
 
-class LeTESpline(nn.Module):
-    """
-    Args:
-        dim_spline (int): Dimension of the spline input (and typically output).
-        grid_size_spline (int): Number of spline knots (excluding boundary). Defaults to 5.
-        order_spline (int): Spline order (degree). Defaults to 3.
-        grid_range (list): Value range of the grid. Defaults to [-1, 1].
-
-    Attributes:
-        dim_spline (int): Dimension of the input/output.
-        grid_size_spline (int): Number of spline knots in each dimension.
-        order_spline (int): Spline order (degree).
-        grid (torch.Tensor): The registered buffer containing grid points of shape (dim_spline, grid_size_spline + 2 * order_spline + 1).
-        base_weight (torch.nn.Parameter): Linear weight for the base branch (dim_spline x dim_spline).
-        spline_weight (torch.nn.Parameter): Learnable B-spline coefficients (dim_spline x dim_spline x (grid_size_spline + order_spline)).
-    """
-    def __init__(self, dim_spline: int, grid_size_spline: int = 5, order_spline: int = 3, grid_range: list = [-1, 1]):
-        super().__init__()
-        self.dim_spline = dim_spline
-        self.grid_size_spline = grid_size_spline
-        self.order_spline = order_spline
-
-        # Compute grid spacing
-        h = (grid_range[1] - grid_range[0]) / float(self.grid_size_spline)
-
-        # Build the grid for each dimension
-        grid = torch.arange(-self.order_spline, self.grid_size_spline + self.order_spline + 1)
-        grid = grid * h + grid_range[0]
-        grid = grid.expand(self.dim_spline, -1).contiguous()
-        self.register_buffer("grid", grid)
-
-        # Base weight for the linear+activation branch
-        self.base_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline))
-        
-        # Spline coefficients
-        self.spline_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline))
-        
-        # Initialize parameters properly
-        self._initialize_parameters()
-    
-    def _initialize_parameters(self):
-        """Initialize spline parameters to avoid NaN values"""
-        # Initialize base weight with Kaiming uniform
-        nn.init.kaiming_uniform_(self.base_weight, a=math.sqrt(5))
-        
-        # Initialize spline weight with small random values
-        nn.init.normal_(self.spline_weight, mean=0, std=0.1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        original_shape = x.shape
-        x = x.reshape(-1, self.dim_spline)  # flatten all but the last dimension
-
-        # Base branch: tanh + linear
-        base_output = nn.functional.linear(torch.tanh(x), self.base_weight)  # shape: (N, dim_spline)
-
-        # If the input batch is empty, return a zero-like tensor
-        if x.size(0) == 0:
-            spline_output = torch.zeros_like(base_output)
-        else:
-            # Evaluate B-spline basis
-            # b_splines(x).shape -> (N, dim_spline, grid_size_spline + order_spline)
-            # Flatten for linear
-            b_splines_val = self.b_splines(x).view(x.size(0), -1)
-
-            # Reshape spline_weight for linear operation
-            w = self.spline_weight.view(self.dim_spline, -1)
-            spline_output = nn.functional.linear(b_splines_val, w)
-
-        output = base_output + spline_output
-        output = output.reshape(*original_shape[:-1], self.dim_spline)
-        return output
-
-    def curve2coeff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        # A: (dim_spline, batch_size, grid_size_spline + order_spline)
-        A = self.b_splines(x).transpose(0, 1)
-        # B: (dim_spline, batch_size, dim_spline)
-        B = y.transpose(0, 1)
-
-        # Compute pseudo-inverse of A
-        A_pinv = torch.pinverse(A)  # shape: (dim_spline, grid_size_spline+order_spline, batch_size)
-
-        # Solve the least squares problem using the pseudo-inverse
-        # shape: (dim_spline, grid_size_spline+order_spline, batch_size)
-        solution = torch.bmm(A_pinv, B)
-
-        # Permute to (batch_size, dim_spline, grid_size_spline+order_spline) -> (dim_spline, dim_spline, grid_size_spline+order_spline)
-        result = solution.permute(2, 0, 1).contiguous()
-        return result
-
-    def b_splines(self, x: torch.Tensor) -> torch.Tensor:
-        # grid: (dim_spline, grid_size_spline + 2*order_spline + 1)
-        grid = self.grid
-        x = x.unsqueeze(-1)  # shape: (N, dim_spline, 1)
-
-        # bases will mark where x lies between [grid_i, grid_{i+1})
-        bases = ((x >= grid[:, :-1]) & (x < grid[:, 1:])).to(x.dtype)  # shape: (N, dim_spline, ?)
-
-        # Recursively elevate the basis to higher spline orders
-        for k in range(1, self.order_spline + 1):
-            # Segment lengths in the left and right directions
-            left_num = (x - grid[:, :-(k + 1)])
-            left_den = (grid[:, k:-1] - grid[:, :-(k + 1)])
-
-            right_num = (grid[:, k + 1:] - x)
-            right_den = (grid[:, k + 1:] - grid[:, 1:-k])
-
-            # Avoid division by zero by adding small epsilon
-            eps = 1e-12
-            left_den = left_den + eps
-            right_den = right_den + eps
-            
-            # Handle potential NaN/Inf in division
-            left_term = torch.where(torch.abs(left_den) > eps, 
-                                  (left_num / left_den) * bases[:, :, :-1], 
-                                  torch.zeros_like(bases[:, :, :-1]))
-            right_term = torch.where(torch.abs(right_den) > eps,
-                                   (right_num / right_den) * bases[:, :, 1:],
-                                   torch.zeros_like(bases[:, :, 1:]))
-
-            bases = left_term + right_term
-
-        return bases.contiguous()
-class EfficientFourierKAN(nn.Module):
-    """
-    LeTE-inspired FourierKAN with high-dimensional processing and geometric initialization.
-    """
-    def __init__(self, input_dim: int, output_dim: int, intermediate_dim: int = 64, n_harmonics: int = 5):
-        super().__init__()
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.intermediate_dim = intermediate_dim
-        self.n_harmonics = n_harmonics
-        
-        # Stage 1: Project to high-dimensional space (like LeTE w1_fourier)
-        self.input_projection = nn.Linear(input_dim, intermediate_dim)
-        
-        # Stage 2: High-dimensional Fourier transform (like LeTE w2_fourier)
-        # Shape: (2, intermediate_dim, intermediate_dim, n_harmonics)
-        self.fourier_weight = nn.Parameter(
-            torch.randn(2, intermediate_dim, intermediate_dim, n_harmonics) / 
-            (math.sqrt(intermediate_dim) * math.sqrt(n_harmonics))
-        )
-        self.fourier_bias = nn.Parameter(torch.zeros(intermediate_dim))
-        
-        # Stage 3: Project back to output dimension (like LeTE output_head)
-        self.output_projection = nn.Linear(intermediate_dim, output_dim)
-        
-        # Initialize with geometric progression (like LeTE)
-        self._initialize_geometric()
-    
-    def _initialize_geometric(self):
-        """Initialize with LeTE-style geometric progression"""
-        with torch.no_grad():
-            # Geometric frequency initialization for input projection
-            fourier_vals = 1.0 / (10 ** torch.linspace(0, 9, self.intermediate_dim))
-            self.input_projection.weight.copy_(fourier_vals.unsqueeze(-1).expand(-1, self.input_dim))
-            self.input_projection.bias.zero_()
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        LeTE-style two-stage processing: project → transform → project
-        """
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
-        
-        batch_size, seq_len, input_dim = x.shape
-        x_flat = x.reshape(-1, input_dim)  # (B*S, input_dim)
-        
-        # Stage 1: Project to high-dimensional space
-        x_proj = self.input_projection(x_flat)  # (B*S, intermediate_dim)
-        
-        # Stage 2: High-dimensional Fourier transform
-        k = torch.arange(1, self.n_harmonics + 1, device=x.device, dtype=x.dtype)
-        k = k.reshape(1, 1, 1, self.n_harmonics)
-        
-        x_reshaped = x_proj.reshape(x_proj.shape[0], 1, x_proj.shape[1], 1)
-        
-        # Compute cos and sin
-        c = torch.cos(k * x_reshaped)  # (B*S, 1, intermediate_dim, n_harmonics)
-        s = torch.sin(k * x_reshaped)  # (B*S, 1, intermediate_dim, n_harmonics)
-        
-        # Apply Fourier weights (high-dimensional interaction)
-        y = torch.sum(c * self.fourier_weight[0:1], dim=(-2, -1))
-        y += torch.sum(s * self.fourier_weight[1:2], dim=(-2, -1))
-        y += self.fourier_bias
-        
-        # Stage 3: Project back to output dimension
-        output = self.output_projection(y)  # (B*S, output_dim)
-        
-        # Reshape back
-        output = output.view(batch_size, seq_len, self.output_dim)
-        
-        return output
-class EnhancedWaveletKAN(nn.Module):
-    """
-    Enhanced wavelet expert with LeTE-style geometric initialization.
-    Optimized for memory efficiency and better performance.
-    """
-    def __init__(self, input_dim: int, output_dim: int, n_wavelets: int = 8, 
-                 wavelet_type: str = 'shock', use_geometric_init: bool = True):
-        super().__init__()
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.n_wavelets = n_wavelets
-        self.wavelet_type = wavelet_type
-        
-        # Learnable wavelet parameters
-        self.scales = nn.Parameter(torch.randn(input_dim, n_wavelets))
-        self.shifts = nn.Parameter(torch.randn(input_dim, n_wavelets))
-        
-        if wavelet_type == 'adaptive_morlet':
-            self.frequencies = nn.Parameter(torch.randn(input_dim, n_wavelets))
-            self.sharpness = nn.Parameter(torch.randn(input_dim, n_wavelets))
-        elif wavelet_type == 'shock':
-            self.asymmetry = nn.Parameter(torch.randn(input_dim, n_wavelets) * 0.1)
-            self.steepness = nn.Parameter(torch.randn(input_dim, n_wavelets) * 0.1)
-        
-        # Linear transformation (with better initialization)
-        self.linear = nn.Linear(input_dim * n_wavelets, output_dim)
-        
-        if use_geometric_init:
-            self._initialize_geometric()
-    
-    def _initialize_geometric(self):
-        """Initialize with LeTE-style geometric progression for better performance"""
-        with torch.no_grad():
-            # Initialize linear layer with geometric progression
-            if self.linear.weight.shape[1] > 1:
-                # Create frequency-like initialization for wavelets
-                n_features = self.linear.weight.shape[1]
-                freq_vals = 1.0 / (10 ** torch.linspace(0, 6, n_features))
-                self.linear.weight.copy_(torch.randn_like(self.linear.weight) * freq_vals.unsqueeze(0))
-            
-            # Initialize scales and shifts with reasonable values
-            nn.init.uniform_(self.scales, 0.5, 2.0)  # Reasonable scale range
-            nn.init.uniform_(self.shifts, -1.0, 1.0)  # Reasonable shift range
-
-    def shock_wavelet(self, t, asymmetry, steepness):
-        """Optimized shock wavelet computation"""
-        asym = torch.tanh(asymmetry)
-        steep = F.softplus(steepness) + 0.1
-        steep = torch.clamp(steep, max=5.0)
-        
-        left_exponent = torch.clamp(steep * t * (1 + asym), min=-10, max=10)
-        right_exponent = torch.clamp(-steep * t * (1 - asym), min=-10, max=10)
-        
-        shock_profile = torch.where(t < 0, torch.exp(left_exponent), torch.exp(right_exponent))
-        
-        freq = torch.clamp(steep, max=3.0)
-        oscillation = torch.cos(freq * t)
-        
-        result = torch.clamp(shock_profile * oscillation, min=-100, max=100)
-        return result
-
-    def adaptive_morlet_wavelet(self, t, freq, sharpness):
-        """Adaptive Morlet wavelet"""
-        c = math.pi**(-0.25)
-        sharp = F.softplus(sharpness) + 0.1
-        freq_param = F.softplus(freq) + 1.0
-        return c * torch.exp(-sharp * t**2) * torch.cos(freq_param * t)
-
-    def morlet_wavelet(self, t):
-        """Standard Morlet wavelet"""
-        c = math.pi**(-0.25)
-        return c * torch.exp(-0.5 * t**2) * torch.cos(5.0 * t)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
-        
-        batch_size, seq_len, _ = x.shape
-        
-        # Expand dimensions for wavelet computation
-        x_expanded = x.unsqueeze(-1)  # (B, S, input_dim, 1)
-        scales = F.softplus(self.scales).unsqueeze(0).unsqueeze(0) + 0.1  # (1, 1, input_dim, n_wavelets)
-        shifts = self.shifts.unsqueeze(0).unsqueeze(0)  # (1, 1, input_dim, n_wavelets)
-        
-        # Compute wavelet input
-        wavelet_input = (x_expanded - shifts) / scales
-        
-        # Apply wavelet function based on type
-        if self.wavelet_type == 'adaptive_morlet':
-            freq = self.frequencies.unsqueeze(0).unsqueeze(0)
-            sharp = self.sharpness.unsqueeze(0).unsqueeze(0)
-            wavelet_activations = self.adaptive_morlet_wavelet(wavelet_input, freq, sharp)
-        elif self.wavelet_type == 'shock':
-            asym = self.asymmetry.unsqueeze(0).unsqueeze(0)
-            steep = self.steepness.unsqueeze(0).unsqueeze(0)
-            wavelet_activations = self.shock_wavelet(wavelet_input, asym, steep)
-        else:  # Default to Morlet
-            wavelet_activations = self.morlet_wavelet(wavelet_input)
-        
-        # Flatten and apply linear transformation
-        wavelet_flat = wavelet_activations.view(batch_size, seq_len, -1)
-        output = self.linear(wavelet_flat)
-        
-        return output
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
 
 class SplineKANLayer(nn.Module):
     """
@@ -322,11 +32,9 @@ class SplineKANLayer(nn.Module):
         self.order = order
 
         if self.basis_function == 'b_spline':
-            # TRUE B-SPLINE IMPLEMENTATION (copied from LeTE)
-            # Compute grid spacing
+
             h = (grid_range[1] - grid_range[0]) / float(self.grid_size)
             
-            # Build the grid for each input dimension
             grid = torch.arange(-self.order, self.grid_size + self.order + 1)
             grid = grid * h + grid_range[0]
             grid = grid.expand(self.input_dim, -1).contiguous()
@@ -337,7 +45,6 @@ class SplineKANLayer(nn.Module):
                 torch.randn(self.input_dim, self.output_dim) / math.sqrt(self.input_dim)
             )
             
-            # Spline coefficients (like LeTE)
             self.spline_weight = nn.Parameter(
                 torch.randn(self.input_dim, self.output_dim, self.grid_size + self.order) /
                 (math.sqrt(self.input_dim) * math.sqrt(self.grid_size + self.order))
@@ -388,7 +95,6 @@ class SplineKANLayer(nn.Module):
         batch_size, seq_len, input_dim = x.shape
         
         if self.basis_function == 'b_spline':
-            # TRUE B-SPLINE FORWARD (exactly like LeTE)
             x_flat = x.reshape(-1, input_dim)  # flatten all but the last dimension
 
             # Base branch: tanh + linear (like LeTE)
@@ -398,7 +104,6 @@ class SplineKANLayer(nn.Module):
             if x_flat.size(0) == 0:
                 spline_output = torch.zeros_like(base_output)
             else:
-                # CLEARER: Explicit reshape instead of view chains
                 B = self.b_splines(x_flat).reshape(x_flat.size(0), -1)  # (N, I*(G+O))
                 W = self.spline_weight.permute(0, 2, 1).reshape(-1, self.output_dim)  # (I*(G+O), O)
                 spline_output = B @ W  # (N, O)
@@ -434,9 +139,6 @@ class FourierKANLayer(nn.Module):
         self.output_dim = output_dim
         self.n_harmonics = n_harmonics
         
-        # CHANGE: Shared Fourier weights across all input dimensions (like LeTE)
-        # Shape: (2, input_dim, output_dim, n_harmonics)
-        # First dimension: [0] = cos weights, [1] = sin weights
         self.fourier_weight = nn.Parameter(
             torch.randn(2, input_dim, output_dim, n_harmonics) / 
             (math.sqrt(input_dim) * math.sqrt(n_harmonics))
@@ -460,40 +162,26 @@ class FourierKANLayer(nn.Module):
             t = t.unsqueeze(-1)
         
         batch_size, seq_len, input_dim = t.shape
-        
-        # Reshape for efficient computation
+
         t_flat = t.reshape(-1, input_dim)  # (B*S, input_dim)
         
-        # Step 1: Base transformation (linear component)
-        # (B*S, input_dim) @ (input_dim, output_dim) = (B*S, output_dim)
         base_output = torch.matmul(t_flat, self.base_weight)
         
-         # FIXED: Corrected Fourier computation
         k = torch.arange(1, self.n_harmonics + 1, device=t.device, dtype=t.dtype)
         args = t_flat.unsqueeze(-1) * k  # (B*S, input_dim, n_harmonics)
         
-        # Compute cos and sin (vectorized across all features)
         c = torch.cos(args)  # (B*S, 1, input_dim, n_harmonics)
         s = torch.sin(args)  # (B*S, 1, input_dim, n_harmonics)
-        
-        # ✅ FIXED: Correct einsum contraction (3D input, not 4D)
-        # c: (B*S, input_dim, n_harmonics)
-        # fourier_weight[0]: (input_dim, output_dim, n_harmonics)
-        # Result: (B*S, output_dim)
+
         cos_output = torch.einsum('bih,ioh->bo', c, self.fourier_weight[0])
         sin_output = torch.einsum('bih,ioh->bo', s, self.fourier_weight[1])
-        # ✅ END FIX
-        
-        # Combine all components
+
         output = base_output + cos_output + sin_output + self.bias  # (B*S, output_dim)
         
         # Reshape back to original dimensions
         output = output.view(batch_size, seq_len, self.output_dim)
         
         return output
-
-
-# --- Expert 3: Enhanced Wavelet KAN Layer (Unchanged) ---
 
 class WaveletKANLayer(nn.Module):
     """
@@ -596,23 +284,17 @@ class KMOTE(nn.Module):
     - transform_mode='shared': Single time transform shared by all experts (MoE approach)
     - transform_mode='per_expert': Per-expert time transforms (LeTE-style specialization)
     - transform_mode='adapter' (DEFAULT): Shared base + lightweight expert adapters
-    
-    Memory optimization:
-    - use_gradient_checkpointing: Trade compute for memory by checkpointing expert computations
     """
     def __init__(self, input_dim: int, output_dim: int,
-                 hidden_dim: int = 64, # Default to a reasonable hidden_dim
+                 hidden_dim: int = None,
                  wavelet_type: str = 'shock',
                  use_layernorm: bool = True,
                  use_scale: bool = True,
                  gating_temp: float = 1.0,
                  transform_mode: str = 'adapter',
-                 adapter_type: str = 'affine',
-                 use_gradient_checkpointing: bool = False):
+                 adapter_type: str = 'affine'):
         super().__init__()
         self.adapter_type = adapter_type
-        self.use_gradient_checkpointing = use_gradient_checkpointing
-        
         # This architecture is designed for a 1D time input.
         if input_dim != 1:
             raise ValueError("K-MOTE requires input_dim=1 for the time input.")
@@ -627,7 +309,7 @@ class KMOTE(nn.Module):
         # ===== END FIX =====
 
         self.output_dim = output_dim
-        self.hidden_dim = hidden_dim if hidden_dim is not None else output_dim//3
+        self.hidden_dim = output_dim//3 if hidden_dim is not None else output_dim
         self.temperature = gating_temp
         self.use_scale = use_scale
         self.transform_mode = transform_mode
@@ -657,7 +339,6 @@ class KMOTE(nn.Module):
             self._initialize_shared_transform()  # Initialize base with geometric progression
             
             if adapter_type == 'affine':
-                print("Using AFFINE adapters for K-MOTE experts.")
                 # Lightweight affine adapters (scale + shift, like LayerNorm)
                 self.expert_scales = nn.ParameterList([
                     nn.Parameter(torch.ones(self.hidden_dim)) for _ in range(self.num_experts)
@@ -679,29 +360,12 @@ class KMOTE(nn.Module):
         if use_scale:
             self.scale = nn.Parameter(torch.ones(output_dim))
 
-        # ===== EXPERTS: Now use hidden_dim for input and ensure consistent output =====
+        # ===== EXPERTS: Now use hidden_dim for input =====
         self.experts = nn.ModuleList([
-            # Expert 1: LeTE Spline
-            nn.Sequential(
-                LeTESpline(dim_spline=self.hidden_dim),
-                nn.Linear(self.hidden_dim, self.output_dim)
-            ),
-            
-            # Expert 2: Efficient Fourier KAN
-            nn.Sequential(
-                EfficientFourierKAN(self.hidden_dim, self.hidden_dim, n_harmonics=5),
-                nn.Linear(self.hidden_dim, self.output_dim)
-            ),
-
-            # Expert 3: Enhanced Wavelet KAN
-            nn.Sequential(
-                EnhancedWaveletKAN(self.hidden_dim, self.hidden_dim, n_wavelets=5, wavelet_type=wavelet_type),
-                nn.Linear(self.hidden_dim, self.output_dim)
-            ),
+            SplineKANLayer(self.hidden_dim, output_dim, basis_function='b_spline', grid_size=5, order=3, grid_range=[-1, 1]),
+            FourierKANLayer(self.hidden_dim, output_dim, n_harmonics=8),
+            WaveletKANLayer(self.hidden_dim, output_dim, n_wavelets=8, wavelet_type=wavelet_type),
         ])
-        # ===========================================================================
-        
-        self.num_experts = len(self.experts)
         # ===========================================================================
         
         self.num_experts = len(self.experts)
@@ -721,10 +385,6 @@ class KMOTE(nn.Module):
             else:
                 transform_type = "shared" if transform_mode == 'shared' else "per-expert"
                 print(f"Initialized K-MOTE with {transform_type} transform, hidden_dim={self.hidden_dim}")
-            if use_gradient_checkpointing:
-                print(f"   ├─ Gradient checkpointing: ENABLED (per-expert level)")
-            else:
-                print(f"   ├─ Gradient checkpointing: disabled")
         else:
             self.layer_norm = nn.Identity()
 
@@ -777,27 +437,7 @@ class KMOTE(nn.Module):
             self.time_transforms[2].weight.copy_(freqs_wavelet.unsqueeze(1))
             self.time_transforms[2].bias.zero_()
 
-    def _checkpoint_expert(self, expert, t_input, skip_checkpointing=False):
-        """
-        Helper function to conditionally apply gradient checkpointing to expert forward pass.
-        
-        Args:
-            expert: The expert module to run
-            t_input: Input tensor for the expert
-            skip_checkpointing: If True, always use normal forward pass
-            
-        Returns:
-            Output from the expert
-        """
-        if self.use_gradient_checkpointing and self.training and not skip_checkpointing:
-            # Use gradient checkpointing to save memory during training
-            return torch.utils.checkpoint.checkpoint(expert, t_input, use_reentrant=False)
-        else:
-            # Normal forward pass (evaluation, checkpointing disabled, or explicitly skipped)
-            return expert(t_input)
-    
-    def _forward_impl(self, t, return_weights=False):
-        """Internal forward implementation (for checkpointing the entire K-MOTE)"""
+    def forward(self, t: torch.Tensor, return_weights: bool = False) -> torch.Tensor:
         if t.dim() == 2:
             t = t.unsqueeze(-1) # Ensure shape (B, S, 1)
 
@@ -810,21 +450,14 @@ class KMOTE(nn.Module):
             gating_logits = self.gating_network(t_transformed)
             gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
             
-            # Apply checkpointing to expert computations (skip for Fourier expert - index 1)
-            expert_outputs = [
-                self._checkpoint_expert(expert, t_transformed, skip_checkpointing=(i == 1)) 
-                for i, expert in enumerate(self.experts)
-            ]
+            expert_outputs = [expert(t_transformed) for expert in self.experts]
             
         elif self.transform_mode == 'per_expert':
             # Option B: Per-expert transforms - each expert gets its own specialized input
             t_transformed = [transform(t) for transform in self.time_transforms]  # List of (B, S, hidden_dim)
             
-            # Each expert processes its specialized input with checkpointing (skip for Fourier expert - index 1)
-            expert_outputs = [
-                self._checkpoint_expert(expert, t_trans, skip_checkpointing=(i == 1)) 
-                for i, (expert, t_trans) in enumerate(zip(self.experts, t_transformed))
-            ]
+            # Each expert processes its specialized input
+            expert_outputs = [expert(t_trans) for expert, t_trans in zip(self.experts, t_transformed)]
             
             # Gating network uses the average of all transformed inputs
             t_for_gating = torch.stack(t_transformed, dim=0).mean(dim=0)  # (B, S, hidden_dim)
@@ -835,7 +468,7 @@ class KMOTE(nn.Module):
             # Option C: Shared base + expert adapters (DEFAULT)
             t_base = self.time_base_transform(t)  # (B, S, hidden_dim)
             
-            # Apply expert-specific adaptations and checkpointing
+            # Apply expert-specific adaptations
             expert_outputs = []
             for i, expert in enumerate(self.experts):
                 if self.adapter_type == 'affine':
@@ -845,9 +478,7 @@ class KMOTE(nn.Module):
                     # Linear adapter
                     t_adapted = self.expert_adapters[i](t_base)
                 
-                # Apply checkpointing to expert computations (skip for Fourier expert - index 1)
-                expert_output = self._checkpoint_expert(expert, t_adapted, skip_checkpointing=(i == 1))
-                expert_outputs.append(expert_output)
+                expert_outputs.append(expert(t_adapted))
             
             # Gating network uses the shared base representation
             gating_logits = self.gating_network(t_base)
@@ -868,13 +499,3 @@ class KMOTE(nn.Module):
         if return_weights:
             return output_embedding, gating_weights.squeeze(-2)
         return output_embedding
-
-    def forward(self, t: torch.Tensor, return_weights: bool = False):
-        """
-        Forward pass with per-expert gradient checkpointing.
-        
-        Checkpointing strategy: Checkpoint individual expert forward passes only.
-        """
-        if return_weights:
-            return self._forward_impl(t, return_weights=True)
-        return self._forward_impl(t, return_weights=False)

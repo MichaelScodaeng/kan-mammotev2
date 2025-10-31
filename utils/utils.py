@@ -4,7 +4,7 @@ import random
 import torch
 import torch.nn as nn
 import numpy as np
-
+import bitsandbytes as bnb
 from utils.DataLoader import Data
 
 
@@ -59,7 +59,9 @@ def create_optimizer(model: nn.Module, optimizer_name: str, learning_rate: float
     :param weight_decay: float, weight decay
     :return:
     """
-    if optimizer_name == 'Adam':
+    if optimizer_name == 'Adam8bit':
+        optimizer = bnb.optim.AdamW8bit(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name == 'Adam':
         optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer_name == 'SGD':
         optimizer = torch.optim.SGD(params=model.parameters(), lr=learning_rate, weight_decay=weight_decay)

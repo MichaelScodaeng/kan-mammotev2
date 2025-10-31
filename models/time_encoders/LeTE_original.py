@@ -223,9 +223,20 @@ class Spline(nn.Module):
 
         # Base weight for the linear+activation branch
         self.base_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline))
-
+        
         # Spline coefficients
         self.spline_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline))
+        
+        # Initialize parameters properly
+        self._initialize_parameters()
+    
+    def _initialize_parameters(self):
+        """Initialize spline parameters to avoid NaN values"""
+        # Initialize base weight with Kaiming uniform
+        nn.init.kaiming_uniform_(self.base_weight, a=math.sqrt(5))
+        
+        # Initialize spline weight with small random values
+        nn.init.normal_(self.spline_weight, mean=0, std=0.1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         original_shape = x.shape
@@ -285,6 +296,19 @@ class Spline(nn.Module):
             right_num = (grid[:, k + 1:] - x)
             right_den = (grid[:, k + 1:] - grid[:, 1:-k])
 
-            bases = (left_num / left_den) * bases[:, :, :-1] + (right_num / right_den) * bases[:, :, 1:]
+            # Avoid division by zero by adding small epsilon
+            eps = 1e-12
+            left_den = left_den + eps
+            right_den = right_den + eps
+            
+            # Handle potential NaN/Inf in division
+            left_term = torch.where(torch.abs(left_den) > eps, 
+                                  (left_num / left_den) * bases[:, :, :-1], 
+                                  torch.zeros_like(bases[:, :, :-1]))
+            right_term = torch.where(torch.abs(right_den) > eps,
+                                   (right_num / right_den) * bases[:, :, 1:],
+                                   torch.zeros_like(bases[:, :, 1:]))
+
+            bases = left_term + right_term
 
         return bases.contiguous()

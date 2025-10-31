@@ -7,7 +7,7 @@ import os
 import sys
 
 # Global training configuration
-MAX_EPOCHS = 2000
+MAX_EPOCHS = 100
 
 # Import the CombinedLeTE model from the LeTE.py file
 try:
@@ -102,13 +102,18 @@ def train_model_with_loss_return(model, t_data, y_true, epochs=MAX_EPOCHS, lr=2e
     """Train model and return final loss"""
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
     loss_fn = nn.MSELoss()
-    
+    already = 0
     # Ensure proper input shapes
     if t_data.dim() == 1: 
         t_data = t_data.unsqueeze(0)
     if y_true.dim() == 1: 
         y_true = y_true.unsqueeze(0).unsqueeze(-1) # Target shape: (batch, seq_len, 1)
-
+    if already == 0:
+        #print("shape and value of t_data and y_true are as follows:")
+        #print(t_data.shape)
+        #print(t_data)
+        #print(y_true.shape)
+        already = 1
     for epoch in range(epochs):
         model.train()
         y_pred = model(t_data)
