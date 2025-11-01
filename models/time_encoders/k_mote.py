@@ -40,22 +40,16 @@ class LeTESpline(nn.Module):
         self.register_buffer("grid", grid)
 
         # Base weight for the linear+activation branch
-        self.base_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline))
+        self.base_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline) / math.sqrt(self.dim_spline)
+        )
         
         # Spline coefficients
-        self.spline_weight = nn.Parameter(torch.Tensor(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline))
-        
-        # Initialize parameters properly
-        self._initialize_parameters()
+        self.spline_weight = nn.Parameter(
+            torch.randn(self.dim_spline, self.dim_spline, self.grid_size_spline + self.order_spline) /
+            (math.sqrt(self.dim_spline) * math.sqrt(self.grid_size_spline + self.order_spline))
+        )
     
-    def _initialize_parameters(self):
-        """Initialize spline parameters to avoid NaN values"""
-        # Initialize base weight with Kaiming uniform
-        nn.init.kaiming_uniform_(self.base_weight, a=math.sqrt(5))
-        
-        # Initialize spline weight with small random values
-        nn.init.normal_(self.spline_weight, mean=0, std=0.1)
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         original_shape = x.shape
         x = x.reshape(-1, self.dim_spline)  # flatten all but the last dimension
@@ -130,77 +124,55 @@ class LeTESpline(nn.Module):
             bases = left_term + right_term
 
         return bases.contiguous()
-class EfficientFourierKAN(nn.Module):
+class LeTEFourierSeries(nn.Module):
     """
-    LeTE-inspired FourierKAN with high-dimensional processing and geometric initialization.
+    Exact LeTE FourierSeries implementation following lete_encoder.py
     """
-    def __init__(self, input_dim: int, output_dim: int, intermediate_dim: int = 64, n_harmonics: int = 5):
+    def __init__(self, dim_fourier: int, grid_size_fourier: int = 5):
         super().__init__()
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.intermediate_dim = intermediate_dim
-        self.n_harmonics = n_harmonics
-        
-        # Stage 1: Project to high-dimensional space (like LeTE w1_fourier)
-        self.input_projection = nn.Linear(input_dim, intermediate_dim)
-        
-        # Stage 2: High-dimensional Fourier transform (like LeTE w2_fourier)
-        # Shape: (2, intermediate_dim, intermediate_dim, n_harmonics)
-        self.fourier_weight = nn.Parameter(
-            torch.randn(2, intermediate_dim, intermediate_dim, n_harmonics) / 
-            (math.sqrt(intermediate_dim) * math.sqrt(n_harmonics))
+        self.dim_fourier = dim_fourier
+        self.grid_size_fourier = grid_size_fourier
+
+        # Exact LeTE fourier_weight shape: (2, dim_fourier, dim_fourier, grid_size_fourier)
+        #   - 2 corresponds to cosine and sine parts, respectively
+        #   - The layer outputs dim_fourier features given dim_fourier inputs
+        self.fourier_weight = torch.nn.Parameter(
+            torch.randn(2, self.dim_fourier, self.dim_fourier, grid_size_fourier) /
+            (math.sqrt(self.dim_fourier) * math.sqrt(self.grid_size_fourier))
         )
-        self.fourier_bias = nn.Parameter(torch.zeros(intermediate_dim))
-        
-        # Stage 3: Project back to output dimension (like LeTE output_head)
-        self.output_projection = nn.Linear(intermediate_dim, output_dim)
-        
-        # Initialize with geometric progression (like LeTE)
-        self._initialize_geometric()
-    
-    def _initialize_geometric(self):
-        """Initialize with LeTE-style geometric progression"""
-        with torch.no_grad():
-            # Geometric frequency initialization for input projection
-            fourier_vals = 1.0 / (10 ** torch.linspace(0, 9, self.intermediate_dim))
-            self.input_projection.weight.copy_(fourier_vals.unsqueeze(-1).expand(-1, self.input_dim))
-            self.input_projection.bias.zero_()
+
+        # Bias term, one per output dimension
+        self.bias = nn.Parameter(torch.zeros(self.dim_fourier))
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        LeTE-style two-stage processing: project → transform → project
-        """
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
-        
-        batch_size, seq_len, input_dim = x.shape
-        x_flat = x.reshape(-1, input_dim)  # (B*S, input_dim)
-        
-        # Stage 1: Project to high-dimensional space
-        x_proj = self.input_projection(x_flat)  # (B*S, intermediate_dim)
-        
-        # Stage 2: High-dimensional Fourier transform
-        k = torch.arange(1, self.n_harmonics + 1, device=x.device, dtype=x.dtype)
-        k = k.reshape(1, 1, 1, self.n_harmonics)
-        
-        x_reshaped = x_proj.reshape(x_proj.shape[0], 1, x_proj.shape[1], 1)
-        
-        # Compute cos and sin
-        c = torch.cos(k * x_reshaped)  # (B*S, 1, intermediate_dim, n_harmonics)
-        s = torch.sin(k * x_reshaped)  # (B*S, 1, intermediate_dim, n_harmonics)
-        
-        # Apply Fourier weights (high-dimensional interaction)
+        original_shape = x.shape
+        out_shape = original_shape[0:-1] + (self.dim_fourier,)
+
+        # Flatten everything except the last dim
+        x = x.reshape(-1, self.dim_fourier)  # (N, dim_fourier)
+
+        # Frequency indices k = 1..grid_size_fourier
+        k = torch.arange(1, self.grid_size_fourier + 1, device=x.device)
+        k = k.reshape(1, 1, 1, self.grid_size_fourier)  # shape: (1,1,1,K)
+
+        # Reshape x to broadcast with k
+        x_reshaped = x.reshape(x.shape[0], 1, x.shape[1], 1)  # (N,1,dim_fourier,1)
+
+        # Compute cos(k * x) and sin(k * x)
+        c = torch.cos(k * x_reshaped)  # (N,1,dim_fourier,K)
+        s = torch.sin(k * x_reshaped)  # (N,1,dim_fourier,K)
+
+        # Sum up the contributions with the learned Fourier coefficients
+        # fourier_weight[0:1] -> cosine part, fourier_weight[1:2] -> sine part
         y = torch.sum(c * self.fourier_weight[0:1], dim=(-2, -1))
         y += torch.sum(s * self.fourier_weight[1:2], dim=(-2, -1))
-        y += self.fourier_bias
-        
-        # Stage 3: Project back to output dimension
-        output = self.output_projection(y)  # (B*S, output_dim)
-        
-        # Reshape back
-        output = output.view(batch_size, seq_len, self.output_dim)
-        
-        return output
+
+        # Add bias
+        y += self.bias
+
+        # Reshape back to original shape
+        y = y.reshape(out_shape)
+        return y
 class EnhancedWaveletKAN(nn.Module):
     """
     Enhanced wavelet expert with LeTE-style geometric initialization.
@@ -607,7 +579,7 @@ class KMOTE(nn.Module):
                  use_layernorm: bool = True,
                  use_scale: bool = True,
                  gating_temp: float = 1.0,
-                 transform_mode: str = 'adapter',
+                 transform_mode: str = 'per_expert',
                  adapter_type: str = 'affine',
                  use_gradient_checkpointing: bool = True,
                  use_amp: bool = False):
@@ -691,9 +663,9 @@ class KMOTE(nn.Module):
                 nn.Linear(self.hidden_dim, self.output_dim)
             ),
             
-            # Expert 2: Efficient Fourier KAN
+            # Expert 2: LeTE Fourier (exact LeTE implementation)
             nn.Sequential(
-                EfficientFourierKAN(self.hidden_dim, self.hidden_dim, n_harmonics=5),
+                LeTEFourierSeries(dim_fourier=self.hidden_dim, grid_size_fourier=5),
                 nn.Linear(self.hidden_dim, self.output_dim)
             ),
 
