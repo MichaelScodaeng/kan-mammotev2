@@ -4,10 +4,10 @@ import sys
 import inspect
 
 # ===== GLOBAL DEBUG VARIABLES =====
-DEBUG_TIME_ENCODER_FACTORY = True  # Set to True to enable detailed debugging
-DEBUG_TIME_ENCODER_CALLS = True    # Set to True to debug every forward call
-DEBUG_TIME_ENCODER_VALUES = True   # Set to True to print actual time values
-DEBUG_TIME_ENCODER_SHAPES = True   # Set to True to debug tensor shapes
+DEBUG_TIME_ENCODER_FACTORY = False  # Set to True to enable detailed debugging
+DEBUG_TIME_ENCODER_CALLS = False    # Set to True to debug every forward call
+DEBUG_TIME_ENCODER_VALUES = False   # Set to True to print actual time values
+DEBUG_TIME_ENCODER_SHAPES = False   # Set to True to debug tensor shapes
 
 def enable_factory_debug(enable_calls=True, enable_values=True, enable_shapes=True):
     """Enable debug mode for time encoder factory"""
@@ -46,17 +46,9 @@ def debug_print(message, debug_type="general"):
         # Force flush stdout
         import sys
         sys.stdout.flush()
-enable_factory_debug()
 
-# Test debug system - FORCE IMMEDIATE OUTPUT
-import sys
-print("🔍 [FACTORY] Starting factory.py import...", flush=True)
-sys.stdout.flush()
-
-debug_print("Factory debug system initialized!", "general")
-
-print("🔍 [FACTORY] About to import encoders...", flush=True)
-sys.stdout.flush()
+# Debug mode is DISABLED by default
+# Call enable_factory_debug() explicitly if you need debugging
 
 # Import standard encoder
 from ..gnn_backbones.modules import TimeEncoder as OriginalTimeEncoder
