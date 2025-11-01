@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.cuda.amp as amp
-
+import sys
 from .k_mote import KMOTE
 from .sm_kernel import SMKernelLayer
 from .controllable_mamba2 import ControllableMamba2
@@ -351,6 +351,68 @@ class KAN_MAMMOTE(nn.Module):
         Returns:
             final_embedding: Output embeddings (B, S, embedding_dim)
         """
+        # 🔍 DEBUG: Add factory debug integration
+        from .factory import DEBUG_TIME_ENCODER_FACTORY, DEBUG_TIME_ENCODER_CALLS, DEBUG_TIME_ENCODER_VALUES, DEBUG_TIME_ENCODER_SHAPES
+        cnt = 0
+        if DEBUG_TIME_ENCODER_FACTORY:
+            if DEBUG_TIME_ENCODER_CALLS:
+                print(f"🔍 [KAN_MAMMOTE] Forward pass called!", flush=True)
+            if DEBUG_TIME_ENCODER_VALUES:
+                
+                print(f"🔍 [KAN_MAMMOTE] Input shapes - t_abs: {t_abs.shape}, t_rel: {t_rel.shape}", flush=True)
+                print(f"🔍 [KAN_MAMMOTE] Input ranges - t_abs: [{t_abs.min().item():.3f}, {t_abs.max().item():.3f}]", flush=True)
+                print(f"🔍 [KAN_MAMMOTE] Input ranges - t_rel: [{t_rel.min().item():.3f}, {t_rel.max().item():.3f}]", flush=True)
+                # 🔍 DEBUG: Analyze the actual values to understand preprocessing
+                print(f"🔍 [VALUE ANALYSIS]", flush=True)
+                print(f"   ├─ t_abs stats: mean={t_abs.mean().item():.4f}, std={t_abs.std().item():.4f}", flush=True)
+                print(f"   ├─ t_rel stats: mean={t_rel.mean().item():.4f}, std={t_rel.std().item():.4f}", flush=True)
+                print(f"   ├─ t_abs negative count: {(t_abs < 0).sum().item()}/{t_abs.numel()}", flush=True)
+                print(f"   ├─ t_rel negative count: {(t_rel < 0).sum().item()}/{t_rel.numel()}", flush=True)
+                print(f"   └─ 💡 Negative t_abs suggests normalization/standardization", flush=True)
+            if DEBUG_TIME_ENCODER_SHAPES:
+                print(f"🔍 [KAN_MAMMOTE] Batch size: {t_abs.shape[0]}, Sequence length: {t_abs.shape[1] if len(t_abs.shape) > 1 else 'N/A'}", flush=True)
+                
+                # 🎯 SEQUENCE ANALYSIS: Understand the data pattern
+                print(f"🎯 [SEQUENCE ANALYSIS]", flush=True)
+                print(f"   ├─ Expected TGN shape: (num_events*2, 1, 1) with seq_len=1", flush=True)
+                print(f"   ├─ Actual shape: t_abs{t_abs.shape}, t_rel{t_rel.shape}", flush=True)
+                
+                if len(t_abs.shape) >= 2:
+                    seq_len = t_abs.shape[1] if len(t_abs.shape) > 1 else 1
+                    print(f"   ├─ Sequence length: {seq_len}", flush=True)
+                    
+                    if seq_len == 1:
+                        print(f"   ├─ ✅ CORRECT: seq_len=1 matches TGN expectation (single Δt per event)", flush=True)
+                        print(f"   ├─ 🤔 BUT: Mamba2 works better with seq_len > 1 for temporal patterns", flush=True)
+                        print(f"   └─ 💡 This explains potential architectural mismatch!", flush=True)
+                    else:
+                        print(f"   ├─ ❓ UNEXPECTED: seq_len={seq_len} > 1", flush=True)
+                        print(f"   ├─ 💭 Possible reasons:", flush=True)
+                        print(f"   │  ├─ Memory module providing historical embeddings", flush=True)
+                        print(f"   │  ├─ Multi-hop neighbor aggregation", flush=True)
+                        print(f"   │  └─ Batched temporal sequences", flush=True)
+                        print(f"   └─ 🎯 This could justify Mamba2 usage!", flush=True)
+                    
+                    # Analyze the actual time values to understand the pattern
+                    if DEBUG_TIME_ENCODER_VALUES and seq_len > 1:
+                        print(f"   🔍 [TIME PATTERN ANALYSIS]", flush=True)
+                        print(f"      ├─ t_abs[0]: {t_abs[0].flatten()[:min(10, seq_len)].tolist()}", flush=True)
+                        print(f"      ├─ t_rel[0]: {t_rel[0].flatten()[:min(10, seq_len)].tolist()}", flush=True)
+                        
+                        # Check if values are identical (broadcasting) or truly sequential
+                        if seq_len > 1:
+                            abs_all_same = torch.all(t_abs[0] == t_abs[0, 0]).item()
+                            rel_all_same = torch.all(t_rel[0] == t_rel[0, 0]).item()
+                            print(f"      ├─ t_abs all same: {abs_all_same}", flush=True)
+                            print(f"      ├─ t_rel all same: {rel_all_same}", flush=True)
+                            
+                            if abs_all_same and rel_all_same:
+                                print(f"      └─ 🎯 PATTERN: Values repeated → Broadcasting/Memory module", flush=True)
+                            else:
+                                print(f"      └─ 🎯 PATTERN: Values differ → True temporal sequence", flush=True)
+            cnt += 200
+            if cnt == 1:
+                sys.exit()
         if debug or hasattr(self, '_debug_mode'):
             print(f"\n{'='*60}")
             print(f"🔍 KAN-MAMMOTE DEBUG - Forward Pass")
@@ -395,6 +457,19 @@ class KAN_MAMMOTE(nn.Module):
             # ===== MAMBA FUSION (Original KAN-MAMMOTE) =====
             
             if self.use_controllable_mamba:
+                # 🔍 DEBUG: Track Mamba2 processing
+                if DEBUG_TIME_ENCODER_FACTORY and DEBUG_TIME_ENCODER_SHAPES:
+                    print(f"🔍 [MAMBA2 PROCESSING]", flush=True)
+                    print(f"   ├─ Input to Mamba2: u_k.shape={u_k.shape}", flush=True)
+                    print(f"   ├─ Modulation: v_k.shape={v_k.shape}", flush=True)
+                    print(f"   ├─ Mamba2 expects: (batch, seq_len, d_model)", flush=True)
+                    
+                    if u_k.shape[1] == 1:
+                        print(f"   ├─ ⚠️  WARNING: seq_len=1 may not utilize Mamba2's temporal modeling", flush=True)
+                        print(f"   └─ 💡 Mamba2 shines with longer sequences for temporal dependencies", flush=True)
+                    else:
+                        print(f"   └─ ✅ Good: seq_len={u_k.shape[1]} allows Mamba2 to model temporal patterns", flush=True)
+                
                 # ✅ SIMPLIFIED: Direct v_k → modulator_head (no fusion_mlp_base)
                 modulator_logits = self.modulator_head(v_k)  # (B, S, nheads * 2)
                 

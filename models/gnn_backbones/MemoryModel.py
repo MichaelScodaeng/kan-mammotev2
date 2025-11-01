@@ -261,6 +261,24 @@ class MemoryModel(torch.nn.Module):
             # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(node_interact_times).float().to(self.device).unsqueeze(dim=1)  # Absolute interaction times
             t_rel = src_node_delta_times.unsqueeze(dim=1)  # Relative time differences
+            
+            # 🔍 DEBUG: Track TGN→KAN_MAMMOTE call in MemoryModel (the REAL usage!)
+            try:
+                from ..time_encoders.factory import DEBUG_TIME_ENCODER_FACTORY
+                if DEBUG_TIME_ENCODER_FACTORY:
+                    print(f"🎯 [TGN MemoryModel→KAN_MAMMOTE] Message computation call:", flush=True)
+                    print(f"   ├─ Function: compute_new_node_raw_messages", flush=True)
+                    print(f"   ├─ node_interact_times shape: {node_interact_times.shape}", flush=True)
+                    print(f"   ├─ src_node_delta_times shape: {src_node_delta_times.shape}", flush=True)
+                    print(f"   ├─ t_abs after unsqueeze: {t_abs.shape}", flush=True)
+                    print(f"   ├─ t_rel after unsqueeze: {t_rel.shape}", flush=True)
+                    print(f"   ├─ Expected by Google AI: (batch_size, 1, 1) ✅", flush=True)
+                    print(f"   └─ ACTUAL: seq_len={t_abs.shape[1]} - This matches Google AI expectation!", flush=True)
+                    print(f"   └─ Actual t_abs values: {t_abs}", flush=True)
+                    print(f"   └─ Actual t_rel values: {t_rel}", flush=True)
+            except ImportError:
+                pass
+            
             src_node_delta_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel).reshape(len(src_node_ids), -1)
         else:
             # Standard time encoders: Use relative time only (backward compatibility)

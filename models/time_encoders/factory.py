@@ -3,19 +3,78 @@ import numpy as np
 import sys
 import inspect
 
+# ===== GLOBAL DEBUG VARIABLES =====
+DEBUG_TIME_ENCODER_FACTORY = True  # Set to True to enable detailed debugging
+DEBUG_TIME_ENCODER_CALLS = True    # Set to True to debug every forward call
+DEBUG_TIME_ENCODER_VALUES = True   # Set to True to print actual time values
+DEBUG_TIME_ENCODER_SHAPES = True   # Set to True to debug tensor shapes
+
+def enable_factory_debug(enable_calls=True, enable_values=True, enable_shapes=True):
+    """Enable debug mode for time encoder factory"""
+    global DEBUG_TIME_ENCODER_FACTORY, DEBUG_TIME_ENCODER_CALLS, DEBUG_TIME_ENCODER_VALUES, DEBUG_TIME_ENCODER_SHAPES
+    DEBUG_TIME_ENCODER_FACTORY = True
+    DEBUG_TIME_ENCODER_CALLS = enable_calls
+    DEBUG_TIME_ENCODER_VALUES = enable_values
+    DEBUG_TIME_ENCODER_SHAPES = enable_shapes
+    print("🔍 TIME ENCODER FACTORY DEBUG MODE ENABLED")
+    print(f"   - Calls: {DEBUG_TIME_ENCODER_CALLS}")
+    print(f"   - Values: {DEBUG_TIME_ENCODER_VALUES}")
+    print(f"   - Shapes: {DEBUG_TIME_ENCODER_SHAPES}")
+
+def disable_factory_debug():
+    """Disable debug mode for time encoder factory"""
+    global DEBUG_TIME_ENCODER_FACTORY, DEBUG_TIME_ENCODER_CALLS, DEBUG_TIME_ENCODER_VALUES, DEBUG_TIME_ENCODER_SHAPES
+    DEBUG_TIME_ENCODER_FACTORY = False
+    DEBUG_TIME_ENCODER_CALLS = False
+    DEBUG_TIME_ENCODER_VALUES = False
+    DEBUG_TIME_ENCODER_SHAPES = False
+    print("🔍 TIME ENCODER FACTORY DEBUG MODE DISABLED")
+
+def debug_print(message, debug_type="general"):
+    """Conditional debug printing"""
+    if DEBUG_TIME_ENCODER_FACTORY:
+        # Use independent if statements instead of elif to allow multiple debug types
+        if debug_type == "calls" and DEBUG_TIME_ENCODER_CALLS:
+            print(f"🔍 [CALLS] {message}", flush=True)
+        if debug_type == "values" and DEBUG_TIME_ENCODER_VALUES:
+            print(f"🔍 [VALUES] {message}", flush=True)
+        if debug_type == "shapes" and DEBUG_TIME_ENCODER_SHAPES:
+            print(f"🔍 [SHAPES] {message}", flush=True)
+        if debug_type == "general":
+            print(f"🔍 [DEBUG] {message}", flush=True)
+        
+        # Force flush stdout
+        import sys
+        sys.stdout.flush()
+enable_factory_debug()
+
+# Test debug system - FORCE IMMEDIATE OUTPUT
+import sys
+print("🔍 [FACTORY] Starting factory.py import...", flush=True)
+sys.stdout.flush()
+
+debug_print("Factory debug system initialized!", "general")
+
+print("🔍 [FACTORY] About to import encoders...", flush=True)
+sys.stdout.flush()
+
 # Import standard encoder
 from ..gnn_backbones.modules import TimeEncoder as OriginalTimeEncoder
 
 # Import Mamba-based encoders with optional fallback
 try:
     from .kan_mammote import KAN_MAMMOTE
-except ImportError:
+    print("🔍 [FACTORY] ✅ Successfully imported KAN_MAMMOTE", flush=True)
+except ImportError as e:
     KAN_MAMMOTE = None
+    print(f"🔍 [FACTORY] ❌ Failed to import KAN_MAMMOTE: {e}", flush=True)
 
 try:
     from .kan_mammote_lite import KAN_MAMMOTE_Lite
-except ImportError:
+    print("🔍 [FACTORY] ✅ Successfully imported KAN_MAMMOTE_Lite", flush=True)
+except ImportError as e:
     KAN_MAMMOTE_Lite = None
+    print(f"🔍 [FACTORY] ❌ Failed to import KAN_MAMMOTE_Lite: {e}", flush=True)
 
 # Import additional encoders
 try:
@@ -41,11 +100,16 @@ except ImportError:
 # Import ablation study encoders
 try:
     from .ablation_encoders import SMKernelOnly, KMOTEAbsOnly, KMOTERelOnly, DualStreamBaseline
-except ImportError:
+    print("🔍 [FACTORY] ✅ Successfully imported ablation encoders", flush=True)
+except ImportError as e:
     SMKernelOnly = None
     KMOTEAbsOnly = None
     KMOTERelOnly = None
     DualStreamBaseline = None
+    print(f"🔍 [FACTORY] ❌ Failed to import ablation encoders: {e}", flush=True)
+
+print("🔍 [FACTORY] ✅ ALL IMPORTS COMPLETED - Factory ready!", flush=True)
+sys.stdout.flush()
 
 class TimeEncoderWrapper(torch.nn.Module):
     """
@@ -81,6 +145,24 @@ class TimeEncoderWrapper(torch.nn.Module):
     def forward(self, t_abs=None, t_rel=None, timestamps=None):
         self._call_count += 1
         
+        # Global debug information (always enabled when global flag is on)
+        if DEBUG_TIME_ENCODER_FACTORY:
+            debug_print(f"TimeEncoderWrapper.forward() call #{self._call_count} for {self.encoder_name}", "calls")
+            if DEBUG_TIME_ENCODER_VALUES:
+                debug_print(f"Input parameters:", "values")
+                if t_abs is not None:
+                    debug_print(f"  t_abs: shape={t_abs.shape if hasattr(t_abs, 'shape') else 'scalar'}, "
+                              f"min={t_abs.min().item() if hasattr(t_abs, 'min') else t_abs}, "
+                              f"max={t_abs.max().item() if hasattr(t_abs, 'max') else t_abs}", "values")
+                if t_rel is not None:
+                    debug_print(f"  t_rel: shape={t_rel.shape if hasattr(t_rel, 'shape') else 'scalar'}, "
+                              f"min={t_rel.min().item() if hasattr(t_rel, 'min') else t_rel}, "
+                              f"max={t_rel.max().item() if hasattr(t_rel, 'max') else t_rel}", "values")
+                if timestamps is not None:
+                    debug_print(f"  timestamps: shape={timestamps.shape if hasattr(timestamps, 'shape') else 'scalar'}, "
+                              f"min={timestamps.min().item() if hasattr(timestamps, 'min') else timestamps}, "
+                              f"max={timestamps.max().item() if hasattr(timestamps, 'max') else timestamps}", "values")
+        
         if self._debug_mode:
             print(f"\n🔧 TimeEncoderWrapper Call #{self._call_count}")
             print(f"   Encoder: {self.encoder_name}")
@@ -98,9 +180,31 @@ class TimeEncoderWrapper(torch.nn.Module):
         sig = inspect.signature(self.encoder.forward)
         params = list(sig.parameters.keys())
         
+        # Global debug for function signature
+        if DEBUG_TIME_ENCODER_FACTORY:
+            debug_print(f"Encoder forward signature: {params}", "calls")
+            
+        print(params)
         # Strategy 1: Dual-stream interface (KAN-MAMMOTE)
         if 't_abs' in params and 't_rel' in params:
             if t_abs is not None and t_rel is not None:
+                if DEBUG_TIME_ENCODER_FACTORY:
+                    debug_print("Using dual-stream interface: t_abs + t_rel", "calls")
+                    debug_print(f"t_abs: {t_abs.shape} | range: [{t_abs.min().item():.3f}, {t_abs.max().item():.3f}]", "values")
+                    debug_print(f"t_rel: {t_rel.shape} | range: [{t_rel.min().item():.3f}, {t_rel.max().item():.3f}]", "values")
+                
+                print("Using both t_abs and t_rel")
+                #debug how t_abs and t_rel is used with easy to read while print all
+                print(f"   🎯 Using dual-stream interface: t_abs + t_rel")
+                print(f"     t_abs: {t_abs.shape} | range: [{t_abs.min().item():.3f}, {t_abs.max().item():.3f}]")
+                print(f"     t_rel: {t_rel.shape} | range: [{t_rel.min().item():.3f}, {t_rel.max().item():.3f}]")
+                
+                # TEMPORARY: Exit to debug values - REMOVE THIS WHEN DONE DEBUGGING
+                if DEBUG_TIME_ENCODER_FACTORY and DEBUG_TIME_ENCODER_VALUES:
+                    debug_print("TEMPORARY EXIT FOR DEBUGGING - REMOVE WHEN DONE", "general")
+                    import sys
+                    sys.exit()
+                    
                 if self._debug_mode:
                     print(f"   🎯 Using dual-stream interface: t_abs + t_rel")
                 result = self.encoder.forward(t_abs=t_abs, t_rel=t_rel)
@@ -108,6 +212,19 @@ class TimeEncoderWrapper(torch.nn.Module):
                 # timestamps is usually delta_t, so treat as t_rel
                 t_rel_default = timestamps
                 t_abs_default = torch.zeros_like(timestamps)
+                
+                if DEBUG_TIME_ENCODER_FACTORY:
+                    debug_print("Using dual-stream interface: dummy t_abs + timestamps as t_rel", "calls")
+                    debug_print(f"t_abs_default (zeros): {t_abs_default.shape}", "values")
+                    debug_print(f"t_rel_default (timestamps): {t_rel_default.shape} | range: [{t_rel_default.min().item():.3f}, {t_rel_default.max().item():.3f}]", "values")
+                
+                print("kuay I sus this case")
+                # TEMPORARY: Exit to debug values - REMOVE THIS WHEN DONE DEBUGGING  
+                if DEBUG_TIME_ENCODER_FACTORY:
+                    debug_print("TEMPORARY EXIT FOR DEBUGGING - REMOVE WHEN DONE", "general")
+                    import sys
+                    sys.exit()
+                    
                 if self._debug_mode:
                     print(f"   🎯 Using dual-stream interface: dummy t_abs + timestamps as t_rel")
                 result = self.encoder.forward(t_abs=t_abs_default, t_rel=t_rel_default)
@@ -322,12 +439,30 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
     """
     Factory function to create and initialize the correct time encoder.
     """
+    print(f"🔍 [CREATE_ENCODER] CALLED with encoder_type='{encoder_type}', time_dim={time_dim}", flush=True)
+    sys.stdout.flush()
+    
     encoder_type = encoder_type.lower()
+    
+    # Global debug information for encoder creation
+    if DEBUG_TIME_ENCODER_FACTORY:
+        debug_print(f"Creating time encoder: {encoder_type} with time_dim={time_dim}", "general")
+        debug_print(f"Device: {device}", "general")
+        debug_print(f"Train data provided: {train_data is not None}", "general")
+        debug_print(f"Train neighbor sampler provided: {train_neighbor_sampler is not None}", "general")
+        if args is not None:
+            debug_print(f"Args provided with keys: {vars(args).keys()}", "general")
+        if kwargs:
+            debug_print(f"Kwargs provided: {kwargs}", "general")
     
     # Show available encoders for debugging
     available = get_available_encoders()
     print(f"Available encoders: {available}")
     print(f"Requested encoder: {encoder_type}")
+    
+    if DEBUG_TIME_ENCODER_FACTORY:
+        debug_print(f"Available encoders: {available}", "general")
+        debug_print(f"Creating encoder type: {encoder_type}", "general")
     
     if encoder_type == 'kan_mammote':
         if KAN_MAMMOTE is None:
