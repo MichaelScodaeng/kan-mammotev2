@@ -14,13 +14,12 @@ conda activate kan_mammote
 mkdir -p sh_scripts/kmm_renew/sh_logs/tgn
 
 # Run experiments for TGN with kan_mammote_dual_kmote time encoder
-# Dataset: mooc
-
+# Dataset: UNvote
 timestamp=$(date +%Y%m%d_%H%M%S)
 python experiment_unified2.py \
     --single_encoder kan_mammote_dual_kmote \
     --models TGN \
-    --datasets mooc \
+    --datasets UNvote \
     --num_epochs 200 \
     --data_ratio 1.0 \
     --test_interval_epochs 100 \
@@ -30,4 +29,4 @@ python experiment_unified2.py \
     --disable_progress_bar \
     --num_runs 1 \
     --max_grad_norm 1.0 \
-    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_mooc_kmote_${timestamp}.log 2>&1
+    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_unvote_kmote_${timestamp}.log 2>&1

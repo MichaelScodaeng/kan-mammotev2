@@ -16,6 +16,7 @@ mkdir -p sh_scripts/kmm_renew/sh_logs/tgn
 # Run experiments for TGN with kan_mammote_dual_kmote time encoder
 # Dataset: lastfm
 
+timestamp=$(date +%Y%m%d_%H%M%S)
 python experiment_unified2.py \
     --single_encoder kan_mammote_dual_kmote \
     --models TGN \
@@ -23,9 +24,10 @@ python experiment_unified2.py \
     --num_epochs 200 \
     --data_ratio 1.0 \
     --test_interval_epochs 100 \
-    --learning_rate 5e-5 \
-    --weight_decay 1e-2 \
-    --optimizer AdamW8bit \
+    --learning_rate 1e-5 \
+    --weight_decay 1e-4 \
+    --optimizer AdamW \
     --disable_progress_bar \
     --num_runs 1 \
-    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_lastfm_kmote.log 2>&1
+    --max_grad_norm 1.0 \
+    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_lastfm_kmote_${timestamp}.log 2>&1

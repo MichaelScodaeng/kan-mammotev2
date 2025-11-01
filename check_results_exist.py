@@ -101,16 +101,36 @@ def get_metrics_from_result_file(model: str, dataset: str, encoder: str, neg_str
     
     base_dir = f"./saved_results/{model}/{dataset}"
     
+    # For all strategies, check both specific strategy files AND comprehensive files
+    patterns_to_check = []
+    
     if neg_strategy == 'random':
-        result_pattern = f"{base_dir}/{model}_{encoder}_seed0_*.json"
+        # Random: check both comprehensive files and regular files
+        patterns_to_check = [
+            f"{base_dir}/{model}_{encoder}_seed0_*.json",  # Both regular and comprehensive
+        ]
     elif neg_strategy == 'historical':
-        result_pattern = f"{base_dir}/historical_negative_sampling_{model}_{encoder}_seed0*.json"
+        # Historical: check both historical-specific files and comprehensive files
+        patterns_to_check = [
+            f"{base_dir}/historical_negative_sampling_{model}_{encoder}_seed0*.json",  # Historical-specific
+            f"{base_dir}/{model}_{encoder}_seed0_*.json",  # Comprehensive files
+        ]
     elif neg_strategy == 'inductive':
-        result_pattern = f"{base_dir}/inductive_negative_sampling_{model}_{encoder}_seed0*.json"
+        # Inductive: check both inductive-specific files and comprehensive files
+        patterns_to_check = [
+            f"{base_dir}/inductive_negative_sampling_{model}_{encoder}_seed0*.json",  # Inductive-specific
+            f"{base_dir}/{model}_{encoder}_seed0_*.json",  # Comprehensive files
+        ]
     else:
         raise ValueError(f"Unknown neg_strategy: {neg_strategy}")
     
-    existing_results = glob.glob(result_pattern)
+    # Collect all files from all patterns
+    existing_results = []
+    for pattern in patterns_to_check:
+        existing_results.extend(glob.glob(pattern))
+    
+    # Remove duplicates while preserving order
+    existing_results = list(dict.fromkeys(existing_results))
     
     # Filter out unwanted files for random strategy
     if neg_strategy == 'random':
@@ -121,8 +141,16 @@ def get_metrics_from_result_file(model: str, dataset: str, encoder: str, neg_str
     if not existing_results:
         return None
     
-    # Use the first (most recent) result file if multiple exist
-    result_file = existing_results[0]
+    # Prioritize comprehensive files over regular files
+    # Sort so comprehensive files come first
+    comprehensive_files = [f for f in existing_results if 'comprehensive' in f]
+    regular_files = [f for f in existing_results if 'comprehensive' not in f]
+    
+    # Use comprehensive file if available, otherwise use regular file
+    if comprehensive_files:
+        result_file = comprehensive_files[0]
+    else:
+        result_file = regular_files[0]
     
     try:
         with open(result_file, 'r') as f:
@@ -131,18 +159,44 @@ def get_metrics_from_result_file(model: str, dataset: str, encoder: str, neg_str
         # Extract the test metrics
         metrics = {}
         
-        if "test metrics" in data:
-            metrics["test_metrics"] = data["test metrics"]
-        
-        if "new node test metrics" in data:
-            metrics["new_node_test_metrics"] = data["new node test metrics"]
-        
-        # Also include validation metrics for completeness
-        if "validate metrics" in data:
-            metrics["validate_metrics"] = data["validate metrics"]
+        # Check if this is a comprehensive file (has 'strategies' key)
+        if "strategies" in data and neg_strategy in data["strategies"]:
+            # Comprehensive file format: data['strategies'][neg_strategy]['transductive_test']
+            strategy_data = data["strategies"][neg_strategy]
             
-        if "new node validate metrics" in data:
-            metrics["new_node_validate_metrics"] = data["new node validate metrics"]
+            # Extract transductive (standard) test metrics
+            if "transductive_test" in strategy_data:
+                trans_data = strategy_data["transductive_test"]
+                
+                # Standard test metrics (in 'metrics' key)
+                if "metrics" in trans_data:
+                    metrics["test_metrics"] = trans_data["metrics"]
+                
+                # If there are separate new node metrics, extract them
+                # (Comprehensive files might have different structure for new node metrics)
+                
+            # Extract inductive (new node) test metrics  
+            if "inductive_test" in strategy_data:
+                induc_data = strategy_data["inductive_test"]
+                
+                # New node test metrics (in 'metrics' key)
+                if "metrics" in induc_data:
+                    metrics["new_node_test_metrics"] = induc_data["metrics"]
+        
+        # Regular file format (direct keys)
+        elif "test metrics" in data:
+            if "test metrics" in data:
+                metrics["test_metrics"] = data["test metrics"]
+            
+            if "new node test metrics" in data:
+                metrics["new_node_test_metrics"] = data["new node test metrics"]
+            
+            # Also include validation metrics for completeness
+            if "validate metrics" in data:
+                metrics["validate_metrics"] = data["validate metrics"]
+                
+            if "new node validate metrics" in data:
+                metrics["new_node_validate_metrics"] = data["new node validate metrics"]
         
         return metrics if metrics else None
         

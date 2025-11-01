@@ -732,7 +732,8 @@ if __name__ == "__main__":
                 
                 # 🔧 GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
                 # This is critical for training stability, especially with high-capacity time encoders
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                if args.max_grad_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)
                 
                 optimizer.step()
                 

@@ -53,6 +53,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('--optimizer', type=str, default='AdamW8bit', choices=['SGD', 'Adam', 'RMSprop',"AdamW","Adam8bit","AdamW8bit"], help='name of optimizer')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='weight decay')
+    parser.add_argument('--max_grad_norm', type=float, default=1.0, help='maximum gradient norm for clipping (0 disables clipping)')
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')

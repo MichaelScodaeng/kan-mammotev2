@@ -121,6 +121,8 @@ def parse_arguments():
                         help='name of optimizer')
     parser.add_argument('--weight_decay', type=float, default=None,
                         help='weight decay')
+    parser.add_argument('--max_grad_norm', type=float, default=None,
+                        help='maximum gradient norm for clipping (0 disables clipping)')
     parser.add_argument('--patience', type=int, default=None,
                         help='patience for early stopping')
     parser.add_argument('--val_ratio', type=float, default=None,
@@ -751,6 +753,8 @@ def build_training_command(model, dataset, time_encoder_name, args,
         command.extend(['--ablation_dir', args.ablation_dir])
     if args.debug_encoder:
         command.append('--debug_encoder')
+    if args.max_grad_norm is not None:
+        command.extend(['--max_grad_norm', str(args.max_grad_norm)])
     if args.checkpoint_interval is not None:
         command.extend(['--checkpoint_interval', str(args.checkpoint_interval)])
     if args.max_checkpoints_to_keep is not None:
@@ -991,6 +995,8 @@ def build_evaluation_command(model, dataset, time_encoder_name, negative_sample_
         command.extend(['--ablation_dir', args.ablation_dir])
     if args.debug_encoder:
         command.append('--debug_encoder')
+    if args.max_grad_norm is not None:
+        command.extend(['--max_grad_norm', str(args.max_grad_norm)])
     
     # Forward data_ratio
     if hasattr(args, 'data_ratio') and args.data_ratio is not None:

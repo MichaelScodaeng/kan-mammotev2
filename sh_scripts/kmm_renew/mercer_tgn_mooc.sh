@@ -13,21 +13,20 @@ module load cuda/12.1
 conda activate kan_mammote
 mkdir -p sh_scripts/kmm_renew/sh_logs/tgn
 
-# Run experiments for TGN with kan_mammote_dual_kmote time encoder
-# Dataset: mooc
+# Run experiments for TGN with mercer time encoder
+# Dataset: USLegis
 
 timestamp=$(date +%Y%m%d_%H%M%S)
 python experiment_unified2.py \
-    --single_encoder kan_mammote_dual_kmote \
+    --single_encoder mercer \
     --models TGN \
     --datasets mooc \
     --num_epochs 200 \
     --data_ratio 1.0 \
     --test_interval_epochs 100 \
-    --learning_rate 1e-5 \
-    --weight_decay 1e-4 \
+    --learning_rate 1e-4 \
     --optimizer AdamW \
     --disable_progress_bar \
     --num_runs 1 \
     --max_grad_norm 1.0 \
-    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_mooc_kmote_${timestamp}.log 2>&1
+    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_mooc_mercer_${timestamp}.log 2>&1
