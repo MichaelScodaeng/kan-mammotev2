@@ -41,7 +41,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
     parser.add_argument('--num_mixtures', type=int, default=16, 
                         help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
-    parser.add_argument('--sort_neighbors_by_time', action='store_true', default=False,
+    parser.add_argument('--sort_neighbors_by_time', action='store_true', default=True,
                         help='Sort sampled neighbors chronologically for Mamba-based time encoders (recommended for kan_mammote)')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')

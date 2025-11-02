@@ -24,9 +24,10 @@ python experiment_unified2.py \
     --num_epochs 200 \
     --data_ratio 1.0 \
     --test_interval_epochs 100 \
-    --learning_rate 2e-5 \
-    --weight_decay 1e-4 \
+    --learning_rate 1e-4 \
+    --weight_decay 1e-5 \
     --optimizer AdamW \
+    --patience 30 \
     --disable_progress_bar \
     --num_runs 1 \
     --max_grad_norm 1.0 \

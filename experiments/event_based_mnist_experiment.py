@@ -566,10 +566,12 @@ class TimeEncoderClassifier(nn.Module):
             # Dual-time encoders need both absolute and relative
             t_abs = x_float.unsqueeze(-1)  # (batch, seq_len, 1)
             
-            # Generate relative time (differences between consecutive events)
+            # Generate relative time using GNN pattern: current_time - neighbor_time
+            # This creates "time ago" values (recency), matching GNN semantics
             t_rel = torch.zeros_like(t_abs)
-            t_rel[:, 1:, 0] = x_float[:, 1:] - x_float[:, :-1]
-            t_rel[:, 0, 0] = 0  # First position has no predecessor
+            # For each position i, compute how long ago the previous event happened
+            t_rel[:, 1:, 0] = x_float[:, 1:] - x_float[:, :-1]  # current - previous = "time ago"
+            t_rel[:, 0, 0] = 0  # First position has no previous event
             
             # Move to device
             t_abs = t_abs.to(next(self.parameters()).device)
@@ -577,7 +579,7 @@ class TimeEncoderClassifier(nn.Module):
             
             # Debug on first batch only
             if not hasattr(self, '_debug_printed'):
-                print(f"🔍 DEBUG - Input Statistics (RAW - matching paper):")
+                print(f"🔍 DEBUG - Input Statistics (GNN pattern: current - previous):")
                 print(f"  t_abs range: [{t_abs.min():.1f}, {t_abs.max():.1f}], mean: {t_abs.mean():.1f}")
                 print(f"  t_rel range: [{t_rel.min():.1f}, {t_rel.max():.1f}], mean: {t_rel.mean():.1f}")
                 self._debug_printed = True
