@@ -257,6 +257,19 @@ class TimeEncoderClassifier(nn.Module):
                 raise ImportError("Mercer encoder not available")
             return MercerTimeEncoder(time_dim=embedding_dim)
         
+        elif encoder_type == 'mercer_rel':
+            if not MERCER_AVAILABLE:
+                raise ImportError("Mercer encoder not available")
+            return MercerTimeEncoder(time_dim=embedding_dim)  # Will use relative time via t_rel
+        
+        elif encoder_type == 'lete_rel':
+            if not LETE_AVAILABLE:
+                raise ImportError("LeTE encoder not available")
+            return LeTE(
+                time_dim=embedding_dim,
+                max_pos=self.max_channels  # Use max channels as position range
+            )  # Will use relative time via t_rel
+        
         elif encoder_type == 'bochner':
             if not BOCHNER_AVAILABLE:
                 raise ImportError("Bochner encoder not available")
@@ -313,7 +326,7 @@ class TimeEncoderClassifier(nn.Module):
     
     def _needs_both_times(self, encoder_type):
         """Check if encoder needs both absolute and relative time inputs"""
-        dual_input_encoders = ['k_mote_abs', 'k_mote_rel', 'kan_mammote_lite', 'kan_mammote_full']
+        dual_input_encoders = ['k_mote_abs', 'k_mote_rel', 'kan_mammote_lite', 'kan_mammote_full', 'mercer_rel', 'lete_rel']
         return encoder_type in dual_input_encoders
     
     def forward(self, x, lengths):
@@ -331,16 +344,21 @@ class TimeEncoderClassifier(nn.Module):
             # This is analogous to pixel positions in Event-Based MNIST
             
             if self._needs_both_times(self.encoder_type):
-                # Create time inputs for K-MOTE style encoders
+                # Create time inputs for K-MOTE style encoders and relative encoders
                 # t_abs: absolute channel positions (normalized)
                 t_abs = x.float() / self.max_channels  # Normalize to [0, 1]
                 
                 # t_rel: relative differences between consecutive channels
                 t_rel = torch.zeros_like(t_abs)
-                t_rel[:, 1:] = t_abs[:, 1:] - t_abs[:, :-1]
                 
-                embedded = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
-            
+                #t_rel[:, 1:] = t_abs[:, 1:] - t_abs[:, :-1]
+                t_rel[:, :, 0] = t_abs[:, -1:] - t_abs  # last_time - current_time = "time until end"
+                if self.encoder_type in ['mercer_rel', 'lete_rel']:
+                    # For relative-only encoders, only pass t_rel
+                    embedded = self.time_encoder(t_rel=t_rel)
+                else:
+                    # For K-MOTE style encoders, pass both
+                    embedded = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
             else:
                 # For other encoders, use channel positions as timestamps
                 timestamps = x.float() / self.max_channels  # Normalize to [0, 1]
@@ -535,24 +553,27 @@ def get_available_encoders():
     # Always available encoders
     encoders = [
         'lstm_only',
-        'sm_kernel_only',
-        'dual_stream', 
+        #'sm_kernel_only',
+        #'dual_stream', 
         'k_mote_abs',
         'k_mote_rel',
-        'kan_mammote_lite',
+        #'kan_mammote_lite',
         'kan_mammote_full'
     ]
     
     # Optional encoders
     if LETE_AVAILABLE:
         encoders.append('lete')
+        encoders.append('lete_rel')
     if MERCER_AVAILABLE:
         encoders.append('mercer')
+        encoders.append('mercer_rel')
+    '''
     if TIME2VEC_AVAILABLE:
         encoders.append('time2vec')
     if BOCHNER_AVAILABLE:
         encoders.append('bochner')
-    
+    '''
     return encoders
 
 

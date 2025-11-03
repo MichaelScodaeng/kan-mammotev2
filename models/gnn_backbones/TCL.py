@@ -1,7 +1,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import sys
+import os
 
+# Add project root to path and import debug config
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
+
+from debug_config import should_debug_model  # 🔍 Global debug control
 from models.gnn_backbones.modules import TimeEncoder, TransformerEncoder
 from utils.utils import NeighborSampler
 
@@ -204,6 +211,27 @@ class TCL(nn.Module):
             # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(nodes_neighbor_times).float().to(self.device)  # Absolute neighbor times
             t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - nodes_neighbor_times).float().to(self.device)  # Relative time differences
+            
+            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
+            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and nodes_neighbor_times.size > 0:
+                print(f"\n🔍 [TCL] Neighbor Time Sorting Debug:")
+                print(f"   Batch size: {nodes_neighbor_times.shape[0]}, Neighbors+self: {nodes_neighbor_times.shape[1]}")
+                
+                # Check first row for sorting (remember: [current_node, neighbor1, neighbor2, ...])
+                first_neighbor_times = nodes_neighbor_times[0]
+                # Skip first element (current node) and check if neighbors are sorted
+                if len(first_neighbor_times) > 1:
+                    neighbor_only = first_neighbor_times[1:]  # Skip current node
+                    is_sorted = all(neighbor_only[i] <= neighbor_only[i+1] for i in range(len(neighbor_only)-1)) if len(neighbor_only) > 1 else True
+                    print(f"   First row times: {first_neighbor_times[:5]}...")
+                    print(f"   Neighbors only sorted: {is_sorted}")
+                
+                # Check t_abs and t_rel values
+                print(f"   t_abs sample: {t_abs[0, :5].cpu().numpy()}")
+                print(f"   t_rel sample: {t_rel[0, :5].cpu().numpy()}")
+                print(f"   Time computation: current_time - neighbor_time")
+                
+                self._debug_printed_sorting = True
             
             if debug_enabled:
                 print(f"   🎯 DUAL-STREAM INPUT:")

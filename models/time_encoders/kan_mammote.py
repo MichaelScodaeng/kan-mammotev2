@@ -40,7 +40,7 @@ class KAN_MAMMOTE(nn.Module):
     """
     def __init__(self, embedding_dim: int, expert_dim: int, num_mixtures: int = None,
                  mamba_d_state: int = 256, mamba_d_conv: int = 4, mamba_expand: int = 4, 
-                 wavelet_type: str = 'shock', mamba_headdim: int = 16, 
+                 wavelet_type: str = 'shock', mamba_headdim: int = 32, 
                  use_controllable_mamba: bool = True,  # Only for fusion_strategy='mamba'
                  use_kmote_for_relative: bool = True,  # Default: K-MOTE (SM-kernel is legacy)
                  fusion_strategy: str = 'mamba',  # NEW: 'mamba', 'concat', 'weighted', 'attention'
@@ -132,11 +132,13 @@ class KAN_MAMMOTE(nn.Module):
                 
                 # ✅ SIMPLIFIED: Direct v_k → modulator_head (no intermediate fusion_mlp_base)
                 # Clean separation: relative time directly generates control signals
+                # 🔧 FIX: Ensure exact dimension match to prevent repeat() operations
+                mamba_dt_dim = self.mamba2.nheads  # This should match ControllableMamba2's dt_content
                 self.modulator_head = nn.Sequential(
                     nn.Linear(rel_time_dim, expert_dim // 2),
                     nn.GELU(),
                     nn.Dropout(dropout),  # ✅ Dropout before final linear
-                    nn.Linear(expert_dim // 2, self.mamba2.nheads * 2)  # Direct to gamma/beta
+                    nn.Linear(expert_dim // 2, mamba_dt_dim * 2)  # 🔧 FIX: Use exact dt dimension
                 )
                 
                 # ✅ Remove redundant components for ControllableMamba2
@@ -396,8 +398,8 @@ class KAN_MAMMOTE(nn.Module):
                     # Analyze the actual time values to understand the pattern
                     if DEBUG_TIME_ENCODER_VALUES and seq_len > 1:
                         print(f"   🔍 [TIME PATTERN ANALYSIS]", flush=True)
-                        print(f"      ├─ t_abs[0]: {t_abs[0].flatten()[:min(10, seq_len)].tolist()}", flush=True)
-                        print(f"      ├─ t_rel[0]: {t_rel[0].flatten()[:min(10, seq_len)].tolist()}", flush=True)
+                        print(f"      ├─ t_abs[0]: {t_abs[0].flatten().tolist()}", flush=True)
+                        print(f"      ├─ t_rel[0]: {t_rel[0].flatten().tolist()}", flush=True)
                         
                         # Check if values are identical (broadcasting) or truly sequential
                         if seq_len > 1:

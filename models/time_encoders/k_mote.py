@@ -210,7 +210,7 @@ class EnhancedWaveletKAN(nn.Module):
             if self.linear.weight.shape[1] > 1:
                 # Create frequency-like initialization for wavelets
                 n_features = self.linear.weight.shape[1]
-                freq_vals = 1.0 / (10 ** torch.linspace(0, 6, n_features))
+                freq_vals = 1.0 / (10 ** torch.linspace(0, 9, n_features))
                 self.linear.weight.copy_(torch.randn_like(self.linear.weight) * freq_vals.unsqueeze(0))
             
             # Initialize scales and shifts with reasonable values
@@ -578,7 +578,7 @@ class KMOTE(nn.Module):
                  wavelet_type: str = 'shock',
                  use_layernorm: bool = True,
                  use_scale: bool = True,
-                 gating_temp: float = 1.0,
+                 gating_temp: float = 2.0,
                  transform_mode: str = 'per_expert',
                  adapter_type: str = 'affine',
                  use_gradient_checkpointing: bool = True,
@@ -739,17 +739,17 @@ class KMOTE(nn.Module):
         """
         with torch.no_grad():
             # Expert 0 (Spline): Focus on low-to-medium frequencies (0 to 6)
-            freqs_spline = 1.0 / (10 ** torch.linspace(0, 6, self.hidden_dim, dtype=torch.float32))
+            freqs_spline = 1.0 / (10 ** torch.linspace(0, 9, self.hidden_dim, dtype=torch.float32))
             self.time_transforms[0].weight.copy_(freqs_spline.unsqueeze(1))
             self.time_transforms[0].bias.zero_()
             
             # Expert 1 (Fourier): Focus on medium frequencies (2 to 8)
-            freqs_fourier = 1.0 / (10 ** torch.linspace(2, 8, self.hidden_dim, dtype=torch.float32))
+            freqs_fourier = 1.0 / (10 ** torch.linspace(0, 9, self.hidden_dim, dtype=torch.float32))
             self.time_transforms[1].weight.copy_(freqs_fourier.unsqueeze(1))
             self.time_transforms[1].bias.zero_()
             
             # Expert 2 (Wavelet): Focus on medium-to-high frequencies (4 to 9)
-            freqs_wavelet = 1.0 / (10 ** torch.linspace(4, 9, self.hidden_dim, dtype=torch.float32))
+            freqs_wavelet = 1.0 / (10 ** torch.linspace(0, 9, self.hidden_dim, dtype=torch.float32))
             self.time_transforms[2].weight.copy_(freqs_wavelet.unsqueeze(1))
             self.time_transforms[2].bias.zero_()
 

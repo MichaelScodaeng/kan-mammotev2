@@ -1,7 +1,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import sys
+import os
 
+# Add project root to path and import debug config
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
+
+from debug_config import should_debug_model  # 🔍 Global debug control
 from models.gnn_backbones.modules import TimeEncoder, MergeLayer, MultiHeadAttention
 from utils.utils import NeighborSampler
 
@@ -78,6 +85,25 @@ class TGAT(nn.Module):
             
             neighbor_t_abs = torch.from_numpy(neighbor_times).float().to(self.device).unsqueeze(-1)
             neighbor_t_rel = torch.from_numpy(neighbor_delta_times).float().to(self.device).unsqueeze(-1)
+            
+            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
+            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
+                print(f"\n🔍 [TGAT] Neighbor Time Sorting Debug:")
+                print(f"   Layer: {current_layer_num}, sort_neighbors_by_time: {self.sort_neighbors_by_time}")
+                print(f"   Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
+                
+                # Check first row for sorting
+                first_neighbor_times = neighbor_times[0]
+                is_sorted = all(first_neighbor_times[i] <= first_neighbor_times[i+1] for i in range(len(first_neighbor_times)-1))
+                print(f"   First row neighbor times: {first_neighbor_times[:5]}...")
+                print(f"   Is chronologically sorted: {is_sorted}")
+                
+                # Check t_abs and t_rel values
+                print(f"   neighbor_t_abs sample: {neighbor_t_abs[0, :5, 0].cpu().numpy()}")
+                print(f"   neighbor_t_rel sample: {neighbor_t_rel[0, :5, 0].cpu().numpy()}")
+                print(f"   Time computation: current_time - neighbor_time")
+                
+                self._debug_printed_sorting = True
             
             # This single call works for both KAN-MAMMOTE and the wrapped TimeEncoder
             neighbor_time_features = self.time_encoder(t_abs=neighbor_t_abs, t_rel=neighbor_t_rel)

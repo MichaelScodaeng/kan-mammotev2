@@ -1,7 +1,14 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import sys
+import os
 
+# Add project root to path and import debug config
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
+
+from debug_config import should_debug_model  # 🔍 Global debug control
 from .modules import TimeEncoder
 from utils.utils import NeighborSampler
 
@@ -121,6 +128,25 @@ class GraphMixer(nn.Module):
             # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(neighbor_times).float().to(self.device)  # Absolute neighbor times
             t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - neighbor_times).float().to(self.device)  # Relative time differences
+            
+            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
+            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
+                print(f"\n🔍 [GraphMixer] Neighbor Time Sorting Debug:")
+                print(f"   Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
+                
+                # Check first row for sorting
+                first_neighbor_times = neighbor_times[0]
+                is_sorted = all(first_neighbor_times[i] <= first_neighbor_times[i+1] for i in range(len(first_neighbor_times)-1))
+                print(f"   First row neighbor times: {first_neighbor_times[:5]}...")
+                print(f"   Is chronologically sorted: {is_sorted}")
+                
+                # Check t_abs and t_rel values
+                print(f"   t_abs sample: {t_abs[0, :5].cpu().numpy()}")
+                print(f"   t_rel sample: {t_rel[0, :5].cpu().numpy()}")
+                print(f"   Time computation: current_time - neighbor_time")
+                
+                self._debug_printed_sorting = True
+            
             nodes_neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
         else:
             # Standard time encoders: Use relative time only (backward compatibility)

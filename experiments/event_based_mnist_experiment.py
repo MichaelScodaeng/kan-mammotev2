@@ -28,6 +28,9 @@ from bitsandbytes.optim import AdamW8bit
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import global debug control from time encoder factory
+from models.time_encoders.factory import should_debug_model  # 🔍 Global debug control
+
 # Import time encoders
 from models.time_encoders.factory import create_time_encoder
 from models.time_encoders.ablation_encoders import (
@@ -36,12 +39,28 @@ from models.time_encoders.ablation_encoders import (
 from models.time_encoders.kan_mammote_lite import KAN_MAMMOTE_Lite
 from models.time_encoders.kan_mammote import KAN_MAMMOTE
 
+# Import FTE (Fourier Time Encoder) from GNN modules
+from models.gnn_backbones.modules import TimeEncoder as FTE
+
 # Import optional encoders
 try:
     from models.time_encoders.lete_encoder import LeTE
     LETE_AVAILABLE = True
 except ImportError:
     LETE_AVAILABLE = False
+
+# Create LeTE Absolute Time variant
+class LeTEAbsoluteTime(nn.Module):
+    """LeTE variant that uses absolute pixel positions (direct LeTE encoding)"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        if not LETE_AVAILABLE:
+            raise ImportError("LeTE not available")
+        self.lete = LeTE(time_dim=time_dim)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        return self.lete(x.float())
 
 # Create LeTE Relative Time variant
 class LeTERelativeTime(nn.Module):
@@ -282,6 +301,37 @@ class KMOTEAdapterLinearRelativeTime(nn.Module):
             rel_times[:, 1:] = x[:, 1:].float() - x[:, :-1].float()
         return self.kmote(rel_times)
 
+# Create FTE (Fourier Time Encoder) Absolute Time variant
+class FTEAbsoluteTime(nn.Module):
+    """FTE variant that uses absolute pixel positions (Fourier Time Encoder from GNN modules)"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.fte = FTE(time_dim=time_dim, parameter_requires_grad=True)
+        
+    def forward(self, x):
+        """x: (batch, seq_len) - absolute pixel positions [0-783]"""
+        # FTE expects timestamps with shape (batch, seq_len)
+        return self.fte(x.float())
+
+# Create FTE (Fourier Time Encoder) Relative Time variant
+class FTERelativeTime(nn.Module):
+    """FTE variant that uses relative time differences (Fourier Time Encoder from GNN modules)"""
+    def __init__(self, time_dim, **kwargs):
+        super().__init__()
+        self.fte = FTE(time_dim=time_dim, parameter_requires_grad=True)
+        
+    def forward(self, x):
+        """Convert absolute positions to relative differences before FTE encoding"""
+        batch_size, seq_len = x.shape
+        rel_times = torch.zeros_like(x, dtype=torch.float32)
+        
+        # All positions become relative differences (consistent signal)
+        rel_times[:, 0] = 0.0  # First event has no predecessor
+        if seq_len > 1:
+            rel_times[:, 1:] = x[:, 1:] - x[:, :-1]  # current - previous = relative difference
+        
+        return self.fte(rel_times)
+
 try:
     from models.time_encoders.mercer_encoder import MercerTimeEncoder
     MERCER_AVAILABLE = True
@@ -421,6 +471,8 @@ class TimeEncoderClassifier(nn.Module):
             if not LETE_AVAILABLE:
                 raise ImportError("LeTE not available")
             return LeTE(time_dim=embedding_dim)
+        elif encoder_type in ['lete_abs', 'lete_absolute']:
+            return LeTEAbsoluteTime(time_dim=embedding_dim, **kwargs)
         elif encoder_type in ['lete_rel', 'lete_relative']:
             return LeTERelativeTime(time_dim=embedding_dim)
         elif encoder_type == 'time2vec':
@@ -439,6 +491,13 @@ class TimeEncoderClassifier(nn.Module):
             if not BOCHNER_AVAILABLE:
                 raise ImportError("Bochner not available")
             return BochnerTimeEncoder(time_dim=embedding_dim)
+        
+        # FTE (Fourier Time Encoder) variants
+        elif encoder_type in ['fte_abs', 'fte_absolute']:
+            return FTEAbsoluteTime(time_dim=embedding_dim, **kwargs)
+        elif encoder_type in ['fte_rel', 'fte_relative']:
+            return FTERelativeTime(time_dim=embedding_dim, **kwargs)
+        
         # K-MOTE variants with different transform modes
         elif encoder_type == 'k_mote':
             # Default: adapter mode with affine adapters
@@ -502,7 +561,8 @@ class TimeEncoderClassifier(nn.Module):
             return KAN_MAMMOTE_Lite(embedding_dim=embedding_dim, fusion_strategy=encoder_type.replace('kan_mammote_lite_', ''), **kwargs)
         elif encoder_type == 'kan_mammote_full':
             # Default: K-MOTE for relative, controllable Mamba2, mamba fusion
-            return KAN_MAMMOTE(embedding_dim=embedding_dim, use_gradient_checkpointing=True, **kwargs)
+            return KAN_MAMMOTE(embedding_dim=embedding_dim,mamba_headdim=16,dropout=0.0,
+                                use_gradient_checkpointing=False, **kwargs)
         # KAN-MAMMOTE variants with different fusion strategies
         elif encoder_type == 'kan_mammote_concat':
             return KAN_MAMMOTE(embedding_dim=embedding_dim, fusion_strategy='concat', **kwargs)
@@ -566,22 +626,46 @@ class TimeEncoderClassifier(nn.Module):
             # Dual-time encoders need both absolute and relative
             t_abs = x_float.unsqueeze(-1)  # (batch, seq_len, 1)
             
-            # Generate relative time using GNN pattern: current_time - neighbor_time
+            # Generate relative time using GNN pattern: current_time - previous_time
             # This creates "time ago" values (recency), matching GNN semantics
             t_rel = torch.zeros_like(t_abs)
             # For each position i, compute how long ago the previous event happened
-            t_rel[:, 1:, 0] = x_float[:, 1:] - x_float[:, :-1]  # current - previous = "time ago"
-            t_rel[:, 0, 0] = 0  # First position has no previous event
-            
+            #t_rel[:, 1:, 0] = x_float[:, :-1] - x_float[:, 1:]  # previous - current = "time next"
+            #t_rel[:, -1, 0] = 0  # Last position has no next event
+            #t_rel[:, 1:, 0] = x_float[:, 1:] - x_float[:, :-1]  # current - previous = "time ago"
+            #t_rel[:, 0, 0] = 0  # First position has no previous event
+            #t_rel[:, :, 0] = x_float[:, -1:] - x_float  # last_time - current_time = "time until end"
             # Move to device
+            # Method: "time until sequence end" (GNN-style recency)
+                # But use REAL last time, not padding!
+            for i in range(batch_size):
+                real_length = lengths[i].item()
+                if real_length > 0:
+                    real_last_time = x_float[i, real_length - 1]  # Get actual last timestamp
+                    # Compute relative times only for valid positions
+                    t_rel[i, :real_length, 0] = real_last_time - x_float[i, :real_length]
+                    # Padding positions remain 0 (already initialized)
             t_abs = t_abs.to(next(self.parameters()).device)
             t_rel = t_rel.to(next(self.parameters()).device)
             
-            # Debug on first batch only
-            if not hasattr(self, '_debug_printed'):
-                print(f"🔍 DEBUG - Input Statistics (GNN pattern: current - previous):")
-                print(f"  t_abs range: [{t_abs.min():.1f}, {t_abs.max():.1f}], mean: {t_abs.mean():.1f}")
-                print(f"  t_rel range: [{t_rel.min():.1f}, {t_rel.max():.1f}], mean: {t_rel.mean():.1f}")
+            # 🔍 DEBUG: Check if times are sorted before encoder
+            if should_debug_model() and not hasattr(self, '_debug_printed'):
+                print(f"\n🔍 [MNIST] Time Sorting Debug:")
+                print(f"  Encoder type: {self.encoder_type}")
+                print(f"  Batch size: {x_float.shape[0]}, Seq len: {x_float.shape[1]}")
+                
+                # Check first sequence for sorting (pixel positions should be sequential in MNIST)
+                first_seq_pixels = x_float[0].cpu().numpy()
+                is_sorted = all(first_seq_pixels[i] <= first_seq_pixels[i+1] for i in range(len(first_seq_pixels)-1))
+                print(f"  First sequence pixels: {first_seq_pixels[:5]}...")
+                print(f"  Is monotonically sorted: {is_sorted}")
+                
+                # Check t_abs and t_rel values
+                print(f"  t_abs sample: {t_abs[0, :5, 0].cpu().numpy()}")
+                print(f"  t_rel sample: {t_rel[0, :5, 0].cpu().numpy()}")
+                print(f"  t_rel computation: current - previous")
+                print(f"  GNN pattern: current - previous = 'time ago'")
+                
                 self._debug_printed = True
             
             # Forward with RAW values (no normalization)
@@ -643,7 +727,7 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
         else:
             scaler = torch.cuda.amp.GradScaler()
 
-    optimizer = AdamW8bit(model.parameters(), lr=1e-4, weight_decay=1e-3)
+    optimizer = AdamW8bit(model.parameters(), lr=1e-3)
     print(f"🔧 Using Adam optimizer: lr=0.001 (matching LeTE)")
     # ===== END CRITICAL FIX =====
     
@@ -933,6 +1017,10 @@ def get_available_encoders():
         #'k_mote_adapter_affine_rel',  # Affine adapter with relative time
         #'k_mote_adapter_linear_rel',  # Linear adapter with relative time
         
+        # FTE (Fourier Time Encoder) variants
+        'fte_abs',  # FTE with absolute pixel positions
+        'fte_rel',  # FTE with relative time differences
+        
         # Ablation study encoders
         #'kmote_abs_only', 'kmote_rel_only', 
         #'sm_kernel_only',
@@ -953,11 +1041,12 @@ def get_available_encoders():
     # Optional encoders (require imports)
     
     if LETE_AVAILABLE:
-        encoders.extend(['lete', 'lete_relative'])
+        encoders.extend(['lete_abs', 'lete_rel'])  # LeTE with both absolute and relative variants
     
-    """
+    
     if MERCER_AVAILABLE:
         encoders.extend(['mercer', 'mercer_relative'])
+    """
     if TIME2VEC_AVAILABLE:
         encoders.extend(['time2vec', 'time2vec_relative'])
     
@@ -1164,7 +1253,7 @@ def test_simple_classification(encoder_type='sm_kernel_only', epochs=10):
     
     criterion = nn.CrossEntropyLoss()
     #usebitsandbytes
-    optimizer = AdamW8bit(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    optimizer = AdamW8bit(model.parameters(), lr=1e-4)
     
     print("Testing pattern: low pixel positions (0-100) = class 0, high (600-784) = class 1")
     
@@ -1455,8 +1544,7 @@ def main():
     # Run experiments
     results = []
     start_time = datetime.now()
-    timestamp = "no_timestamp02"
-    
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
     # Create experiment directory structure
     experiment_folder = os.path.join(args.experiment_dir, f"run_{timestamp}")
     models_dir = os.path.join(experiment_folder, "models")
