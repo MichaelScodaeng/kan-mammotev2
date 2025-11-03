@@ -26,8 +26,8 @@ Example:
 
 # Global training configuration
 MAX_EPOCHS = 400
-LEARNING_RATE = 5e-5
-WEIGHT_DECAY = 1e-2
+LEARNING_RATE = 1e-4
+WEIGHT_DECAY = 0
 EARLY_STOPPING_PATIENCE = 20
 import os
 import sys
