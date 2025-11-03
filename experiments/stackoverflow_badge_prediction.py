@@ -25,8 +25,10 @@ Example:
 """
 
 # Global training configuration
-MAX_EPOCHS = 200
-
+MAX_EPOCHS = 400
+LEARNING_RATE = 5e-5
+WEIGHT_DECAY = 1e-2
+EARLY_STOPPING_PATIENCE = 20
 import os
 import sys
 import torch
@@ -451,7 +453,7 @@ class BadgePredictionModel(nn.Module):
         self.time_encoder = self._create_time_encoder(encoder_type, time_dim, max_badge_id, **encoder_kwargs)
         
         # LSTM for sequence modeling
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, dropout=0.1)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
         
         # Classification head predicts among unique badges
         self.classifier = nn.Linear(hidden_dim, num_unique_badges)
@@ -715,11 +717,11 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
         scaler = GradScaler()
         print(f"🚀 Using Automatic Mixed Precision for training")
 
-    optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     criterion = nn.CrossEntropyLoss()
     
     # Early stopping parameters
-    patience = 20
+    patience = EARLY_STOPPING_PATIENCE
     epochs_no_improve = 0
     
     # Initialize tracking
@@ -1060,7 +1062,7 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         batch_size=args.batch_size,
         shuffle=True,
         collate_fn=custom_collate_fn,
-        num_workers=2
+        num_workers=0
     )
     
     val_loader = DataLoader(
@@ -1068,7 +1070,7 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
         batch_size=args.batch_size,
         shuffle=False,
         collate_fn=custom_collate_fn,
-        num_workers=2
+        num_workers=0
     )
     
     # Create model
@@ -1417,8 +1419,8 @@ def main():
                         help='Number of training epochs (default: 200)')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='Batch size (default: 128)')
-    parser.add_argument('--embedding_dim', type=int, default=64,
-                        help='Time embedding dimension (default: 64)')
+    parser.add_argument('--embedding_dim', type=int, default=128,
+                        help='Time embedding dimension (default: 128)')
     parser.add_argument('--hidden_dim', type=int, default=128,
                         help='LSTM hidden dimension (default: 128)')
     
@@ -1427,12 +1429,14 @@ def main():
                         help='Enable CUDA Automatic Mixed Precision')
     
     # Model-specific parameters
-    parser.add_argument('--expert_dim', type=int, default=64,
-                        help='Expert dimension for K-MOTE (default: 64)')
-    parser.add_argument('--mamba_d_state', type=int, default=64,
-                        help='Mamba state dimension (default: 64)')
+    parser.add_argument('--expert_dim', type=int, default=128,
+                        help='Expert dimension for K-MOTE (default: 128)')
+    parser.add_argument('--mamba_d_state', type=int, default=256,
+                        help='Mamba state dimension (default: 256)')
     parser.add_argument('--mamba_d_conv', type=int, default=4,
                         help='Mamba convolution dimension (default: 4)')
+    parser.add_argument('--mamba_headdim', type=int, default=32,
+                        help='Mamba head dimension (default: 32)')
     parser.add_argument('--mamba_expand', type=int, default=4,
                         help='Mamba expansion factor (default: 4)')
     parser.add_argument('--wavelet_type', type=str, default='shock',
@@ -1630,6 +1634,11 @@ def main():
                 'use_all_splits': args.use_all_splits,
                 'encoders_tested': encoders_to_test,
                 'total_experiments': len([r for r in results if r is not None])
+            },
+            "training_parameters": {
+                "learning_rate": LEARNING_RATE,
+                "weight_decay": WEIGHT_DECAY,
+                "early_stopping_patience": EARLY_STOPPING_PATIENCE,
             },
             'global_parameters': {
                 'data_dir': args.data_dir,

@@ -681,13 +681,21 @@ class KMOTE(nn.Module):
         # ===========================================================================
         
         self.num_experts = len(self.experts)
-        
-        # ===== GATING NETWORK: Uses hidden_dim input =====
-        self.gating_network = nn.Sequential(
-            nn.Linear(self.hidden_dim, 64),
-            nn.GELU(),
-            nn.Linear(64, self.num_experts)
-        )
+        if transform_mode == 'per_expert':
+            # GATING NETWORK: Uses hidden_dim input from per-expert transforms
+            self.gating_network = nn.Sequential(
+                nn.Linear(1,self.hidden_dim),
+                nn.Linear(self.hidden_dim, 256),
+                nn.GELU(),
+                nn.Linear(256, self.num_experts)
+            )   
+        else:
+            # ===== GATING NETWORK: Uses hidden_dim input =====
+            self.gating_network = nn.Sequential(
+                nn.Linear(self.hidden_dim, 256),
+                nn.GELU(),
+                nn.Linear(256, self.num_experts)
+            )
         # ============================================
         
         if use_layernorm and output_dim > 1:
@@ -830,10 +838,8 @@ class KMOTE(nn.Module):
                 self._checkpoint_expert(expert, t_trans, skip_checkpointing=(i == 1)) 
                 for i, (expert, t_trans) in enumerate(zip(self.experts, t_transformed))
             ]
-            
-            # Gating network uses the average of all transformed inputs
-            t_for_gating = torch.stack(t_transformed, dim=0).mean(dim=0)  # (B, S, hidden_dim)
-            gating_logits = self.gating_network(t_for_gating)
+
+            gating_logits = self.gating_network(t)
             gating_weights = F.softmax(gating_logits / self.temperature, dim=-1)
             
         else:  # transform_mode == 'adapter'
