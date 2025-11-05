@@ -578,7 +578,7 @@ class KMOTE(nn.Module):
                  wavelet_type: str = 'shock',
                  use_layernorm: bool = True,
                  use_scale: bool = True,
-                 gating_temp: float = 2.0,
+                 gating_temp: float = 1.0,
                  transform_mode: str = 'per_expert',
                  adapter_type: str = 'affine',
                  use_gradient_checkpointing: bool = True,
@@ -641,6 +641,19 @@ class KMOTE(nn.Module):
                 self.expert_shifts = nn.ParameterList([
                     nn.Parameter(torch.zeros(self.hidden_dim)) for _ in range(self.num_experts)
                 ])
+                
+                # Better initialization for affine adapters to encourage specialization
+                with torch.no_grad():
+                    for i in range(self.num_experts):
+                        # Initialize scales with some variation to encourage different frequency emphasis
+                        # Expert 0 (Spline): emphasize lower frequencies
+                        # Expert 1 (Fourier): emphasize middle frequencies  
+                        # Expert 2 (Wavelet): emphasize higher frequencies
+                        freq_emphasis = torch.linspace(0.5 + 0.3*i, 1.5 + 0.3*i, self.hidden_dim)
+                        self.expert_scales[i].copy_(freq_emphasis)
+                        
+                        # Add small random shifts to break symmetry
+                        self.expert_shifts[i].copy_(torch.randn(self.hidden_dim) * 0.1)
             else:  # adapter_type == 'linear'
                 # Small linear adapters
                 self.expert_adapters = nn.ModuleList([
@@ -684,17 +697,16 @@ class KMOTE(nn.Module):
         if transform_mode == 'per_expert':
             # GATING NETWORK: Uses hidden_dim input from per-expert transforms
             self.gating_network = nn.Sequential(
-                nn.Linear(1,self.hidden_dim),
-                nn.Linear(self.hidden_dim, 256),
+                nn.Linear(1, self.hidden_dim),
                 nn.GELU(),
-                nn.Linear(256, self.num_experts)
+                nn.Linear(self.hidden_dim, self.num_experts)
             )   
         else:
             # ===== GATING NETWORK: Uses hidden_dim input =====
             self.gating_network = nn.Sequential(
-                nn.Linear(self.hidden_dim, 256),
+                nn.Linear(self.hidden_dim, 64),
                 nn.GELU(),
-                nn.Linear(256, self.num_experts)
+                nn.Linear(64, self.num_experts)
             )
         # ============================================
         
@@ -866,9 +878,11 @@ class KMOTE(nn.Module):
         
         # 2. Combine expert outputs using gating weights
         stacked_outputs = torch.stack(expert_outputs, dim=-1)  # (B, S, output_dim, num_experts)
-        gating_weights = gating_weights.unsqueeze(-2)  # (B, S, 1, num_experts)
+        # Store original gating weights before reshaping for mixture
+        original_gating_weights = gating_weights  # (B, S, num_experts)
+        gating_weights_reshaped = gating_weights.unsqueeze(-2)  # (B, S, 1, num_experts)
         
-        weighted_sum = (gating_weights * stacked_outputs).sum(dim=-1)  # (B, S, output_dim)
+        weighted_sum = (gating_weights_reshaped * stacked_outputs).sum(dim=-1)  # (B, S, output_dim)
         
         # 3. Normalize and scale
         output_embedding = self.layer_norm(weighted_sum)
@@ -877,7 +891,8 @@ class KMOTE(nn.Module):
             output_embedding = output_embedding * self.scale
         
         if return_weights:
-            return output_embedding, gating_weights.squeeze(-2)
+            # Return the original gating weights without extra dimensions
+            return output_embedding, original_gating_weights  # (B, S, num_experts)
         return output_embedding
 
     def forward(self, t: torch.Tensor, return_weights: bool = False):

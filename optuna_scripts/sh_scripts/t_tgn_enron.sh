@@ -1,6 +1,5 @@
-#!/bin/bash
 #PBS -j oe
-#PBS -q GPU-1A
+#PBS -q GPU-1
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -12,10 +11,12 @@ module purge
 module load cuda/12.1
 conda activate kan_mammote
 mkdir -p optuna_scripts/sh_scripts/sh_logs
-# Run your experiment
+# Task assignments
+# Task 1 on GPU 0
+CUDA_VISIBLE_DEVICES=0 \
 python -u tune_kan_mammote_optuna.py \
     --multi_dataset \
-    --datasets uci USLegis enron reddit mooc UNtrade UNvote SocialEvo Contacts CanParl \
-    --models TCL \
+    --datasets enron \
+    --models TGN \
     --trials_per_combo 30 \
-    > optuna_scripts/sh_scripts/sh_logs/tcl_tune01.log 2>&1
+    > optuna_scripts/sh_scripts/sh_logs/tgn_mc.log 2>&1

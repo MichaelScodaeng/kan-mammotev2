@@ -1,5 +1,5 @@
 #PBS -j oe
-#PBS -q GPU-L
+#PBS -q GPU-S
 #PBS -l select=1:ngpus=2
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -16,18 +16,15 @@ mkdir -p optuna_scripts/sh_scripts/sh_logs
 CUDA_VISIBLE_DEVICES=0 \
 python -u tune_kan_mammote_optuna.py \
     --multi_dataset \
-    --datasets lastfm UNtrade wikipedia CanParl \
-    --models DyGFormer \
-    --trials_per_combo 30 \
-    > optuna_scripts/sh_scripts/sh_logs/dgf_tune01.log 2>&1 &
-
-# Task 2 on GPU 1
-CUDA_VISIBLE_DEVICES=1 \
+    --datasets reddit \
+    --models TCL \
+    --trials_per_combo 25 \
+    > optuna_scripts/sh_scripts/sh_logs/tcl_reddit.log 2>&1 &
+CUDA_VISIBLE_DEVICES=0 \
 python -u tune_kan_mammote_optuna.py \
     --multi_dataset \
-    --datasets UNvote mooc enron uci USLegis \
-    --models DyGFormer \
-    --trials_per_combo 30 \
-    > optuna_scripts/sh_scripts/sh_logs/dgf_tune02.log 2>&1 &
-
+    --datasets wikipedia \
+    --models TCL \
+    --trials_per_combo 25 \
+    > optuna_scripts/sh_scripts/sh_logs/tcl_wikipedia.log 2>&1 &
 wait

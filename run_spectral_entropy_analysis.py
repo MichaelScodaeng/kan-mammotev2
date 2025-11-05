@@ -143,7 +143,7 @@ def generate_analysis_report(analyzer, output_dir):
 def main():
     """Main function to run the complete analysis pipeline."""
     parser = argparse.ArgumentParser(description='Complete Spectral Entropy Analysis Pipeline')
-    parser.add_argument('--data_root', type=str, default='./data',
+    parser.add_argument('--data_root', type=str, default='./processed_data',
                         help='Root directory containing dataset files')
     parser.add_argument('--output_dir', type=str, default='./spectral_entropy_results',
                         help='Directory to save all results and plots')

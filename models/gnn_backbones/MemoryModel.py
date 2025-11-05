@@ -757,11 +757,11 @@ class GraphAttentionEmbedding(nn.Module):
                 t_rel = torch.from_numpy(neighbor_delta_times).float().to(device)  # Relative time differences
                 
                 # � ALWAYS PRINT: Force debug to check if this code path is executed
-                print(f"🔥 [TGN-GraphAttentionEmbedding] KAN-MAMMOTE TIME ENCODING CALLED!")
-                print(f"🔥 [TGN-GraphAttentionEmbedding] Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
-                print(f"🔥 [TGN-GraphAttentionEmbedding] First row neighbor times: {neighbor_times[0][:5]}...")
-                print(f"🔥 [TGN-GraphAttentionEmbedding] First row delta times: {neighbor_delta_times[0][:5]}...")
-                
+                #print(f"🔥 [TGN-GraphAttentionEmbedding] KAN-MAMMOTE TIME ENCODING CALLED!")
+                #print(f"🔥 [TGN-GraphAttentionEmbedding] Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
+                #print(f"🔥 [TGN-GraphAttentionEmbedding] First row neighbor times: {neighbor_times[0][:5]}...")
+                #print(f"🔥 [TGN-GraphAttentionEmbedding] First row delta times: {neighbor_delta_times[0][:5]}...")
+                '''
                 # �🔍 DEBUG: Check if neighbor times are sorted before encoder
                 if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
                     print(f"\n🔍 [TGN-GraphAttentionEmbedding] Neighbor Time Sorting Debug:")
@@ -779,7 +779,7 @@ class GraphAttentionEmbedding(nn.Module):
                     print(f"   Time computation: current_time - neighbor_time")
                     
                     self._debug_printed_sorting = True
-                
+                '''
                 neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
                 
                 # Ensure correct shape: (batch_size, num_neighbors, time_feat_dim)

@@ -25,8 +25,8 @@ Example:
 """
 
 # Global training configuration
-MAX_EPOCHS = 400
-LEARNING_RATE = 1e-4
+MAX_EPOCHS = 200
+LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 0
 EARLY_STOPPING_PATIENCE = 20
 import os
@@ -706,7 +706,7 @@ def compute_ranking_metrics(outputs, targets, k=3):
 
 def train_model(model, train_loader, val_loader, num_epochs, device, encoder_name, 
                 models_dir='.', checkpoint_dir=None, resume_from_checkpoint=False, 
-                use_amp: bool = False):
+                use_amp: bool = False, args=None):
     """
     Train the badge prediction model
     """
@@ -719,6 +719,40 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
 
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     criterion = nn.CrossEntropyLoss()
+    
+    # Add learning rate scheduler for adaptive learning rate reduction
+    scheduler_type = getattr(args, 'scheduler_type', 'plateau') if args else 'plateau'
+    
+    if scheduler_type == 'cosine':
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, 
+            T_max=num_epochs,     # Number of epochs for a complete cycle
+            eta_min=1e-7          # Minimum learning rate
+        )
+        print(f"📈 Learning rate scheduler initialized (CosineAnnealingLR: T_max={num_epochs}, eta_min=1e-7)")
+    elif scheduler_type == 'step':
+        step_size = getattr(args, 'step_size', 30) if args else 30
+        gamma = getattr(args, 'gamma', 0.5) if args else 0.5
+        scheduler = optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=step_size,    # Step every 30 epochs by default
+            gamma=gamma             # Multiply LR by 0.5
+        )
+        print(f"📈 Learning rate scheduler initialized (StepLR: step_size={step_size}, gamma={gamma})")
+    else:
+        # Default: ReduceLROnPlateau
+        factor = getattr(args, 'scheduler_factor', 0.5) if args else 0.5
+        patience = getattr(args, 'scheduler_patience', 5) if args else 5
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, 
+            mode='min',           # Reduce LR when validation loss stops decreasing
+            factor=factor,        # Multiply LR by factor when triggered
+            patience=patience,    # Wait epochs before reducing LR
+            verbose=True,         # Print when LR is reduced
+            min_lr=1e-7,         # Minimum learning rate
+            threshold=1e-4        # Minimum change to qualify as improvement
+        )
+        print(f"📈 Learning rate scheduler initialized (ReduceLROnPlateau: factor={factor}, patience={patience})")
     
     # Early stopping parameters
     patience = EARLY_STOPPING_PATIENCE
@@ -736,11 +770,12 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
     if resume_from_checkpoint and checkpoint_dir:
         checkpoint_path = find_latest_checkpoint(checkpoint_dir, encoder_name)
         if checkpoint_path:
-            checkpoint_data = load_checkpoint(checkpoint_path, model, optimizer)
+            checkpoint_data = load_checkpoint(checkpoint_path, model, optimizer, scheduler)
             start_epoch = checkpoint_data['epoch'] + 1
             history = checkpoint_data['history']
             best_val_mrr = checkpoint_data.get('best_val_mrr', checkpoint_data.get('best_val_acc', 0.0))
             print(f"🔄 Resumed from epoch {start_epoch}")
+            print(f"📈 Scheduler state restored, current LR: {optimizer.param_groups[0]['lr']:.2e}")
     
     # Training loop
     for epoch in range(start_epoch, num_epochs):
@@ -805,10 +840,17 @@ def train_model(model, train_loader, val_loader, num_epochs, device, encoder_nam
         print(f'  Train Loss: {avg_train_loss:.4f}, Train Acc: {avg_train_acc:.2f}%')
         print(f'  Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
         print(f'  Val Recall@3: {val_recall3:.4f}, Val MRR: {val_mrr:.4f}')
+        print(f'  Learning Rate: {optimizer.param_groups[0]["lr"]:.2e}')
+        
+        # Step the learning rate scheduler
+        if scheduler_type == 'plateau':
+            scheduler.step(val_loss)  # ReduceLROnPlateau needs validation loss
+        else:
+            scheduler.step()  # StepLR and CosineAnnealingLR step without arguments
         
         # Save checkpoint and check for improvement
         if checkpoint_dir:
-            save_checkpoint(model, optimizer, epoch, history, best_val_mrr, 
+            save_checkpoint(model, optimizer, scheduler, epoch, history, best_val_mrr, 
                           encoder_name, checkpoint_dir)
         
         # Use MRR as primary validation metric for early stopping
@@ -920,16 +962,18 @@ def get_available_encoders():
     return encoders
 
 
-def save_checkpoint(model, optimizer, epoch, history, best_val_mrr, encoder_name, checkpoint_dir):
-    """Save training checkpoint"""
+def save_checkpoint(model, optimizer, scheduler, epoch, history, best_val_mrr, encoder_name, checkpoint_dir):
+    """Save training checkpoint including scheduler state"""
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict(),
         'history': history,
         'best_val_mrr': best_val_mrr,
         'best_val_acc': history['val_acc'][-1] if history['val_acc'] else 0.0,  # Keep for backward compatibility
-        'encoder_name': encoder_name
+        'encoder_name': encoder_name,
+        'current_lr': optimizer.param_groups[0]['lr']
     }
     
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -943,8 +987,8 @@ def save_checkpoint(model, optimizer, epoch, history, best_val_mrr, encoder_name
     return checkpoint_path
 
 
-def load_checkpoint(checkpoint_path, model, optimizer=None):
-    """Load training checkpoint"""
+def load_checkpoint(checkpoint_path, model, optimizer=None, scheduler=None):
+    """Load training checkpoint including scheduler state"""
     print(f"📂 Loading checkpoint from: {checkpoint_path}")
     
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
@@ -952,6 +996,12 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
     
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    
+    if scheduler is not None and 'scheduler_state_dict' in checkpoint:
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        print(f"📈 Scheduler state loaded, current LR: {checkpoint.get('current_lr', 'unknown')}")
+    elif scheduler is not None:
+        print("⚠️ No scheduler state found in checkpoint, using default scheduler state")
     
     return {
         'epoch': checkpoint['epoch'],
@@ -1118,7 +1168,8 @@ def run_experiment(encoder_name, args, models_dir='.', checkpoint_dir=None):
             models_dir=models_dir,
             checkpoint_dir=checkpoint_dir,
             resume_from_checkpoint=args.resume_training,
-            use_amp=args.use_amp
+            use_amp=args.use_amp,
+            args=args  # Pass args for scheduler configuration
         )
         
         # Add final training results to experiment parameters
@@ -1263,10 +1314,15 @@ def collect_experiment_parameters(args, encoder_name, dataset_info):
             'use_amp': args.use_amp,
             'resume_training': args.resume_training,
             'optimizer': 'AdamW',
-            'learning_rate': 1e-4,
-            'weight_decay': 1e-4,
-            'early_stopping_patience': 20,
-            'criterion': 'CrossEntropyLoss'
+            'learning_rate': LEARNING_RATE,
+            'weight_decay': WEIGHT_DECAY,
+            'early_stopping_patience': EARLY_STOPPING_PATIENCE,
+            'criterion': 'CrossEntropyLoss',
+            'scheduler_type': getattr(args, 'scheduler_type', 'plateau'),
+            'scheduler_factor': getattr(args, 'scheduler_factor', 0.5),
+            'scheduler_patience': getattr(args, 'scheduler_patience', 5),
+            'step_size': getattr(args, 'step_size', 30),
+            'gamma': getattr(args, 'gamma', 0.5)
         },
         
         # Model architecture parameters
@@ -1411,7 +1467,7 @@ def main():
                         help='Maximum sequence length (default: 100)')
     parser.add_argument('--min_sequence_length', type=int, default=3,
                         help='Minimum sequence length for training (default: 3)')
-    parser.add_argument('--normalize_time', action='store_true', default=True,
+    parser.add_argument('--normalize_time', action='store_true', default=False,
                         help='Normalize timestamps to [0,1] within each sequence')
     
     # Training parameters (matching MNIST experiment)
@@ -1419,14 +1475,27 @@ def main():
                         help='Number of training epochs (default: 200)')
     parser.add_argument('--batch_size', type=int, default=128,
                         help='Batch size (default: 128)')
-    parser.add_argument('--embedding_dim', type=int, default=128,
-                        help='Time embedding dimension (default: 128)')
+    parser.add_argument('--embedding_dim', type=int, default=64,
+                        help='Time embedding dimension (default: 64)')
     parser.add_argument('--hidden_dim', type=int, default=128,
                         help='LSTM hidden dimension (default: 128)')
     
     # Mixed precision option
     parser.add_argument('--use_amp', action='store_true',
                         help='Enable CUDA Automatic Mixed Precision')
+    
+    # Learning rate scheduler options
+    parser.add_argument('--scheduler_type', type=str, default='plateau',
+                        choices=['plateau', 'cosine', 'step'],
+                        help='Learning rate scheduler type (default: plateau)')
+    parser.add_argument('--scheduler_factor', type=float, default=0.5,
+                        help='Factor to reduce LR by for ReduceLROnPlateau (default: 0.5)')
+    parser.add_argument('--scheduler_patience', type=int, default=5,
+                        help='Patience for ReduceLROnPlateau scheduler (default: 5)')
+    parser.add_argument('--step_size', type=int, default=30,
+                        help='Step size for StepLR scheduler (default: 30)')
+    parser.add_argument('--gamma', type=float, default=0.5,
+                        help='Gamma for StepLR scheduler (default: 0.5)')
     
     # Model-specific parameters
     parser.add_argument('--expert_dim', type=int, default=128,
@@ -1435,7 +1504,7 @@ def main():
                         help='Mamba state dimension (default: 256)')
     parser.add_argument('--mamba_d_conv', type=int, default=4,
                         help='Mamba convolution dimension (default: 4)')
-    parser.add_argument('--mamba_headdim', type=int, default=32,
+    parser.add_argument('--mamba_headdim', type=int, default=64,
                         help='Mamba head dimension (default: 32)')
     parser.add_argument('--mamba_expand', type=int, default=4,
                         help='Mamba expansion factor (default: 4)')

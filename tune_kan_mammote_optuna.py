@@ -27,6 +27,7 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime
+import time
 
 # Add parent directory to path to import the training script's functions
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -43,6 +44,79 @@ def is_valid_mamba_config(expert_dim, mamba_expand, mamba_headdim):
         return False
     ngroups = inner_dim // mamba_headdim
     return ngroups % 8 == 0
+
+def create_training_command_from_config(config_file, additional_args=None):
+    """
+    Create a complete training command from saved configuration file.
+    
+    Args:
+        config_file (str): Path to the saved best config JSON file
+        additional_args (list): Additional command line arguments to append
+        
+    Returns:
+        list: Complete command line arguments for training
+    """
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    
+    dataset = config['dataset']
+    model = config['model']
+    best_params = config['best_params']
+    fixed_params = config.get('fixed_params', {})
+    
+    # Build complete command
+    cmd = [
+        'python', 'experiments/train_link_prediction.py',
+        '--dataset_name', dataset,
+        '--model_name', model,
+    ]
+    
+    # Add all tuned parameters
+    for param, value in best_params.items():
+        cmd.extend([f'--{param}', str(value)])
+    
+    # Add fixed parameters
+    for param, value in fixed_params.items():
+        cmd.extend([f'--{param}', str(value)])
+    
+    # Add any additional arguments
+    if additional_args:
+        cmd.extend(additional_args)
+    
+    return cmd
+
+def print_reproduction_info(config_file):
+    """Print information for reproducing the best configuration"""
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    
+    print(f"\n📋 REPRODUCTION INFORMATION")
+    print(f"=" * 50)
+    print(f"Config file: {config_file}")
+    print(f"Best validation AP: {config['best_validation_ap']:.4f}")
+    print(f"Trial number: {config['best_trial_number']}")
+    print(f"Total trials: {config['total_trials']}")
+    
+    print(f"\n🔧 COMPLETE HYPERPARAMETERS:")
+    print(f"Architecture:")
+    for param, value in config['best_params'].items():
+        if param in ['expert_dim', 'mamba_d_state', 'mamba_expand', 'time_feat_dim', 'num_mixtures', 'dropout']:
+            print(f"  {param}: {value}")
+    
+    print(f"Training:")
+    for param, value in config['best_params'].items():
+        if param in ['learning_rate', 'weight_decay', 'batch_size', 'max_grad_norm', 'optimizer']:
+            print(f"  {param}: {value}")
+    
+    print(f"Fixed:")
+    for param, value in config.get('fixed_params', {}).items():
+        print(f"  {param}: {value}")
+    
+    # Generate reproduction command
+    cmd = create_training_command_from_config(config_file, ['--save_model_name_suffix', 'reproduced'])
+    print(f"\n🚀 REPRODUCTION COMMAND:")
+    print(" ".join(cmd))
+    print("")
 
 def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_dir='./optuna_results'):
     """
@@ -64,13 +138,28 @@ def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_
         A "trial" represents a single run with a specific set of hyperparameters.
         """
         try:
-            # 1. Define the hyperparameter search space first
+            # 1. Define the COMPLETE hyperparameter search space
+            # Architecture parameters
             expert_dim = trial.suggest_categorical("expert_dim", [64, 128, 256])
             mamba_d_state = trial.suggest_categorical("mamba_d_state", [128, 256, 512])
             mamba_expand = trial.suggest_categorical("mamba_expand", [2, 4])
+
             dropout = trial.suggest_float("dropout", 0.0, 0.3, step=0.1)
-            mamba_headdim = 64  # Fixed as in original config
+            encoder_dropout = trial.suggest_float("encoder_dropout", 0.0, 0.3, step=0.1)  # Tie encoder dropout to overall dropout
+            mamba_headdim = trial.suggest_categorical("mamba_headdim", [16, 32, 64,128])  # Fixed as in original config
             mamba_d_conv = 4    # Fixed as in original config
+            
+            
+            # Training parameters - Make it like baseline first!
+            learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-4, log=True)
+            batch_size = trial.suggest_categorical("batch_size", [200])
+
+            # Training parameters - CRITICAL for reproducibility!
+            # Allow disabling weight decay while keeping log-sampling for positive values
+            weight_decay = trial.suggest_float("weight_decay", 1e-12, 1e-2, log=True)
+
+            max_grad_norm = trial.suggest_categorical("max_grad_norm", [1.0])
+            
             
             # Handle architectural constraints - prune invalid combinations early
             if not is_valid_mamba_config(expert_dim, mamba_expand, mamba_headdim):
@@ -80,19 +169,27 @@ def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_
             # 2. Build command line arguments for this trial
             trial_suffix = f"trial_{trial.number}"
             
-            # Create sys.argv with all the parameters we want to set
+            # Create sys.argv with ALL the parameters we want to set
             trial_argv = [
                 'train_link_prediction_tune.py',
                 '--dataset_name', dataset,
                 '--model_name', model,
                 '--time_encoder_type', 'kan_mammote_dual_kmote',
+                # Architecture parameters
                 '--expert_dim', str(expert_dim),
                 '--mamba_d_state', str(mamba_d_state),
                 '--mamba_expand', str(mamba_expand),
-                '--encoder_dropout', str(dropout),
+                '--encoder_dropout', str(encoder_dropout),
                 '--mamba_headdim', str(mamba_headdim),
                 '--mamba_d_conv', str(mamba_d_conv),
+                '--dropout', str(dropout),
+                '--batch_size', str(batch_size),
+                # Training parameters
+                '--learning_rate', str(learning_rate),
+                '--weight_decay', str(weight_decay),
+                '--max_grad_norm', str(max_grad_norm),
                 '--num_epochs', str(num_epochs),
+                # Fixed training parameters
                 '--patience', '5',
                 '--disable_progress_bar',
                 '--num_runs', '1',
@@ -108,15 +205,28 @@ def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_
             sys.argv = original_argv  # Restore original
             
             # 4. Debug: Print what we actually got
+            # Use getattr with defaults so objective can run when only a subset of
+            # parameters are provided via `trial_argv`. This avoids AttributeError
+            # if get_link_prediction_args() doesn't set every optional attr.
             print(f"🐛 DEBUG Trial {trial.number} - Final parameters:")
-            print(f"   model_name: {args.model_name}")
-            print(f"   dataset_name: {args.dataset_name}")
-            print(f"   time_encoder_type: {args.time_encoder_type}")
-            print(f"   expert_dim: {args.expert_dim}")
-            print(f"   mamba_d_state: {args.mamba_d_state}")
-            print(f"   mamba_expand: {args.mamba_expand}")
-            print(f"   encoder_dropout: {args.encoder_dropout}")
-            print(f"   num_epochs: {args.num_epochs}")
+            print(f"   model_name: {getattr(args, 'model_name', '<unset>')}")
+            print(f"   dataset_name: {getattr(args, 'dataset_name', '<unset>')}")
+            print(f"   time_encoder_type: {getattr(args, 'time_encoder_type', '<unset>')}")
+            print(f"   Architecture:")
+            print(f"     expert_dim: {getattr(args, 'expert_dim', '<unset>')}")
+            print(f"     mamba_d_state: {getattr(args, 'mamba_d_state', '<unset>')}")
+            print(f"     mamba_expand: {getattr(args, 'mamba_expand', '<unset>')}")
+            print(f"     mamba_headdim: {getattr(args, 'mamba_headdim', '<unset>')}")
+            print(f"     time_feat_dim: {getattr(args, 'time_feat_dim', '<unset>')}")
+            print(f"     num_mixtures: {getattr(args, 'num_mixtures', '<unset>')}")
+            print(f"     encoder_dropout: {getattr(args, 'encoder_dropout', '<unset>')}")
+            print(f"   Training:")
+            print(f"     learning_rate: {getattr(args, 'learning_rate', '<unset>')}")
+            print(f"     weight_decay: {getattr(args, 'weight_decay', '<unset>')}")
+            print(f"     batch_size: {getattr(args, 'batch_size', '<unset>')}")
+            print(f"     max_grad_norm: {getattr(args, 'max_grad_norm', '<unset>')}")
+            print(f"     optimizer: {getattr(args, 'optimizer', '<unset>')}")
+            print(f"     num_epochs: {getattr(args, 'num_epochs', '<unset>')}")
 
             # 5. Execute the training session and return the metric
             validation_ap = run_training_session(args=args, trial=trial)
@@ -125,7 +235,44 @@ def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_
                 # Handle case where training fails
                 trial.set_user_attr("error_reason", "Training returned None")
                 return 0.0
-                
+            # Save trial parameters and argparse args for reproducibility
+            try:
+                # Create results directory mirroring saved_results layout
+                results_dir = os.path.join(ablation_dir, 'saved_results', model, dataset)
+                os.makedirs(results_dir, exist_ok=True)
+
+                # Prepare serializable args dict
+                def sanitize(obj):
+                    if obj is None or isinstance(obj, (str, bool, int, float)):
+                        return obj
+                    if isinstance(obj, (list, tuple)):
+                        return [sanitize(x) for x in obj]
+                    if isinstance(obj, dict):
+                        return {k: sanitize(v) for k, v in obj.items()}
+                    try:
+                        return str(obj)
+                    except Exception:
+                        return None
+
+                args_dict = vars(args).copy() if hasattr(args, '__dict__') else dict(args)
+                args_dict = sanitize(args_dict)
+
+                payload = {
+                    'timestamp': datetime.now().isoformat(),
+                    'dataset': dataset,
+                    'model': model,
+                    'trial_number': trial.number,
+                    'trial_params': sanitize(trial.params),
+                    'args': args_dict,
+                    'validation_ap': validation_ap,
+                }
+
+                fname = f"{model}_{dataset}_trial_{trial.number}_{int(time.time())}.json"
+                with open(os.path.join(results_dir, fname), 'w') as wf:
+                    json.dump(payload, wf, indent=2)
+            except Exception as e:
+                print(f"Warning: failed to save trial params for trial {trial.number}: {e}")
+
             return validation_ap
             
         except optuna.exceptions.TrialPruned:
@@ -223,16 +370,30 @@ def run_single_dataset_tuning(dataset, model, n_trials=100, num_epochs=15,
         for key, value in study.best_trial.params.items():
             print(f"      ├─ {key}: {value}")
         
-        # Save best config to JSON
+        # Normalize and save the best configuration with COMPLETE parameter set
+        best_params = study.best_trial.params.copy()
+
         best_config = {
             'dataset': dataset,
             'model': model,
             'best_validation_ap': study.best_trial.value,
             'best_trial_number': study.best_trial.number,
-            'best_params': study.best_trial.params,
+            # All tuned parameters (normalized)
+            'best_params': best_params,
+            # Additional fixed parameters for complete reproducibility
+            'fixed_params': {
+                'time_encoder_type': 'kan_mammote_dual_kmote',
+                'mamba_headdim': 64,
+                'mamba_d_conv': 4,
+                'patience': 5,
+                'num_runs': 1,
+                'seed': 0,
+                'num_epochs': num_epochs
+            },
             'study_name': study_name,
             'total_trials': len(study.trials),
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'optuna_version': optuna.__version__
         }
         
         config_file = f'./optuna_results/{dataset}_{model}_best_config.json'
@@ -349,8 +510,8 @@ def main():
                         help='Model to tune (default: TCL)')
     parser.add_argument('--n_trials', type=int, default=30,
                         help='Number of trials to run (default: 30)')
-    parser.add_argument('--num_epochs', type=int, default=15,
-                        help='Maximum epochs per trial (default: 15)')
+    parser.add_argument('--num_epochs', type=int, default=20,
+                        help='Maximum epochs per trial (default: 20)')
     parser.add_argument('--study_name', type=str, default=None,
                         help='Name for the Optuna study (default: auto-generated)')
     parser.add_argument('--storage', type=str, default=None,
@@ -368,7 +529,19 @@ def main():
     parser.add_argument('--trials_per_combo', type=int, default=50,
                         help='Trials per combination in multi-dataset mode (default: 50)')
     
+    # New option for analyzing saved configurations
+    parser.add_argument('--analyze_config', type=str, default=None,
+                        help='Path to best config JSON file to analyze and show reproduction info')
+    
     args = parser.parse_args()
+    
+    # Handle config analysis mode
+    if args.analyze_config:
+        if os.path.exists(args.analyze_config):
+            print_reproduction_info(args.analyze_config)
+        else:
+            print(f"❌ Config file not found: {args.analyze_config}")
+        return
     
     print("="*80)
     print("🔥 KAN-MAMMOTE OPTUNA HYPERPARAMETER TUNING")

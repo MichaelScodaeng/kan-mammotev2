@@ -130,20 +130,33 @@ class KAN_MAMMOTE(nn.Module):
                 print(f"   ├─ expand: {mamba_expand}")
                 print(f"   ├─ headdim: {mamba_headdim}")
                 
-                # ✅ SIMPLIFIED: Direct v_k → modulator_head (no intermediate fusion_mlp_base)
+                # ✅ IMPROVED: Separate MLPs for gamma and beta modulation
                 # Clean separation: relative time directly generates control signals
                 # 🔧 FIX: Ensure exact dimension match to prevent repeat() operations
                 mamba_dt_dim = self.mamba2.nheads  # This should match ControllableMamba2's dt_content
-                self.modulator_head = nn.Sequential(
+                
+                # Separate MLPs for better expressiveness
+                self.gamma_head = nn.Sequential(
                     nn.Linear(rel_time_dim, expert_dim // 2),
                     nn.GELU(),
-                    nn.Dropout(dropout),  # ✅ Dropout before final linear
-                    nn.Linear(expert_dim // 2, mamba_dt_dim * 2)  # 🔧 FIX: Use exact dt dimension
+                    nn.Dropout(dropout),
+                    nn.Linear(expert_dim // 2, mamba_dt_dim)  # Only gamma dimensions
+                )
+                
+                self.beta_head = nn.Sequential(
+                    nn.Linear(rel_time_dim, expert_dim // 2),
+                    nn.GELU(),
+                    nn.Dropout(dropout),
+                    nn.Linear(expert_dim // 2, mamba_dt_dim)  # Only beta dimensions
                 )
                 
                 # ✅ Remove redundant components for ControllableMamba2
                 self.fusion_mlp_base = None
                 self.fusion_norm = None
+                
+                print(f"   ├─ Separate modulation heads: gamma_head & beta_head")
+                print(f"   ├─ Each head: {rel_time_dim} → {expert_dim//2} → {mamba_dt_dim}")
+                print(f"   └─ Better expressiveness with independent parameter learning")
                 
             else:
                 print("   ├─ Using vanilla Mamba2 (no FiLM modulation)")
@@ -472,20 +485,22 @@ class KAN_MAMMOTE(nn.Module):
                     else:
                         print(f"   └─ ✅ Good: seq_len={u_k.shape[1]} allows Mamba2 to model temporal patterns", flush=True)
                 
-                # ✅ SIMPLIFIED: Direct v_k → modulator_head (no fusion_mlp_base)
-                modulator_logits = self.modulator_head(v_k)  # (B, S, nheads * 2)
+                # ✅ IMPROVED: Use separate MLPs for better expressiveness
+                gamma_logits = self.gamma_head(v_k)  # (B, S, nheads)
+                beta = self.beta_head(v_k)           # (B, S, nheads)
                 
-                # Split into gamma and beta with improved parameterization
-                gamma_logits, beta = modulator_logits.chunk(2, dim=-1)
                 gamma = F.softplus(gamma_logits)  # Clean softplus (no bias needed)
                 temporal_modulators = (gamma, beta)
                 
                 # Pure absolute time as content (separate pathway)
                 combined_input = u_k
-                
+                #Test swap
+                #combined_input = v_k  # (B, S, expert_dim)
+ 
+
                 if debug or hasattr(self, '_debug_mode'):
-                    print(f"🔧 CONTROLLABLE MAMBA2 (SIMPLIFIED):")
-                    print(f"   Direct v_k → modulator_head (no fusion_mlp_base)")
+                    print(f"🔧 CONTROLLABLE MAMBA2 (SEPARATE MLPS):")
+                    print(f"   Separate gamma_head & beta_head for better expressiveness")
                     print(f"   gamma range: [{gamma.min().item():.3f}, {gamma.max().item():.3f}]")
                     print(f"   beta range: [{beta.min().item():.3f}, {beta.max().item():.3f}]")
                     print(f"   combined_input = u_k (pure absolute)")

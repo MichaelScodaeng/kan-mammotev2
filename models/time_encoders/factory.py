@@ -256,7 +256,7 @@ class TimeEncoderWrapper(torch.nn.Module):
                     debug_print(f"t_abs_default (zeros): {t_abs_default.shape}", "values")
                     debug_print(f"t_rel_default (timestamps): {t_rel_default.shape} | range: [{t_rel_default.min().item():.3f}, {t_rel_default.max().item():.3f}]", "values")
                 
-                print("kuay I sus this case")
+                #print("kuay I sus this case")
                 # TEMPORARY: Exit to debug values - REMOVE THIS WHEN DONE DEBUGGING  
                 if DEBUG_TIME_ENCODER_FACTORY:
                     debug_print("TEMPORARY EXIT FOR DEBUGGING - REMOVE WHEN DONE", "general")

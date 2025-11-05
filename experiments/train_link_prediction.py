@@ -418,6 +418,11 @@ if __name__ == "__main__":
 
         optimizer = create_optimizer(model=model, optimizer_name=args.optimizer, learning_rate=args.learning_rate, weight_decay=args.weight_decay)
 
+        # Add learning rate scheduler for stability
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=10, verbose=True, min_lr=1e-6
+        )
+
         model = convert_to_gpu(model, device=args.device)
 
         # ===== WARM UP KAN-MAMMOTE (if applicable) =====
@@ -732,9 +737,15 @@ if __name__ == "__main__":
                 
                 # 🔧 GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
                 # This is critical for training stability, especially with high-capacity time encoders
+                grad_norm = 0.0
                 if args.max_grad_norm > 0:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)
+                    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)
                 
+                # Monitor for gradient issues
+                '''
+                if grad_norm > args.max_grad_norm * 2:
+                    logger.warning(f"Large gradient norm detected: {grad_norm:.4f} (clipped to {args.max_grad_norm})")
+                '''
                 optimizer.step()
                 
                 # Update progress bar less frequently to avoid conflicts (only if tqdm is enabled)
@@ -977,6 +988,11 @@ if __name__ == "__main__":
             if len(val_metrics) > 0:
                 for metric_name in val_metrics[0].keys():
                     val_metric_indicator.append((metric_name, np.mean([val_metric[metric_name] for val_metric in val_metrics]), True))
+            
+            # Step learning rate scheduler
+            avg_val_loss = np.mean(val_losses)
+            scheduler.step(avg_val_loss)
+            
             early_stop = early_stopping.step(val_metric_indicator, model)
 
             if early_stop:
