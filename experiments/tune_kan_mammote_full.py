@@ -85,12 +85,13 @@ class KANMAMMOTETuner:
                 'expert_dim': [32, 64, 128, 256],
                 'mamba_d_state': [64, 128, 256, 512],
                 'mamba_expand': [2, 4, 8],
-                'mamba_headdim': [16, 32, 64],
+                'mamba_headdim': [8, 16, 32, 64],
+                "mamba_d_conv": [2,4,8,16],
                 'embedding_dim': [64, 128, 256],
                 'encoder_dropout': [0.0, 0.1, 0.2],
                 # Training hyperparameters
-                'learning_rate': [5e-5, 1e-4, 2e-4, 5e-4, 1e-3],
-                'batch_size': [32, 64, 128, 256, 512],
+                'learning_rate': [1e-3],
+                'batch_size': [128],
                 #'weight_decay': [0.0, 1e-6, 1e-5, 1e-4, 1e-3]
             }
         elif tuning_mode == 'efficiency_focused':
@@ -320,6 +321,8 @@ class KANMAMMOTETuner:
         tuning_args.mamba_d_state = params.get('mamba_d_state', getattr(tuning_args, 'mamba_d_state', 128))
         tuning_args.mamba_expand = params.get('mamba_expand', getattr(tuning_args, 'mamba_expand', 2))
         tuning_args.mamba_headdim = params.get('mamba_headdim', getattr(tuning_args, 'mamba_headdim', 32))
+        # Ensure mamba_d_conv from the grid is applied to the args (was missing)
+        tuning_args.mamba_d_conv = params.get('mamba_d_conv', getattr(tuning_args, 'mamba_d_conv', 4))
         tuning_args.embedding_dim = params.get('embedding_dim', getattr(tuning_args, 'embedding_dim', 128))
         
         # Training hyperparameters
@@ -365,6 +368,7 @@ class KANMAMMOTETuner:
                 'learning_rate': params.get('learning_rate', 1e-4),
                 'batch_size': params.get('batch_size', 128),
                 'weight_decay': params.get('weight_decay', 0.0),
+                'mamba_d_conv': params.get('mamba_d_conv', 4),
                 # Performance metrics
                 'best_val_mrr': result['best_val_mrr'],
                 'best_val_acc': result['best_val_acc'],

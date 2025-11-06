@@ -19,4 +19,4 @@ python -u tune_kan_mammote_optuna.py \
     --datasets enron \
     --models TGN \
     --trials_per_combo 30 \
-    > optuna_scripts/sh_scripts/sh_logs/tgn_mc.log 2>&1
+    > optuna_scripts/sh_scripts/sh_logs/tgn_enron.log 2>&1

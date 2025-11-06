@@ -608,7 +608,7 @@ class BadgePredictionModel(nn.Module):
                         # Compute relative times only for valid positions
                         t_rel[i, :real_length, 0] = real_last_time - times[i, :real_length]
                         # Padding positions remain 0 (already initialized)
-                
+                '''
                 # 🔍 DEBUG: Check if times are sorted before encoder
                 if not hasattr(self, '_debug_printed_sorting'):
                     print(f"\n🔍 [STACK OVERFLOW] Time Sorting Debug (FIXED):")
@@ -635,7 +635,7 @@ class BadgePredictionModel(nn.Module):
                     print(f"   t_rel sample (padding area): {t_rel[0, -5:, 0].cpu().numpy()}")
                     
                     self._debug_printed_sorting = True
-                
+                '''
                 time_emb = self.time_encoder(t_abs, t_rel)  # [batch, seq_len, embedding_dim//2]
             
             else:
