@@ -19,21 +19,21 @@ mkdir -p sh_scripts/kmm_renew/sh_logs/tgn
 timestamp=$(date +%Y%m%d_%H%M%S)
 python experiment_unified2.py \
     --single_encoder kan_mammote_dual_kmote \
-    --models TGN \
+    --models TCL \
     --datasets enron \
     --num_epochs 200 \
     --data_ratio 1.0 \
-    --dropout 0.3 \
-    --encoder_dropout 0.2 \
+    --dropout 0.2 \
+    --encoder_dropout 0.0 \
     --expert_dim 256 \
     --mamba_expand 2 \
-    --mamba_d_state 128 \
-    --mamba_headdim 16 \
+    --mamba_d_state 256 \
+    --mamba_headdim 32 \
     --test_interval_epochs 100 \
     --learning_rate 1e-4 \
-    --weight_decay 0.0021180690483442893 \
+    --weight_decay 1.4225284703625344e-06 \
     --optimizer AdamW \
     --disable_progress_bar \
     --num_runs 1 \
     --max_grad_norm 1.0 \
-    > sh_scripts/kmm_renew/sh_logs/tgn/tgn_enron_kmote_${timestamp}.log 2>&1
+    > sh_scripts/kmm_renew/sh_logs/tcl/tcl_enron_kmote_${timestamp}.log 2>&1
