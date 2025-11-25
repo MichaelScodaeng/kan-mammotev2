@@ -104,7 +104,7 @@ class TGAT(nn.Module):
                 
                 self._debug_printed_sorting = True
             
-            # This single call works for both KAN-MAMMOTE and the wrapped TimeEncoder
+            # This single call works for both KMM and the wrapped TimeEncoder
             neighbor_time_features = self.time_encoder(t_abs=neighbor_t_abs, t_rel=neighbor_t_rel)
 
             source_t_abs = torch.from_numpy(node_interact_times).float().to(self.device).unsqueeze(-1).unsqueeze(-1)

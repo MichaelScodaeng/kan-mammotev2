@@ -35,12 +35,10 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'KMM', 'time2vec', 'kan_mammote'], 
+                        choices=['original', 'lete', 'KMM'], 
                         help='type of time encoder to use')
     parser.add_argument('--expert_dim', type=int, default=128, 
                         help='dimension of each expert in K-MOTE (for KMM encoder)')
-    parser.add_argument('--num_mixtures', type=int, default=16, 
-                        help='number of mixture components in SM-Kernel (for KMM encoder)')
     parser.add_argument('--sort_neighbors_by_time', action='store_true', default=True,
                         help='Sort sampled neighbors chronologically for Mamba-based time encoders (recommended for KMM)')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
@@ -77,7 +75,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--ablation_dir', type=str, default='', 
                         help='directory to save all ablation study outputs (models, metrics, results)')
     
-    # Mamba-specific arguments for KAN-MAMMOTE
+    # Mamba-specific arguments for KMM
     parser.add_argument('--mamba_d_state', type=int, default=128, 
                         help='Mamba state dimension (for KMM encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=4, 
@@ -87,11 +85,11 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--mamba_headdim', type=int, default=64, 
                         help='Mamba head dimension (for KMM encoder)')
     
-    # Arguments specific to KAN-MAMMOTE
+    # Arguments specific to KMM
     
     # Debug arguments
     parser.add_argument('--debug_encoder', action='store_true', default=False,
-                        help='Enable comprehensive debugging for time encoders (especially KAN-MAMMOTE)')
+                        help='Enable comprehensive debugging for time encoders (especially KMM)')
     
     # Checkpoint and resuming arguments
     parser.add_argument('--resume_from_checkpoint', type=str, default=None,

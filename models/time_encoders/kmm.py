@@ -68,14 +68,13 @@ class KMM(nn.Module):
                 use_gradient_checkpointing=use_gc,
                 use_amp=self.use_amp
             )
-            self.sm_kernel = None
             rel_time_dim = expert_dim  # K-MOTE outputs expert_dim
         
         # ===== Build Fusion Architecture based on strategy =====
         print(f"Building fusion architecture: {fusion_strategy}")
         
         if fusion_strategy == 'mamba':
-            # ===== MAMBA FUSION (Original KAN-MAMMOTE) =====
+            # ===== MAMBA FUSION (Original KMM) =====
             if use_controllable_mamba:
                 print("   ├─ Using ControllableMamba2 (with FiLM modulation)")
                 self.mamba2 = ControllableMamba2(
@@ -136,7 +135,7 @@ class KMM(nn.Module):
                 nn.LayerNorm(embedding_dim)
             )
 
-        print(f"Initialized KAN-MAMMOTE with proper dropout:")
+        print(f"Initialized KMM with proper dropout:")
         print(f"   ├─ Dropout rate: {dropout}")
         print(f"   ├─ Dropout locations: after activations, before final norms")
         print(f"   ├─ Residual + post-LN pattern enabled")
@@ -163,11 +162,11 @@ class KMM(nn.Module):
         if self.fusion_strategy == 'mamba':
             mamba_type = "ControllableMamba2" if self.use_controllable_mamba else "Vanilla Mamba2"
             print(f"\n{'='*60}")
-            print(f"Warming up KAN-MAMMOTE ({self.fusion_strategy} fusion with {mamba_type})...")
+            print(f"Warming up KMM ({self.fusion_strategy} fusion with {mamba_type})...")
             print(f"{'='*60}")
         else:
             print(f"\n{'='*60}")
-            print(f"Warming up KAN-MAMMOTE ({self.fusion_strategy} fusion)...")
+            print(f"Warming up KMM ({self.fusion_strategy} fusion)...")
             print(f"{'='*60}")
         
         # Ensure model is on the correct device
@@ -209,15 +208,6 @@ class KMM(nn.Module):
     def forward(self, t_abs: torch.Tensor, t_rel: torch.Tensor, debug: bool = False) -> torch.Tensor:
         """
         Forward pass with flexible fusion strategies and relative time encoding.
-        
-        Fusion Strategies:
-        1. 'mamba': Uses Mamba2 for temporal fusion (original KAN-MAMMOTE)
-           - ControllableMamba2: With FiLM temporal modulation
-           - Vanilla Mamba2: Without temporal modulation
-        2. 'concat': Concatenates absolute + relative, then MLP projection
-        3. 'weighted': Learnable weighted sum of absolute + relative streams
-        4. 'attention': Cross-attention between absolute and relative streams
-        
         Args:
             t_abs: Absolute time tensor (B, S, 1)
             t_rel: Relative time tensor (B, S, 1)
@@ -231,7 +221,7 @@ class KMM(nn.Module):
             print(f"[KMM] Forward pass called!")
         if debug or hasattr(self, '_debug_mode'):
             print(f"\n{'='*60}")
-            print(f"KAN-MAMMOTE DEBUG - Forward Pass")
+            print(f"KMM DEBUG - Forward Pass")
             print(f"{'='*60}")
             print(f"INPUT SHAPES:")
             print(f"   t_abs shape: {t_abs.shape}")
@@ -263,7 +253,7 @@ class KMM(nn.Module):
                 print(f"   v_k shape: {v_k.shape}")
         # ===== Apply fusion strategy =====
         if self.fusion_strategy == 'mamba':
-            # ===== MAMBA FUSION (Original KAN-MAMMOTE) =====
+            # ===== MAMBA FUSION (Original KMM) =====
             
             if self.use_controllable_mamba:
                 # Use separate MLPs for better expressiveness
@@ -340,10 +330,10 @@ class KMM(nn.Module):
     def enable_debug_mode(self):
         """Enable persistent debug mode"""
         self._debug_mode = True
-        print("KAN-MAMMOTE Debug Mode ENABLED")
+        print("KMM Debug Mode ENABLED")
     
     def disable_debug_mode(self):
         """Disable persistent debug mode"""
         if hasattr(self, '_debug_mode'):
             delattr(self, '_debug_mode')
-        print("KAN-MAMMOTE Debug Mode DISABLED")
+        print("KMM Debug Mode DISABLED")

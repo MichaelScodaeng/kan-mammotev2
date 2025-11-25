@@ -1,7 +1,7 @@
 """
 Base Time Encoder Interface
 
-Provides abstract base class for all time encoders in the KAN-MAMMOTE framework.
+Provides abstract base class for all time encoders in the KMM framework.
 """
 
 import torch

@@ -784,10 +784,8 @@ def build_training_command(model, dataset, time_encoder_name, args,
 def get_time_encoder_args(time_encoder):
     """Get encoder-specific command-line arguments"""
     if time_encoder == 'KMM':
-        return '--num_mixtures 12 --mamba_d_state 16 --mamba_d_conv 4 --mamba_expand 2 --mamba_headdim 64 --sort_neighbors_by_time'
-    elif time_encoder == 'lete':
         return ''
-    elif time_encoder == 'time2vec':
+    elif time_encoder == 'lete':
         return ''
     elif time_encoder == 'original':
         return ''

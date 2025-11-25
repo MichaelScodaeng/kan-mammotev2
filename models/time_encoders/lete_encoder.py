@@ -3,7 +3,7 @@ LeTE (Learnable Time Encoding)
 The implementation should follow models/time_encoders/LeTE_original.py
 
 Advanced time encoding using mixture of Fourier and spline components.
-Based on the LeTE paper implementation with adaptations for the KAN-MAMMOTE framework.
+Based on the LeTE paper implementation with adaptations for the KMM framework.
 """
 
 import torch

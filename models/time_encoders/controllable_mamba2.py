@@ -55,7 +55,7 @@ class ControllableMamba2(Mamba2):
                     raise ValueError(
                         f"DIMENSION MISMATCH: gamma has {gamma.shape[-1]} features, "
                         f"but dt_content expects {dt_content.shape[-1]}. "
-                        f"This indicates a bug in KAN-MAMMOTE's modulator_head output dimension. "
+                        f"This indicates a bug in KMM's modulator_head output dimension. "
                         f"Expected: modulator_head should output {dt_content.shape[-1] * 2} features."
                     )
         

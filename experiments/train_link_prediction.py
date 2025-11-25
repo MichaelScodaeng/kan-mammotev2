@@ -54,7 +54,7 @@ def get_available_models():
 
 def get_available_encoders():
     """Return list of available encoder types"""
-    base_encoders = ['original', 'lete',]
+    base_encoders = ['original', 'lete']
     if MAMBA_AVAILABLE:
         base_encoders.extend(['KMM'])
     return base_encoders
@@ -424,14 +424,14 @@ if __name__ == "__main__":
 
         model = convert_to_gpu(model, device=args.device)
 
-        # ===== WARM UP KAN-MAMMOTE (if applicable) =====
+        # ===== WARM UP KMM (if applicable) =====
         # Only attempt warmup if Mamba is available
         if MAMBA_AVAILABLE:
             # Warm up CUDA kernels for Mamba2 to avoid 5-40 second compilation delays
             if args.model_name == 'TGAT' and hasattr(time_encoder, 'encoder'):
                 # Unwrap the TimeEncoderWrapper to access the actual encoder
                 actual_encoder = time_encoder.encoder
-                if isinstance(actual_encoder, (KMM)):
+                if isinstance(actual_encoder, (KMM,)):
                     logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
                     actual_encoder.warmup(device=args.device, num_iterations=3)
             elif args.time_encoder_type in ['KMM']:
@@ -734,7 +734,7 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
                 loss.backward()
                 
-                # GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
+                # GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KMM with Mamba2)
                 # This is critical for training stability, especially with high-capacity time encoders
                 grad_norm = 0.0
                 if args.max_grad_norm > 0:

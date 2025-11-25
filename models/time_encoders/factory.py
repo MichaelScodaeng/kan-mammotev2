@@ -87,10 +87,7 @@ try:
 except ImportError:
     LeTE = None
 
-try:
-    from .time2vec_encoder import Time2VecEncoder
-except ImportError:
-    Time2VecEncoder = None
+
 
 # Import optional encoders that may not be available
 SMKernelOnly = None
@@ -104,10 +101,10 @@ DualStreamBaseline = None
 class TimeEncoderWrapper(torch.nn.Module):
     """
     Adapter to make various time encoders compatible with different interfaces.
-    Ensures consistent output dimensions while preserving KAN-MAMMOTE functionality.
+    Ensures consistent output dimensions while preserving KMM functionality.
     
     Key Insight:
-    - KAN-MAMMOTE uses: (t_abs, t_rel) - dual stream
+    - KMM uses: (t_abs, t_rel) - dual stream
     - OriginalTimeEncoder uses: timestamps (which is actually t_rel/delta_t)
     - TGAT passes: neighbor_time_features = time_encoder(t_abs=..., t_rel=...)
     """
@@ -167,8 +164,7 @@ class TimeEncoderWrapper(torch.nn.Module):
         if DEBUG_TIME_ENCODER_FACTORY:
             debug_print(f"Encoder forward signature: {params}", "calls")
             
-        print(params)
-        # Strategy 1: Dual-stream interface (KAN-MAMMOTE)
+        # Strategy 1: Dual-stream interface (KMM)
         if 't_abs' in params and 't_rel' in params:
             if t_abs is not None and t_rel is not None:
                 if DEBUG_TIME_ENCODER_FACTORY:
@@ -280,12 +276,10 @@ def get_available_encoders():
     # Add available optional encoders
     if LeTE is not None:
         encoders.append('lete')
-    if Time2VecEncoder is not None:
-        encoders.append('time2vec')
+   
     
     # Add ablation study encoders (always available since they're local)
     encoders.extend([
-        'sm_kernel_only',
         'kmote_abs_only',
         'kmote_rel_only',
         'k_mote',  # Standalone K-MOTE (without Mamba, for MNIST experiments)
@@ -310,7 +304,7 @@ def get_encoder_config(encoder_type: str):
                 'use_kmote_for_relative': True,
                 'num_mixtures': 16  # Still needed for fusion architecture
             },
-            'description': 'KAN-MAMMOTE Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding'
+            'description': 'KMM Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding'
         },
         'KMM_tgat': {
             'required_params': ['embedding_dim', 'expert_dim'],
@@ -322,18 +316,14 @@ def get_encoder_config(encoder_type: str):
                 'use_kmote_for_relative': True,
                 'num_mixtures': 16  # Still needed for fusion architecture
             },
-            'description': 'KAN-MAMMOTE Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding for TGAT'
+            'description': 'KMM Dual K-MOTE: Uses K-MOTE for both absolute and relative time encoding for TGAT'
         },
         'lete': {
             'required_params': ['time_dim'],
             'optional_params': {},
             'description': 'LeTE: Learnable Time Encoder'
         },
-        'time2vec': {
-            'required_params': ['time_dim'],
-            'optional_params': {},
-            'description': 'Time2Vec: Time encoding with periodic and linear components'
-        },
+        
         'original': {
             'required_params': ['time_dim'],
             'optional_params': {},
@@ -366,94 +356,16 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
     if DEBUG_TIME_ENCODER_FACTORY:
         debug_print(f"Available encoders: {available}", "general")
     
-    if encoder_type == 'KMM':
-        if KMM is None:
-            raise ImportError(f"KMM encoder is not available. Please install Mamba dependencies or use a different encoder.")
-        
-        print("INFO: Creating KAN-MAMMOTE time encoder.")
-        
-        # Handle args gracefully - try args first, then kwargs, then defaults
-        if args is not None:
-            print("INFO: Extracting KAN-MAMMOTE parameters from args.")
-            expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 128))
-            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
-            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
-            mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))
-            mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
-            mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
-            batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
-            num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
-            # NEW: Support for dual K-MOTE mode
-            use_kmote_for_relative = getattr(args, 'use_kmote_for_relative', kwargs.get('use_kmote_for_relative', False))
-        else:
-            # Get from kwargs or use defaults
-            print("INFO: Extracting KAN-MAMMOTE parameters from kwargs or using defaults.")
-            expert_dim = kwargs.get('expert_dim', 64)
-            num_mixtures = kwargs.get('num_mixtures', 4)
-            mamba_d_state = kwargs.get('mamba_d_state', 16)
-            mamba_d_conv = kwargs.get('mamba_d_conv', 4)
-            mamba_expand = kwargs.get('mamba_expand', 2)
-            mamba_headdim = kwargs.get('mamba_headdim', 64)
-            batch_size = kwargs.get('batch_size', 200)
-            num_neighbors = kwargs.get('num_neighbors', 20)
-            # NEW: Support for dual K-MOTE mode
-            use_kmote_for_relative = kwargs.get('use_kmote_for_relative', False)
-        
-        print(f"KAN-MAMMOTE parameters:")
-        print(f"  - embedding_dim: {time_dim}")
-        print(f"  - expert_dim: {expert_dim}")
-        print(f"  - num_mixtures: {num_mixtures}")
-        print(f"  - mamba_d_state: {mamba_d_state}")
-        print(f"  - mamba_d_conv: {mamba_d_conv}")
-        print(f"  - mamba_expand: {mamba_expand}")
-        print(f"  - use_kmote_for_relative: {use_kmote_for_relative}")
-        
-        time_encoder = KMM(
-            embedding_dim=time_dim,
-            expert_dim=expert_dim,
-            num_mixtures=num_mixtures,
-            mamba_d_state=mamba_d_state,
-            mamba_d_conv=mamba_d_conv,
-            mamba_expand=mamba_expand,
-            use_kmote_for_relative=use_kmote_for_relative
-        )
-        
-        # SM-Kernel Initialization (if data is provided)
-        if train_data is not None and train_neighbor_sampler is not None:
-            try:
-                print("INFO: Performing SM-Kernel initialization...")
-                # Get a single batch of indices to create a sample
-                sample_batch_indices = np.arange(min(batch_size, len(train_data.src_node_ids)))
-                sample_src = train_data.src_node_ids[sample_batch_indices]
-                sample_ts = train_data.node_interact_times[sample_batch_indices]
-                
-                _, _, sample_neighbor_ts = train_neighbor_sampler.get_historical_neighbors(
-                    sample_src, sample_ts, num_neighbors
-                )
-                
-                sample_delta_t = sample_ts[:, np.newaxis] - sample_neighbor_ts
-                
-                # Ensure sample is not empty
-                if sample_delta_t.size > 0:
-                    sample_delta_t_tensor = torch.from_numpy(sample_delta_t).float().unsqueeze(-1)
-                    time_encoder.initialize_sm_kernel(sample_delta_t_tensor.to(device))
-                    print("INFO: SM-Kernel initialization complete!")
-                else:
-                    print("WARNING: Could not generate a sample for SM-Kernel initialization (dataset might be small). Skipping.")
-            except Exception as e:
-                print(f"WARNING: SM-Kernel initialization failed: {e}. Using default initialization.")
-        else:
-            print("INFO: No training data provided. SM-Kernel will use default initialization.")
     
-    elif encoder_type == 'KMM':
+    if encoder_type == 'KMM' or encoder_type == 'kmm':
         if KMM is None:
             raise ImportError(f"KMM encoder is not available. Please install Mamba dependencies or use a different encoder.")
         
-        print("INFO: Creating KAN-MAMMOTE time encoder with dual K-MOTE (no SM-kernel).")
+        print("INFO: Creating KMM time encoder with dual K-MOTE (no SM-kernel).")
         
         # Handle args gracefully - try args first, then kwargs, then defaults
         if args is not None:
-            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.")
+            print("INFO: Extracting KMM Dual K-MOTE parameters from args.")
             expert_dim = getattr(args, 'expert_dim', kwargs.get('expert_dim', 128))
             num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
             mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
@@ -463,7 +375,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             encoder_dropout = getattr(args, 'encoder_dropout', getattr(args, 'dropout', 0.1))  # Use encoder_dropout, fallback to dropout
         else:
             # Get from kwargs or use defaults
-            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from kwargs or using defaults.")
+            print("INFO: Extracting KMM Dual K-MOTE parameters from kwargs or using defaults.")
             expert_dim = kwargs.get('expert_dim', 64)
             num_mixtures = kwargs.get('num_mixtures', 4)
             mamba_d_state = kwargs.get('mamba_d_state', 16)
@@ -472,7 +384,7 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
             mamba_headdim = kwargs.get('mamba_headdim', 64)
             encoder_dropout = kwargs.get('encoder_dropout', kwargs.get('dropout', 0.1))
         
-        print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
+        print(f"KMM Dual K-MOTE parameters:")
         print(f"  - embedding_dim: {time_dim}")
         print(f"  - expert_dim: {expert_dim}")
         print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
@@ -494,218 +406,14 @@ def create_time_encoder(encoder_type: str, time_dim: int, train_data=None, train
         )
         
         print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
-    elif encoder_type == 'KMM_tgat':
-        if KMM is None:
-            raise ImportError(f"KMM encoder is not available. Please install Mamba dependencies or use a different encoder.")
-        
-        print("INFO: Creating KMM_tgat")
-        
-        # Handle args gracefully - try args first, then kwargs, then defaults
-        if args is not None:
-            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from args.")
-            expert_dim = 64
-            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
-            mamba_d_state = getattr(args, 'mamba_d_state', kwargs.get('mamba_d_state', 256))
-            mamba_d_conv = getattr(args, 'mamba_d_conv', kwargs.get('mamba_d_conv', 4))
-            mamba_expand = getattr(args, 'mamba_expand', kwargs.get('mamba_expand', 2))
-            mamba_headdim = getattr(args, 'mamba_headdim', kwargs.get('mamba_headdim', 64))
-        else:
-            # Get from kwargs or use defaults
-            print("INFO: Extracting KAN-MAMMOTE Dual K-MOTE parameters from kwargs or using defaults.")
-            expert_dim = kwargs.get('expert_dim', 64)
-            num_mixtures = kwargs.get('num_mixtures', 4)
-            mamba_d_state = kwargs.get('mamba_d_state', 16)
-            mamba_d_conv = kwargs.get('mamba_d_conv', 4)
-            mamba_expand = kwargs.get('mamba_expand', 2)
-            mamba_headdim = kwargs.get('mamba_headdim', 64)
-            encoder_dropout = kwargs.get('encoder_dropout', kwargs.get('dropout', 0.1))
-        
-        print(f"KAN-MAMMOTE Dual K-MOTE parameters:")
-        print(f"  - embedding_dim: {time_dim}")
-        print(f"  - expert_dim: {expert_dim}")
-        print(f"  - num_mixtures: {num_mixtures} (for fusion architecture)")
-        print(f"  - mamba_d_state: {mamba_d_state}")
-        print(f"  - mamba_d_conv: {mamba_d_conv}")
-        print(f"  - mamba_expand: {mamba_expand}")
-        print(f"  - encoder_dropout: {encoder_dropout}")
-        print(f"  - use_kmote_for_relative: True (dual K-MOTE mode)")
-        
-        time_encoder = KMM(
-            embedding_dim=time_dim,
-            expert_dim=expert_dim,
-            num_mixtures=num_mixtures,
-            mamba_d_state=mamba_d_state,
-            mamba_d_conv=mamba_d_conv,
-            mamba_expand=mamba_expand,
-            mamba_headdim=mamba_headdim,
-            dropout=encoder_dropout,  # Use encoder-specific dropout
-            use_kmote_for_relative=True  # Force dual K-MOTE mode
-        )
-        
-        print("INFO: No SM-Kernel initialization needed (using dual K-MOTE mode).")
-    
     elif encoder_type == 'lete' and LeTE is not None:
         print("INFO: Creating LeTE Time Encoder.")
         print("Time Embedding dim:", time_dim)
         encoder = LeTE(time_dim=time_dim)
         time_encoder = TimeEncoderWrapper(encoder)
         
-    elif encoder_type == 'time2vec' and Time2VecEncoder is not None:
-        print("INFO: Creating Time2Vec Time Encoder.")
-        print("Time Embedding dim:", time_dim)
-        encoder = Time2VecEncoder(time_dim=time_dim)
-        time_encoder = TimeEncoderWrapper(encoder)
-        
-    elif encoder_type == 'sm_kernel_only':
-        print("INFO: Creating SM-Kernel Only encoder (ablation study).")
-        print("Time Embedding dim:", time_dim)
-        
-        # Get parameters
-        if args is not None:
-            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
-        else:
-            num_mixtures = kwargs.get('num_mixtures', 12)
-            
-        time_encoder = SMKernelOnly(
-            embedding_dim=time_dim,
-            num_mixtures=num_mixtures
-        )
-        
-        # Initialize SM-Kernel if training data is available
-        if train_data is not None and train_neighbor_sampler is not None:
-            try:
-                print("INFO: Initializing SM-Kernel for ablation study...")
-                batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
-                num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
-                
-                sample_batch_indices = np.arange(min(batch_size, len(train_data.src_node_ids)))
-                sample_src = train_data.src_node_ids[sample_batch_indices]
-                sample_ts = train_data.node_interact_times[sample_batch_indices]
-                
-                _, _, sample_neighbor_ts = train_neighbor_sampler.get_historical_neighbors(
-                    sample_src, sample_ts, num_neighbors
-                )
-                
-                sample_delta_t = sample_ts[:, np.newaxis] - sample_neighbor_ts
-                
-                if sample_delta_t.size > 0:
-                    sample_delta_t_tensor = torch.from_numpy(sample_delta_t).float().unsqueeze(-1)
-                    time_encoder.initialize_sm_kernel(sample_delta_t_tensor.to(device))
-                    print("INFO: SM-Kernel initialization complete for ablation!")
-                else:
-                    print("WARNING: Could not generate SM-Kernel sample for ablation. Using defaults.")
-            except Exception as e:
-                print(f"WARNING: SM-Kernel initialization failed for ablation: {e}")
-        else:
-            print("INFO: No training data provided. SM-Kernel will use default initialization.")
     
-    elif encoder_type == 'kmote_abs_only':
-        print("INFO: Creating K-MOTE Absolute Only encoder (ablation study).")
-        print("Time Embedding dim:", time_dim)
         
-        # Get K-MOTE parameters
-        if args is not None:
-            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
-        else:
-            wavelet_type = kwargs.get('wavelet_type', 'shock')
-            
-        time_encoder = KMOTEAbsOnly(
-            embedding_dim=time_dim,
-            wavelet_type=wavelet_type
-        )
-    
-    elif encoder_type == 'kmote_rel_only':
-        print("INFO: Creating K-MOTE Relative Only encoder (ablation study).")
-        print("Time Embedding dim:", time_dim)
-        
-        # Get K-MOTE parameters
-        if args is not None:
-            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
-        else:
-            wavelet_type = kwargs.get('wavelet_type', 'shock')
-            
-        time_encoder = KMOTERelOnly(
-            embedding_dim=time_dim,
-            wavelet_type=wavelet_type
-        )
-    
-    elif encoder_type == 'dual_stream_baseline':
-        print("INFO: Creating Dual Stream Baseline encoder (ablation study).")
-        print("Time Embedding dim:", time_dim)
-        
-        # Get parameters
-        if args is not None:
-            num_mixtures = getattr(args, 'num_mixtures', kwargs.get('num_mixtures', 16))
-            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
-        else:
-            num_mixtures = kwargs.get('num_mixtures', 4)
-            wavelet_type = kwargs.get('wavelet_type', 'shock')
-            
-        time_encoder = DualStreamBaseline(
-            embedding_dim=time_dim,
-            num_mixtures=num_mixtures,
-            wavelet_type=wavelet_type
-        )
-        
-        # Initialize SM-Kernel if training data is available
-        if train_data is not None and train_neighbor_sampler is not None:
-            try:
-                print("INFO: Initializing SM-Kernel for dual stream baseline...")
-                batch_size = getattr(args, 'batch_size', kwargs.get('batch_size', 200))
-                num_neighbors = getattr(args, 'num_neighbors', kwargs.get('num_neighbors', 20))
-                
-                sample_batch_indices = np.arange(min(batch_size, len(train_data.src_node_ids)))
-                sample_src = train_data.src_node_ids[sample_batch_indices]
-                sample_ts = train_data.node_interact_times[sample_batch_indices]
-                
-                _, _, sample_neighbor_ts = train_neighbor_sampler.get_historical_neighbors(
-                    sample_src, sample_ts, num_neighbors
-                )
-                
-                sample_delta_t = sample_ts[:, np.newaxis] - sample_neighbor_ts
-                
-                if sample_delta_t.size > 0:
-                    sample_delta_t_tensor = torch.from_numpy(sample_delta_t).float().unsqueeze(-1)
-                    time_encoder.initialize_sm_kernel(sample_delta_t_tensor.to(device))
-                    print("INFO: SM-Kernel initialization complete for dual stream baseline!")
-                else:
-                    print("WARNING: Could not generate SM-Kernel sample for dual stream baseline.")
-            except Exception as e:
-                print(f"WARNING: SM-Kernel initialization failed for dual stream baseline: {e}")
-    
-    elif encoder_type == 'k_mote':
-        # Standalone K-MOTE (without Mamba) for MNIST-style experiments
-        from .k_mote import KMOTE
-        
-        print("INFO: Creating standalone K-MOTE encoder.")
-        print("Time Embedding dim:", time_dim)
-        
-        # Get K-MOTE parameters
-        if args is not None:
-            wavelet_type = getattr(args, 'wavelet_type', kwargs.get('wavelet_type', 'shock'))
-            transform_mode = getattr(args, 'transform_mode', kwargs.get('transform_mode', 'adapter'))
-            adapter_type = getattr(args, 'adapter_type', kwargs.get('adapter_type', 'affine'))
-        else:
-            wavelet_type = kwargs.get('wavelet_type', 'shock')
-            transform_mode = kwargs.get('transform_mode', 'adapter')
-            adapter_type = kwargs.get('adapter_type', 'affine')
-        
-        print(f"K-MOTE parameters:")
-        print(f"  - output_dim: {time_dim}")
-        print(f"  - wavelet_type: {wavelet_type}")
-        print(f"  - transform_mode: {transform_mode}")
-        print(f"  - adapter_type: {adapter_type if transform_mode == 'adapter' else 'N/A'}")
-        
-        time_encoder = KMOTE(
-            input_dim=1,
-            output_dim=time_dim,
-            wavelet_type=wavelet_type,
-            transform_mode=transform_mode,
-            adapter_type=adapter_type if transform_mode == 'adapter' else None,
-            use_scale=True,
-            use_layernorm=True
-        )
-    
     elif encoder_type in ['original', 'time_encoder', 'default']:
         print("INFO: Creating original TimeEncoder (wrapped for compatibility).")
         print("Time Embedding dim:", time_dim)
