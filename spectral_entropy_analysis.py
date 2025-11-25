@@ -58,8 +58,8 @@ class SpectralEntropyAnalyzer:
         
         # All 13 datasets as specified
         self.datasets = [
-            'wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci',
-            'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis'
+            'wikipedia', 'reddit', 'UNvote', 'mooc', 'SocialEvo', 'uci','Contacts',
+            #'CanParl',  'Flights', 'UNtrade', 'lastfm','USLegis',  'enron'
         ]
         
         # Store results for each dataset

@@ -46,7 +46,7 @@ class SpectralEntropyVisualizer:
             self.entropy_results = pickle.load(f)
         print(f"Loaded results for {len(self.entropy_results)} datasets")
     
-    def create_density_plots(self, figsize=(16, 6), save_format='pdf'):
+    def create_density_plots(self, figsize=(16, 6), save_format='eps'):
         """
         Create density plots similar to Figure 8, showing all datasets with improved styling.
         
@@ -115,11 +115,10 @@ class SpectralEntropyVisualizer:
                            label=label,
                            linewidth=1.5)
         
-        ax1.set_xlabel('Spectral Entropy', fontsize=12, fontweight='bold')
-        ax1.set_ylabel('Density', fontsize=12, fontweight='bold')
-        ax1.set_title('Density Plot of Spectral Entropy (Timestamp of Interactions)', 
-                     fontsize=14, fontweight='bold', pad=20)
-        ax1.grid(True, alpha=0.3)
+        ax1.set_xlabel('Spectral Entropy', fontsize=16, fontweight='bold')
+        ax1.set_ylabel('Density', fontsize=16, fontweight='bold')
+        ax1.set_title('Timestamp of Interactions', 
+                     fontsize=18, fontweight='bold', pad=20)
         ax1.set_xlim(0, 12)
         ax1.set_ylim(0, None)
         
@@ -130,36 +129,40 @@ class SpectralEntropyVisualizer:
                            color=colors[i % len(colors)], 
                            alpha=0.7, 
                            fill=True, 
-                           label=label,
                            linewidth=1.5)
         
-        ax2.set_xlabel('Spectral Entropy', fontsize=12, fontweight='bold')
-        ax2.set_ylabel('Density', fontsize=12, fontweight='bold')
-        ax2.set_title('Density Plot of Spectral Entropy (Time Difference between Interactions)', 
-                     fontsize=14, fontweight='bold', pad=20)
-        ax2.grid(True, alpha=0.3)
+        ax2.set_xlabel('Spectral Entropy', fontsize=16, fontweight='bold')
+        ax2.set_ylabel('Density', fontsize=16, fontweight='bold')
+        ax2.set_title('Time Difference between Interactions', 
+                     fontsize=18, fontweight='bold', pad=20)
         ax2.set_xlim(0, 12)
         ax2.set_ylim(0, None)
         
-        # Add legends with better positioning
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-        ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+        # Remove individual legends from subplots
+        ax1.legend().remove()
+        ax2.legend().remove()
         
-        # Adjust layout to prevent legend cutoff
+        # Add a single legend below the plots
+        handles, labels = ax1.get_legend_handles_labels()
+        fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.05), 
+                  ncol=len(labels), fontsize=12, columnspacing=0.8, handlelength=1.5)
+        
+        # Adjust layout to make room for the legend below
         plt.tight_layout()
+        plt.subplots_adjust(bottom=0.11)
         
         # Save the plot
         output_file = self.output_dir / f'spectral_entropy_density_plots.{save_format}'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+        plt.savefig(output_file, bbox_inches='tight', 
                    facecolor='white', edgecolor='none')
         print(f"Density plots saved to: {output_file}")
         
-        # Also save as PNG for easy viewing
-        if save_format != 'png':
-            png_file = self.output_dir / 'spectral_entropy_density_plots.png'
-            plt.savefig(png_file, dpi=300, bbox_inches='tight', 
+        # Also save as PDF for additional vector format
+        if save_format == 'eps':
+            pdf_file = self.output_dir / 'spectral_entropy_density_plots.pdf'
+            plt.savefig(pdf_file, bbox_inches='tight', 
                        facecolor='white', edgecolor='none')
-            print(f"PNG version saved to: {png_file}")
+            print(f"PDF version saved to: {pdf_file}")
         
         plt.show()
     
@@ -221,7 +224,6 @@ class SpectralEntropyVisualizer:
         ax1.set_xticks(x_pos)
         ax1.set_xticklabels(df['dataset'], rotation=45, ha='right')
         ax1.legend()
-        ax1.grid(True, alpha=0.3)
         
         # Plot standard deviations with improved colors
         bars3 = ax2.bar(x_pos - 0.2, df['std_timestamp_entropy'], 0.4, 
@@ -235,13 +237,12 @@ class SpectralEntropyVisualizer:
         ax2.set_xticks(x_pos)
         ax2.set_xticklabels(df['dataset'], rotation=45, ha='right')
         ax2.legend()
-        ax2.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
         # Save the plot
-        output_file = self.output_dir / 'spectral_entropy_summary_statistics.png'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+        output_file = self.output_dir / 'spectral_entropy_summary_statistics.eps'
+        plt.savefig(output_file, bbox_inches='tight', 
                    facecolor='white', edgecolor='none')
         print(f"Summary statistics plot saved to: {output_file}")
         
@@ -319,8 +320,8 @@ class SpectralEntropyVisualizer:
         plt.tight_layout()
         
         # Save the plot
-        output_file = self.output_dir / 'spectral_entropy_heatmap.png'
-        plt.savefig(output_file, dpi=300, bbox_inches='tight', 
+        output_file = self.output_dir / 'spectral_entropy_heatmap.eps'
+        plt.savefig(output_file, bbox_inches='tight', 
                    facecolor='white', edgecolor='none')
         print(f"Comparison heatmap saved to: {output_file}")
         

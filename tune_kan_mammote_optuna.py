@@ -151,7 +151,7 @@ def create_objective(dataset='wikipedia', model='TGAT', num_epochs=15, ablation_
             
             
             # Training parameters - Make it like baseline first!
-            learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-4, log=True)
+            learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
             batch_size = trial.suggest_categorical("batch_size", [200])
 
             # Training parameters - CRITICAL for reproducibility!

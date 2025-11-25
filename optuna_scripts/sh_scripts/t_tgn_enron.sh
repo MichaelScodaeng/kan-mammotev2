@@ -1,5 +1,5 @@
 #PBS -j oe
-#PBS -q GPU-1
+#PBS -q GPU-1A
 #PBS -l select=1:ngpus=1
 #PBS -M s2516027@jaist.ac.jp
 #PBS -m be
@@ -13,10 +13,10 @@ conda activate kan_mammote
 mkdir -p optuna_scripts/sh_scripts/sh_logs
 # Task assignments
 # Task 1 on GPU 0
-CUDA_VISIBLE_DEVICES=0 \
 python -u tune_kan_mammote_optuna.py \
     --multi_dataset \
     --datasets enron \
     --models TGN \
-    --trials_per_combo 30 \
+    --trials_per_combo 50 \
+    --num_epochs 30 \
     > optuna_scripts/sh_scripts/sh_logs/tgn_enron.log 2>&1

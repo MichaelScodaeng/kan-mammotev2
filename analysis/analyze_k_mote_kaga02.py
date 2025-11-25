@@ -685,7 +685,7 @@ if __name__ == '__main__':
     run_interpretability_analysis()
     
     # Part 3: Comprehensive capability matrix
-    run_expert_capability_matrix()
+    #run_expert_capability_matrix()
     
     print("\n✨ Analysis Complete! ")
     print("📋 Summary:")
