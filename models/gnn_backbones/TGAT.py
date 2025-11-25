@@ -8,7 +8,6 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from debug_config import should_debug_model  # 🔍 Global debug control
 from models.gnn_backbones.modules import TimeEncoder, MergeLayer, MultiHeadAttention
 from utils.utils import NeighborSampler
 
@@ -86,9 +85,9 @@ class TGAT(nn.Module):
             neighbor_t_abs = torch.from_numpy(neighbor_times).float().to(self.device).unsqueeze(-1)
             neighbor_t_rel = torch.from_numpy(neighbor_delta_times).float().to(self.device).unsqueeze(-1)
             
-            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
-            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
-                print(f"\n🔍 [TGAT] Neighbor Time Sorting Debug:")
+            # Check if neighbor times are sorted before encoder
+            if neighbor_times.size > 0:
+                print(f"\n[TGAT] Neighbor Time Sorting Debug:")
                 print(f"   Layer: {current_layer_num}, sort_neighbors_by_time: {self.sort_neighbors_by_time}")
                 print(f"   Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
                 

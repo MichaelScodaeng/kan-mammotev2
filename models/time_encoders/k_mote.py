@@ -8,7 +8,7 @@ import torch.cuda.amp as amp
 
 
 
-class LeTESpline(nn.Module):
+class BSpline(nn.Module):
     """
     Args:
         dim_spline (int): Dimension of the spline input (and typically output).
@@ -449,13 +449,13 @@ class FourierKANLayer(nn.Module):
         c = torch.cos(args)  # (B*S, 1, input_dim, n_harmonics)
         s = torch.sin(args)  # (B*S, 1, input_dim, n_harmonics)
         
-        # ✅ FIXED: Correct einsum contraction (3D input, not 4D)
+        # FIXED: Correct einsum contraction (3D input, not 4D)
         # c: (B*S, input_dim, n_harmonics)
         # fourier_weight[0]: (input_dim, output_dim, n_harmonics)
         # Result: (B*S, output_dim)
         cos_output = torch.einsum('bih,ioh->bo', c, self.fourier_weight[0])
         sin_output = torch.einsum('bih,ioh->bo', s, self.fourier_weight[1])
-        # ✅ END FIX
+        # END FIX
         
         # Combine all components
         output = base_output + cos_output + sin_output + self.bias  # (B*S, output_dim)
@@ -672,7 +672,7 @@ class KMOTE(nn.Module):
         self.experts = nn.ModuleList([
             # Expert 1: LeTE Spline
             nn.Sequential(
-                LeTESpline(dim_spline=self.hidden_dim),
+                BSpline(dim_spline=self.hidden_dim),
                 nn.Linear(self.hidden_dim, self.output_dim)
             ),
             
@@ -725,14 +725,6 @@ class KMOTE(nn.Module):
             self.layer_norm = nn.Identity()
 
     def _initialize_shared_transform(self):
-        """
-        Initializes the shared time transformation layer with a geometric progression of frequencies,
-        following the LeTE / Transformer paper's methodology.
-        
-        CRITICAL: These weights REMAIN LEARNABLE to ensure scale-invariance.
-        The initialization provides a strong inductive bias, while the trainability
-        allows the model to fine-tune frequencies and adapt to input scale.
-        """
         with torch.no_grad():
             # Create frequencies from 1.0 down to 1.0 / 10^9
             frequencies = 1.0 / (10 ** torch.linspace(0, 9, self.hidden_dim, dtype=torch.float32))

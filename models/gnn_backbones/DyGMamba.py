@@ -9,7 +9,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from debug_config import should_debug_model  # 🔍 Global debug control
+
 from .modules import TimeEncoder
 from utils.utils import NeighborSampler
 from mamba_ssm import Mamba
@@ -385,25 +385,25 @@ class DyGMamba(nn.Module):
                     # Absolute time (timestamps)
                     padded_abs_time[idx][:] = interaction_times[-max_interaction_times:]
 
-        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface for time difference embedding
+        # ENHANCED: Support KMM dual-stream interface for time difference embedding
         time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
         
         if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Use real absolute times and inter-interaction gaps
-            t_abs = torch.from_numpy(padded_abs_time).float().to(self.device)    # ✅ Real interaction timestamps
-            t_rel = torch.from_numpy(padded_time).float().to(self.device)        # ✅ Inter-interaction gaps
+        if is_KMM:
+            # KMM dual-stream: Use real absolute times and inter-interaction gaps
+            t_abs = torch.from_numpy(padded_abs_time).float().to(self.device)    # Real interaction timestamps
+            t_rel = torch.from_numpy(padded_time).float().to(self.device)        # Inter-interaction gaps
             
-            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
-            if should_debug_model() and not hasattr(self, '_debug_printed_sorting_timediff') and padded_abs_time.size > 0:
-                print(f"\n🔍 [DyGMamba-TimeDiff] Neighbor Time Sorting Debug:")
+            #  DEBUG: Check if neighbor times are sorted before encoder
+            if  padded_abs_time.size > 0:
+                print(f"\n [DyGMamba-TimeDiff] Neighbor Time Sorting Debug:")
                 print(f"   Batch size: {padded_abs_time.shape[0]}, Max seq length: {padded_abs_time.shape[1]}")
                 
                 # Check first row for sorting
@@ -442,25 +442,25 @@ class DyGMamba(nn.Module):
         padded_nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(padded_nodes_edge_ids)]
         # Tensor, shape (batch_size, max_seq_length, time_feat_dim)
         
-        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        #  ENHANCED: Support KMM dual-stream interface
         time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
         
         if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(padded_nodes_neighbor_times).float().to(self.device)  # Absolute neighbor times
             t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - padded_nodes_neighbor_times).float().to(self.device)  # Relative time differences
             
-            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
-            if should_debug_model() and not hasattr(self, '_debug_printed_sorting_neighbor') and padded_nodes_neighbor_times.size > 0:
-                print(f"\n🔍 [DyGMamba-Neighbor] Neighbor Time Sorting Debug:")
+            #  DEBUG: Check if neighbor times are sorted before encoder
+            if padded_nodes_neighbor_times.size > 0:
+                print(f"\n [DyGMamba-Neighbor] Neighbor Time Sorting Debug:")
                 print(f"   Batch size: {padded_nodes_neighbor_times.shape[0]}, Max seq length: {padded_nodes_neighbor_times.shape[1]}")
                 
                 # Check first row for sorting

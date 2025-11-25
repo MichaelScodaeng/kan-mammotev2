@@ -1,4 +1,3 @@
-
 import subprocess
 import itertools
 import os
@@ -13,7 +12,7 @@ from datetime import datetime
 models = ['TGAT', 'JODIE', 'TGN', 'DyGFormer', 'DyGMamba', 'TCL']  # 'CAWN', 'DyRep', 'GraphMixer'
 datasets = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci', 
             'CanParl', 'Contacts', 'Flights', 'UNtrade', 'UNvote', 'USLegis']
-time_encoders = ['original', 'lete', 'kan_mammote_dual_kmote','mercer', 'bochner', 'time2vec',"kan_mammote"]
+time_encoders = ['original', 'lete', 'KMM',]
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -30,7 +29,7 @@ def parse_arguments():
                         help='Only resume incomplete experiments')
     parser.add_argument('--generate_report', action='store_true',
                         help='Generate experiment report and exit')
-    parser.add_argument('--num_runs', type=int, default=3,
+    parser.add_argument('--num_runs', type=int, default=1,
                         help='Number of runs per experiment (default: 1)')
     parser.add_argument('--timeout_hours', type=float, default=600.0,
                         help='Timeout in hours per experiment (default: 12)')
@@ -52,22 +51,109 @@ def parse_arguments():
                         help='Maximum number of retries for failed experiments (default: 2)')
     parser.add_argument('--disable_progress_bar', action='store_true', default=False,
                         help='Disable tqdm progress bars (useful for logging to files in batch jobs)')
+    # AMP and checkpointing options (forwarded to training script)
+    parser.add_argument('--use_amp', action='store_true', default=False,
+                        help='Enable CUDA Automatic Mixed Precision (forwarded to training script)')
+    parser.add_argument('--use_gradient_checkpointing', action='store_true', default=False,
+                        help='Enable gradient checkpointing inside time-encoder models (forwarded to training script)')
     
     # Add hyperparameter arguments to forward to training script
     parser.add_argument('--expert_dim', type=int, default=None,
-                        help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
+                        help='dimension of each expert in K-MOTE (for KMM encoder)')
     parser.add_argument('--mamba_d_state', type=int, default=None,
-                        help='Mamba state dimension (for kan_mammote encoder)')
+                        help='Mamba state dimension (for KMM encoder)')
     parser.add_argument('--mamba_expand', type=int, default=None,
-                        help='Mamba expansion factor (for kan_mammote encoder)')
+                        help='Mamba expansion factor (for KMM encoder)')
     parser.add_argument('--encoder_dropout', type=float, default=None,
                         help='dropout rate for GNN backbone')
     parser.add_argument('--num_mixtures', type=int, default=None,
-                        help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
+                        help='number of mixture components in SM-Kernel (for KMM encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=None,
-                        help='Mamba convolution dimension (for kan_mammote encoder)')
+                        help='Mamba convolution dimension (for KMM encoder)')
     parser.add_argument('--mamba_headdim', type=int, default=None,
-                        help='Mamba head dimension (for kan_mammote encoder)')
+                        help='Mamba head dimension (for KMM encoder)')
+    
+    # Additional training/evaluation parameters
+    parser.add_argument('--batch_size', type=int, default=None,
+                        help='batch size')
+    parser.add_argument('--gpu', type=int, default=None,
+                        help='GPU device number')
+    parser.add_argument('--num_neighbors', type=int, default=None,
+                        help='number of neighbors to sample for each node')
+    parser.add_argument('--sample_neighbor_strategy', type=str, default=None,
+                        choices=['uniform', 'recent', 'time_interval_aware'],
+                        help='how to sample historical neighbors')
+    parser.add_argument('--time_scaling_factor', type=float, default=None,
+                        help='time scaling factor for time_interval_aware sampling')
+    parser.add_argument('--num_walk_heads', type=int, default=None,
+                        help='number of heads used for the attention in walk encoder')
+    parser.add_argument('--num_heads', type=int, default=None,
+                        help='number of heads used in attention layer')
+    parser.add_argument('--num_layers', type=int, default=None,
+                        help='number of model layers')
+    parser.add_argument('--walk_length', type=int, default=None,
+                        help='length of each random walk')
+    parser.add_argument('--time_gap', type=int, default=None,
+                        help='time gap for neighbors to compute node features')
+    parser.add_argument('--time_feat_dim', type=int, default=None,
+                        help='dimension of the time embedding')
+    parser.add_argument('--position_feat_dim', type=int, default=None,
+                        help='dimension of the position embedding')
+    parser.add_argument('--time_window_mode', type=str, default=None,
+                        choices=['fixed_proportion', 'repeat_interval'],
+                        help='how to select the time window size for time window memory')
+    parser.add_argument('--sort_neighbors_by_time', action='store_true', default=False,
+                        help='Sort sampled neighbors chronologically for Mamba-based time encoders')
+    parser.add_argument('--patch_size', type=int, default=None,
+                        help='patch size')
+    parser.add_argument('--channel_embedding_dim', type=int, default=None,
+                        help='dimension of each channel embedding')
+    parser.add_argument('--max_input_sequence_length', type=int, default=None,
+                        help='maximal length of the input sequence of each node')
+    parser.add_argument('--learning_rate', type=float, default=None,
+                        help='learning rate')
+    parser.add_argument('--dropout', type=float, default=None,
+                        help='dropout rate for GNN backbone')
+    parser.add_argument('--gamma', type=float, default=None,
+                        help='gamma parameter')
+    parser.add_argument('--optimizer', type=str, default=None,
+                        choices=['SGD', 'Adam', 'RMSprop', 'AdamW', 'Adam8bit', 'AdamW8bit'],
+                        help='name of optimizer')
+    parser.add_argument('--weight_decay', type=float, default=None,
+                        help='weight decay')
+    parser.add_argument('--max_grad_norm', type=float, default=None,
+                        help='maximum gradient norm for clipping (0 disables clipping)')
+    parser.add_argument('--patience', type=int, default=None,
+                        help='patience for early stopping')
+    parser.add_argument('--val_ratio', type=float, default=None,
+                        help='ratio of validation set')
+    parser.add_argument('--test_ratio', type=float, default=None,
+                        help='ratio of test set')
+    parser.add_argument('--test_interval_epochs', type=int, default=None,
+                        help='how many epochs to perform testing once')
+    parser.add_argument('--max_interaction_times', type=int, default=None,
+                        help='max interactions for src and dst to consider')
+    parser.add_argument('--train_only_ratio', action='store_true', default=False,
+                        help='Apply data_ratio only to training set, keep val/test at 100%')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='random seed for reproducible data splits and sampling')
+    parser.add_argument('--save_model_name_suffix', type=str, default=None,
+                        help='suffix to add to saved model names for ablation studies')
+    parser.add_argument('--ablation_dir', type=str, default=None,
+                        help='directory to save all ablation study outputs')
+    parser.add_argument('--debug_encoder', action='store_true', default=False,
+                        help='Enable comprehensive debugging for time encoders')
+    parser.add_argument('--checkpoint_interval', type=int, default=None,
+                        help='save checkpoint every N epochs')
+    parser.add_argument('--start_from_seed', type=int, default=None,
+                        help='start training from specific seed/run (for resuming)')
+    parser.add_argument('--max_checkpoints_to_keep', type=int, default=None,
+                        help='maximum number of recent checkpoints to keep')
+    parser.add_argument('--checkpoint_strategy', type=str, default=None,
+                        choices=['frequent', 'smart', 'minimal'],
+                        help='checkpoint frequency strategy')
+    parser.add_argument('--validate_checkpoints', action='store_true', default=False,
+                        help='validate checkpoint integrity before loading')
     
     return parser.parse_args()
 
@@ -232,7 +318,7 @@ def clear_experiment_artifacts(model_name, dataset_name, time_encoder_type, seed
     """Clear all artifacts for a specific experiment combination"""
     import shutil
     
-    print(f"🧹 Clearing artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
+    print(f"CLEARING: Clearing artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
     
     try:
         # Clear model files
@@ -267,11 +353,11 @@ def clear_experiment_artifacts(model_name, dataset_name, time_encoder_type, seed
                 shutil.rmtree(log_dir, ignore_errors=True)
                 print(f"   Removed: {log_dir}")
         
-        print(f"✅ Cleared artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
+        print(f"Cleared artifacts for {time_encoder_type}_{model_name}_{dataset_name}")
         return True
         
     except Exception as e:
-        print(f"❌ Error clearing artifacts: {e}")
+        print(f"Error clearing artifacts: {e}")
         return False
 
 def mark_experiment_for_fresh_restart(model_name, dataset_name, time_encoder_type, time_encoder):
@@ -291,11 +377,11 @@ def mark_experiment_for_fresh_restart(model_name, dataset_name, time_encoder_typ
         # Save updated status
         save_experiment_status(completed, incomplete, time_encoder, seed_progress)
         
-        print(f"🔄 Marked for fresh restart: {combo_key}")
+        print(f"RESTART: Marked for fresh restart: {combo_key}")
         return True
         
     except Exception as e:
-        print(f"❌ Error updating experiment status: {e}")
+        print(f"Error updating experiment status: {e}")
         return False
 
 def verify_training_success(model_name, dataset_name, time_encoder_type, num_runs):
@@ -307,7 +393,7 @@ def verify_training_success(model_name, dataset_name, time_encoder_type, num_run
         model_files = glob.glob(model_pattern)
         
         if not model_files:
-            print(f"❌ No model file found for run {run}")
+            print(f"No model file found for run {run}")
             return False
         
         # Verify model file can be loaded
@@ -315,7 +401,7 @@ def verify_training_success(model_name, dataset_name, time_encoder_type, num_run
             import torch
             torch.load(model_files[0], map_location='cpu')
         except Exception as e:
-            print(f"❌ Model file corrupted for run {run}: {e}")
+            print(f"Model file corrupted for run {run}: {e}")
             return False
     
     return True
@@ -326,7 +412,7 @@ def run_experiment_with_retry(model, dataset, time_encoder_name, combo_key, comm
     
     for attempt in range(max_retries + 1):  # 0, 1, 2 (total 3 attempts)
         if attempt > 0:
-            print(f"\n🔄 Retry attempt {attempt}/{max_retries} for {combo_key}")
+            print(f"\nRETRY: Retry attempt {attempt}/{max_retries} for {combo_key}")
             
             # Clear artifacts from previous failed attempt
             clear_experiment_artifacts(model, dataset, time_encoder_name)
@@ -338,45 +424,45 @@ def run_experiment_with_retry(model, dataset, time_encoder_name, combo_key, comm
             time.sleep(5)
         
         try:
-            print(f"🚀 Running: {' '.join(command)}")
+            print(f"Running: {' '.join(command)}")
             
             # Run the training
             result = subprocess.run(command, check=True, capture_output=False, text=True)
             
             # Verify that training actually succeeded
             if verify_training_success(model, dataset, time_encoder_name, args.num_runs):
-                print(f"✅ Training succeeded for {combo_key} (attempt {attempt + 1})")
+                print(f"Training succeeded for {combo_key} (attempt {attempt + 1})")
                 return True
             else:
                 if attempt < max_retries:
-                    print(f"⚠️  Training appeared to complete but no valid models found (attempt {attempt + 1})")
+                    print(f"WARNING: Training appeared to complete but no valid models found (attempt {attempt + 1})")
                     continue
                 else:
-                    print(f"❌ Training failed - no valid models after {max_retries + 1} attempts")
+                    print(f"Training failed - no valid models after {max_retries + 1} attempts")
                     return False
                     
         except subprocess.CalledProcessError as e:
             if attempt < max_retries:
-                print(f"⚠️  Training failed with exit code {e.returncode} (attempt {attempt + 1})")
+                print(f"WARNING: Training failed with exit code {e.returncode} (attempt {attempt + 1})")
                 continue
             else:
-                print(f"❌ Training failed after {max_retries + 1} attempts with exit code {e.returncode}")
+                print(f"Training failed after {max_retries + 1} attempts with exit code {e.returncode}")
                 return False
                 
         except subprocess.TimeoutExpired:
             if attempt < max_retries:
-                print(f"⚠️  Training timeout (attempt {attempt + 1})")
+                print(f"WARNING: Training timeout (attempt {attempt + 1})")
                 continue
             else:
-                print(f"❌ Training timeout after {max_retries + 1} attempts")
+                print(f"Training timeout after {max_retries + 1} attempts")
                 return False
                 
         except Exception as e:
             if attempt < max_retries:
-                print(f"⚠️  Unexpected error (attempt {attempt + 1}): {e}")
+                print(f"WARNING: Unexpected error (attempt {attempt + 1}): {e}")
                 continue
             else:
-                print(f"❌ Unexpected error after {max_retries + 1} attempts: {e}")
+                print(f"Unexpected error after {max_retries + 1} attempts: {e}")
                 return False
     
     return False
@@ -428,13 +514,13 @@ def find_incomplete_seed_checkpoint(model_name, dataset_name, time_encoder_type,
     
     for checkpoint_dir in checkpoint_dirs:
         if os.path.exists(checkpoint_dir):
-            print(f"🔍 Searching for checkpoints in: {checkpoint_dir}")
+            print(f"Searching for checkpoints in: {checkpoint_dir}")
             
             # Create a simple logger for checkpoint validation
             class SimpleLogger:
-                def info(self, msg): print(f"ℹ️  {msg}")
-                def warning(self, msg): print(f"⚠️  {msg}")
-                def error(self, msg): print(f"❌ {msg}")
+                def info(self, msg): print(f"INFO: {msg}")
+                def warning(self, msg): print(f"WARNING: {msg}")
+                def error(self, msg): print(f"ERROR: {msg}")
             
             logger = SimpleLogger()
             
@@ -460,7 +546,7 @@ def find_incomplete_seed_checkpoint(model_name, dataset_name, time_encoder_type,
                     # Try each checkpoint from newest to oldest
                     for checkpoint_path in checkpoint_files:
                         epoch = extract_epoch(checkpoint_path)
-                        print(f"🔍 Trying checkpoint: {checkpoint_path} (epoch {epoch})")
+                        print(f"Trying checkpoint: {checkpoint_path} (epoch {epoch})")
                         
                         try:
                             # Basic validation - try to load the checkpoint
@@ -470,22 +556,22 @@ def find_incomplete_seed_checkpoint(model_name, dataset_name, time_encoder_type,
                             # Check for required fields
                             required_fields = ['epoch', 'model_state_dict', 'optimizer_state_dict']
                             if all(field in checkpoint for field in required_fields):
-                                print(f"✅ Found valid checkpoint: {checkpoint_path} (epoch {epoch})")
+                                print(f"Found valid checkpoint: {checkpoint_path} (epoch {epoch})")
                                 return os.path.abspath(checkpoint_path), epoch
                             else:
-                                print(f"⚠️  Checkpoint missing required fields: {checkpoint_path}")
+                                print(f"WARNING: Checkpoint missing required fields: {checkpoint_path}")
                                 continue
                                 
                         except Exception as e:
-                            print(f"❌ Checkpoint corrupted: {checkpoint_path} - {e}")
+                            print(f"ERROR: Checkpoint corrupted: {checkpoint_path} - {e}")
                             continue
                     
-                    print(f"❌ No valid checkpoints found in {checkpoint_dir}")
+                    print(f"ERROR: No valid checkpoints found in {checkpoint_dir}")
                 else:
-                    print(f"❌ No checkpoint files found in {checkpoint_dir}")
+                    print(f"ERROR: No checkpoint files found in {checkpoint_dir}")
             
             except Exception as e:
-                print(f"⚠️  Error checking checkpoints: {e}")
+                print(f"WARNING: Error checking checkpoints: {e}")
     
     return None, None
 
@@ -566,7 +652,7 @@ def build_training_command(model, dataset, time_encoder_name, args,
         '--dataset_name', dataset,
         '--time_encoder_type', time_encoder_name,
         '--num_runs', str(args.num_runs),
-        '--load_best_configs', True,
+        '--load_best_configs',
         '--save_checkpoints',
         '--checkpoint_strategy', 'smart',
         '--max_checkpoints_to_keep', '3',
@@ -602,24 +688,104 @@ def build_training_command(model, dataset, time_encoder_name, args,
     if args.mamba_headdim is not None:
         command.extend(['--mamba_headdim', str(args.mamba_headdim)])
     
+    # Forward additional training parameters
+    if args.batch_size is not None:
+        command.extend(['--batch_size', str(args.batch_size)])
+    if args.gpu is not None:
+        command.extend(['--gpu', str(args.gpu)])
+    if args.num_neighbors is not None:
+        command.extend(['--num_neighbors', str(args.num_neighbors)])
+    if args.sample_neighbor_strategy is not None:
+        command.extend(['--sample_neighbor_strategy', args.sample_neighbor_strategy])
+    if args.time_scaling_factor is not None:
+        command.extend(['--time_scaling_factor', str(args.time_scaling_factor)])
+    if args.num_walk_heads is not None:
+        command.extend(['--num_walk_heads', str(args.num_walk_heads)])
+    if args.num_heads is not None:
+        command.extend(['--num_heads', str(args.num_heads)])
+    if args.num_layers is not None:
+        command.extend(['--num_layers', str(args.num_layers)])
+    if args.walk_length is not None:
+        command.extend(['--walk_length', str(args.walk_length)])
+    if args.time_gap is not None:
+        command.extend(['--time_gap', str(args.time_gap)])
+    if args.time_feat_dim is not None:
+        command.extend(['--time_feat_dim', str(args.time_feat_dim)])
+    if args.position_feat_dim is not None:
+        command.extend(['--position_feat_dim', str(args.position_feat_dim)])
+    if args.time_window_mode is not None:
+        command.extend(['--time_window_mode', args.time_window_mode])
+    if args.sort_neighbors_by_time:
+        command.append('--sort_neighbors_by_time')
+    if args.patch_size is not None:
+        command.extend(['--patch_size', str(args.patch_size)])
+    if args.channel_embedding_dim is not None:
+        command.extend(['--channel_embedding_dim', str(args.channel_embedding_dim)])
+    if args.max_input_sequence_length is not None:
+        command.extend(['--max_input_sequence_length', str(args.max_input_sequence_length)])
+    if args.learning_rate is not None:
+        command.extend(['--learning_rate', str(args.learning_rate)])
+    if args.dropout is not None:
+        command.extend(['--dropout', str(args.dropout)])
+    if args.gamma is not None:
+        command.extend(['--gamma', str(args.gamma)])
+    if args.optimizer is not None:
+        command.extend(['--optimizer', args.optimizer])
+    if args.weight_decay is not None:
+        command.extend(['--weight_decay', str(args.weight_decay)])
+    if args.patience is not None:
+        command.extend(['--patience', str(args.patience)])
+    if args.val_ratio is not None:
+        command.extend(['--val_ratio', str(args.val_ratio)])
+    if args.test_ratio is not None:
+        command.extend(['--test_ratio', str(args.test_ratio)])
+    if args.test_interval_epochs is not None:
+        command.extend(['--test_interval_epochs', str(args.test_interval_epochs)])
+    if args.max_interaction_times is not None:
+        command.extend(['--max_interaction_times', str(args.max_interaction_times)])
+    if args.train_only_ratio:
+        command.append('--train_only_ratio')
+    if args.seed is not None:
+        command.extend(['--seed', str(args.seed)])
+    if args.save_model_name_suffix is not None:
+        command.extend(['--save_model_name_suffix', args.save_model_name_suffix])
+    if args.ablation_dir is not None:
+        command.extend(['--ablation_dir', args.ablation_dir])
+    if args.debug_encoder:
+        command.append('--debug_encoder')
+    if args.max_grad_norm is not None:
+        command.extend(['--max_grad_norm', str(args.max_grad_norm)])
+    if args.checkpoint_interval is not None:
+        command.extend(['--checkpoint_interval', str(args.checkpoint_interval)])
+    if args.max_checkpoints_to_keep is not None:
+        command.extend(['--max_checkpoints_to_keep', str(args.max_checkpoints_to_keep)])
+    if args.checkpoint_strategy is not None:
+        command.extend(['--checkpoint_strategy', args.checkpoint_strategy])
+    if args.validate_checkpoints:
+        command.append('--validate_checkpoints')
+    
+    # Forward data_ratio
+    if hasattr(args, 'data_ratio') and args.data_ratio is not None:
+        command.extend(['--data_ratio', str(args.data_ratio)])
+    
     # Add encoder-specific arguments
     encoder_args = get_time_encoder_args(time_encoder_name)
     if encoder_args:
         command.extend(encoder_args.split())
+
+    # Forward runtime flags for AMP and gradient checkpointing to the training script
+    if hasattr(args, 'use_amp') and args.use_amp:
+        command.append('--use_amp')
+    if hasattr(args, 'use_gradient_checkpointing') and args.use_gradient_checkpointing:
+        command.append('--use_gradient_checkpointing')
     
     return command
 
 def get_time_encoder_args(time_encoder):
     """Get encoder-specific command-line arguments"""
-    if time_encoder == 'kan_mammote':
+    if time_encoder == 'KMM':
         return '--num_mixtures 12 --mamba_d_state 16 --mamba_d_conv 4 --mamba_expand 2 --mamba_headdim 64 --sort_neighbors_by_time'
-    elif time_encoder == 'kan_mammote_lite':
-        return '--num_mixtures 12 --sort_neighbors_by_time'
     elif time_encoder == 'lete':
-        return ''
-    elif time_encoder == 'mercer':
-        return ''
-    elif time_encoder == 'bochner':
         return ''
     elif time_encoder == 'time2vec':
         return ''
@@ -672,13 +838,13 @@ def generate_experiment_report(time_encoder):
                 f.write(f"\nALL COMPLETED EXPERIMENTS ({len(completed)}):\n")
                 f.write("-" * 50 + "\n")
                 for exp in sorted(completed):
-                    f.write(f"✅ {exp}\n")
+                    f.write(f"{exp}\n")
             
             if incomplete:
                 f.write(f"\nINCOMPLETE EXPERIMENTS ({len(incomplete)}):\n")
                 f.write("-" * 50 + "\n")
                 for exp in sorted(incomplete):
-                    f.write(f"⚠️  {exp}\n")
+                    f.write(f"WARNING: {exp}\n")
             
             # Generate missing experiments
             all_possible = set()
@@ -690,9 +856,9 @@ def generate_experiment_report(time_encoder):
                 f.write(f"\nMISSING EXPERIMENTS ({len(missing)}):\n")
                 f.write("-" * 50 + "\n")
                 for exp in sorted(missing):
-                    f.write(f"❌ {exp}\n")
+                    f.write(f"ERROR: {exp}\n")
         
-        print(f"📊 Experiment report generated: {report_file}")
+        print(f"Experiment report generated: {report_file}")
         return report_file
         
     except OSError as e:
@@ -714,25 +880,169 @@ def print_experiment_summary(completed, incomplete, time_encoder):
     print(f"Remaining experiments: {total_experiments - len(completed) - len(incomplete)}")
     
     if completed:
-        print(f"\n✅ Completed ({len(completed)}):")
+        print(f"\nCompleted ({len(completed)}):")
         for exp in sorted(completed):
             print(f"   {exp}")
     
     if incomplete:
-        print(f"\n⚠️  Incomplete ({len(incomplete)}):")
+        print(f"\nIncomplete ({len(incomplete)}):")
         for exp in sorted(incomplete):
             print(f"   {exp}")
     
     print("="*80)
 
+
+def build_evaluation_command(model, dataset, time_encoder_name, negative_sample_strategy, args):
+    """Build evaluation command with appropriate arguments"""
+    command = [
+        'python', 'experiments/evaluate_link_prediction.py',
+        '--model_name', model,
+        '--dataset_name', dataset,
+        '--time_encoder_type', time_encoder_name,
+        '--negative_sample_strategy', negative_sample_strategy,
+        '--num_runs', str(args.num_runs),
+        '--load_best_configs'
+    ]
+
+    # Add disable_progress_bar if specified
+    if args.disable_progress_bar:
+        command.append('--disable_progress_bar')
+
+    # Forward hyperparameters
+    if args.expert_dim is not None:
+        command.extend(['--expert_dim', str(args.expert_dim)])
+    if args.mamba_d_state is not None:
+        command.extend(['--mamba_d_state', str(args.mamba_d_state)])
+    if args.mamba_expand is not None:
+        command.extend(['--mamba_expand', str(args.mamba_expand)])
+    if args.encoder_dropout is not None:
+        command.extend(['--encoder_dropout', str(args.encoder_dropout)])
+    if args.num_mixtures is not None:
+        command.extend(['--num_mixtures', str(args.num_mixtures)])
+    if args.mamba_d_conv is not None:
+        command.extend(['--mamba_d_conv', str(args.mamba_d_conv)])
+    if args.mamba_headdim is not None:
+        command.extend(['--mamba_headdim', str(args.mamba_headdim)])
+    
+    # Forward additional evaluation parameters
+    if args.batch_size is not None:
+        command.extend(['--batch_size', str(args.batch_size)])
+    if args.gpu is not None:
+        command.extend(['--gpu', str(args.gpu)])
+    if args.num_neighbors is not None:
+        command.extend(['--num_neighbors', str(args.num_neighbors)])
+    if args.sample_neighbor_strategy is not None:
+        command.extend(['--sample_neighbor_strategy', args.sample_neighbor_strategy])
+    if args.time_scaling_factor is not None:
+        command.extend(['--time_scaling_factor', str(args.time_scaling_factor)])
+    if args.num_walk_heads is not None:
+        command.extend(['--num_walk_heads', str(args.num_walk_heads)])
+    if args.num_heads is not None:
+        command.extend(['--num_heads', str(args.num_heads)])
+    if args.num_layers is not None:
+        command.extend(['--num_layers', str(args.num_layers)])
+    if args.walk_length is not None:
+        command.extend(['--walk_length', str(args.walk_length)])
+    if args.time_gap is not None:
+        command.extend(['--time_gap', str(args.time_gap)])
+    if args.time_feat_dim is not None:
+        command.extend(['--time_feat_dim', str(args.time_feat_dim)])
+    if args.position_feat_dim is not None:
+        command.extend(['--position_feat_dim', str(args.position_feat_dim)])
+    if args.time_window_mode is not None:
+        command.extend(['--time_window_mode', args.time_window_mode])
+    if args.sort_neighbors_by_time:
+        command.append('--sort_neighbors_by_time')
+    if args.patch_size is not None:
+        command.extend(['--patch_size', str(args.patch_size)])
+    if args.channel_embedding_dim is not None:
+        command.extend(['--channel_embedding_dim', str(args.channel_embedding_dim)])
+    if args.max_input_sequence_length is not None:
+        command.extend(['--max_input_sequence_length', str(args.max_input_sequence_length)])
+    if args.learning_rate is not None:
+        command.extend(['--learning_rate', str(args.learning_rate)])
+    if args.dropout is not None:
+        command.extend(['--dropout', str(args.dropout)])
+    if args.gamma is not None:
+        command.extend(['--gamma', str(args.gamma)])
+    if args.optimizer is not None:
+        command.extend(['--optimizer', args.optimizer])
+    if args.weight_decay is not None:
+        command.extend(['--weight_decay', str(args.weight_decay)])
+    if args.patience is not None:
+        command.extend(['--patience', str(args.patience)])
+    if args.val_ratio is not None:
+        command.extend(['--val_ratio', str(args.val_ratio)])
+    if args.test_ratio is not None:
+        command.extend(['--test_ratio', str(args.test_ratio)])
+    if args.test_interval_epochs is not None:
+        command.extend(['--test_interval_epochs', str(args.test_interval_epochs)])
+    if args.max_interaction_times is not None:
+        command.extend(['--max_interaction_times', str(args.max_interaction_times)])
+    if args.train_only_ratio:
+        command.append('--train_only_ratio')
+    if args.seed is not None:
+        command.extend(['--seed', str(args.seed)])
+    if args.save_model_name_suffix is not None:
+        command.extend(['--save_model_name_suffix', args.save_model_name_suffix])
+    if args.ablation_dir is not None:
+        command.extend(['--ablation_dir', args.ablation_dir])
+    if args.debug_encoder:
+        command.append('--debug_encoder')
+    if args.max_grad_norm is not None:
+        command.extend(['--max_grad_norm', str(args.max_grad_norm)])
+    
+    # Forward data_ratio
+    if hasattr(args, 'data_ratio') and args.data_ratio is not None:
+        command.extend(['--data_ratio', str(args.data_ratio)])
+
+    # Forward AMP/checkpointing flags
+    if hasattr(args, 'use_amp') and args.use_amp:
+        command.append('--use_amp')
+    if hasattr(args, 'use_gradient_checkpointing') and args.use_gradient_checkpointing:
+        command.append('--use_gradient_checkpointing')
+        
+    # Add encoder-specific arguments
+    encoder_args = get_time_encoder_args(time_encoder_name)
+    if encoder_args:
+        command.extend(encoder_args.split())
+
+    return command
+
+def run_evaluation(model, dataset, time_encoder_name, args):
+    """Run evaluation with different negative sampling strategies"""
+    print("-" * 80)
+    print(f"Running evaluations for: {time_encoder_name}_{model}_{dataset}")
+    
+    strategies = ['historical', 'inductive']
+    for strategy in strategies:
+        print(f"\nEVAL: Evaluating with negative sample strategy: {strategy}")
+        
+        eval_command = build_evaluation_command(model, dataset, time_encoder_name, strategy, args)
+        
+        print(f"Command: {' '.join(eval_command)}")
+        
+        if args.dry_run:
+            print("[DRY RUN] - Evaluation command not executed")
+            continue
+            
+        try:
+            subprocess.run(eval_command, check=True, text=True)
+            print(f"Evaluation successful for strategy: {strategy}")
+        except subprocess.CalledProcessError as e:
+            print(f" Evaluation failed for strategy: {strategy} with exit code {e.returncode}")
+        except Exception as e:
+            print(f" An unexpected error occurred during evaluation for strategy {strategy}: {e}")
+    
+    print("-" * 80)
 # Main execution
 if __name__ == "__main__":
     args = parse_arguments()
     
     time_encoder = args.single_encoder
     
-    # ===== ADD: Create required base directories =====
-    print("🔧 Setting up directories...")
+    # Create required base directories
+    print("Setting up directories...")
     required_base_dirs = [
         './saved_models',
         './saved_results',
@@ -744,12 +1054,11 @@ if __name__ == "__main__":
         try:
             os.makedirs(directory, exist_ok=True)
         except OSError as e:
-            print(f"⚠️  Warning: Could not create {directory}: {e}")
+            print(f" Warning: Could not create {directory}: {e}")
     
-    # Also create encoder-specific log directory
+    # Create encoder-specific log directory
     encoder_log_dir = get_encoder_log_dir(time_encoder)
-    print(f"✅ Directories ready (encoder logs: {encoder_log_dir})")
-    # ===== END ADD =====
+    print(f"Directories ready (encoder logs: {encoder_log_dir})")
 
     # Handle report generation
     if args.generate_report:
@@ -760,12 +1069,12 @@ if __name__ == "__main__":
     models_to_run = args.models
     datasets_to_run = args.datasets
     
-    print(f"🎯 Running experiments for time encoder: {time_encoder}")
+    print(f"Running experiments for time encoder: {time_encoder}")
     
     # Get current experiment status with seed tracking
     completed, incomplete, seed_progress = get_experiment_status(time_encoder)
     
-    print(f"\n🚀 Starting Time Encoder Experiments")
+    print(f"\nStarting Time Encoder Experiments")
     print(f"Time Encoder: {time_encoder}")
     print(f"Models: {models_to_run}")
     print(f"Datasets: {datasets_to_run}")
@@ -781,9 +1090,9 @@ if __name__ == "__main__":
     print(f"Progress File: {progress_file}")
     
     if args.dry_run:
-        print("🔍 DRY RUN MODE - Commands will be printed but not executed")
+        print("[DRY RUN] MODE - Commands will be printed but not executed")
     if args.resume_only:
-        print("🔄 RESUME ONLY MODE - Only incomplete experiments will be run")
+        print("[RESUME ONLY] MODE - Only incomplete experiments will be run")
     
     print_experiment_summary(completed, incomplete, time_encoder)
     print("-" * 80)
@@ -801,9 +1110,9 @@ if __name__ == "__main__":
         
         experiments_to_run.append((model, dataset, time_encoder, combo_key))
     
-    print(f"📋 Experiments to run: {len(experiments_to_run)}")
+    print(f"QUEUE: Experiments to run: {len(experiments_to_run)}")
     if args.dry_run:
-        print("🔍 Commands that would be executed:")
+        print("[DRY RUN] Commands that would be executed:")
     print("-" * 80)
     
     # Iterate over all combinations
@@ -818,7 +1127,7 @@ if __name__ == "__main__":
         )
         
         if force_restart_this:
-            print(f"🔄 Force restart requested for {combo_key}")
+            print(f"RESTART: Force restart requested for {combo_key}")
             clear_experiment_artifacts(model, dataset, time_encoder_name)
             mark_experiment_for_fresh_restart(model, dataset, time_encoder_name, time_encoder)
             # Refresh status after clearing
@@ -836,7 +1145,7 @@ if __name__ == "__main__":
             last_incomplete_epoch = progress.get('last_incomplete_epoch', None)
             
             if last_incomplete_seed is not None and last_incomplete_epoch is not None:
-                print(f"🔄 Found incomplete experiment at seed {last_incomplete_seed}, epoch {last_incomplete_epoch}")
+                print(f"RESUME: Found incomplete experiment at seed {last_incomplete_seed}, epoch {last_incomplete_epoch}")
                 
                 # Find checkpoint for the incomplete seed
                 checkpoint_file, checkpoint_epoch = find_incomplete_seed_checkpoint(
@@ -846,85 +1155,65 @@ if __name__ == "__main__":
                 if checkpoint_file:
                     resume_from_checkpoint = True
                     start_from_seed = last_incomplete_seed
-                    print(f"🔄 Will resume from seed {last_incomplete_seed}, epoch {checkpoint_epoch}")
+                    print(f"RESUME: Will resume from seed {last_incomplete_seed}, epoch {checkpoint_epoch}")
                     print(f"   Checkpoint: {checkpoint_file}")
                 else:
-                    print(f"⚠️  No checkpoint found for seed {last_incomplete_seed}, restarting from that seed")
+                    print(f" No checkpoint found for seed {last_incomplete_seed}, restarting from that seed")
                     start_from_seed = last_incomplete_seed
             else:
                 # Check which seeds are complete vs remaining
                 remaining_seeds = [s for s in range(args.num_runs) if s not in completed_seeds]
                 if remaining_seeds:
                     start_from_seed = min(remaining_seeds)
-                    print(f"🚀 Starting from seed {start_from_seed} (seeds {completed_seeds} already completed)")
+                    print(f"Starting from seed {start_from_seed} (seeds {completed_seeds} already completed)")
                 else:
-                    print(f"✅ All seeds completed for {combo_key}")
+                    print(f"All seeds completed for {combo_key}")
                     continue
         elif combo_key in incomplete and not force_restart_this:
             # Legacy incomplete detection - try to find any checkpoint
             checkpoint_file = find_checkpoint_file(model, dataset, time_encoder_name)
             if checkpoint_file:
-                print(f"🔄 Found checkpoint for incomplete experiment")
+                print(f"RESUME: Found checkpoint for incomplete experiment")
                 print(f"   Checkpoint: {checkpoint_file}")
                 resume_from_checkpoint = True
             else:
-                print(f"⚠️  Incomplete experiment found but no checkpoint available")
+                print(f" Incomplete experiment found but no checkpoint available")
         
-        # Build the command using the training script
-        command = [
-            'python', 'experiments/train_link_prediction.py',
-            '--model_name', model,
-            '--dataset_name', dataset,
-            '--time_encoder_type', time_encoder_name,
-            '--num_runs', str(args.num_runs),
-            '--load_best_configs',
-            '--save_checkpoints',  # Enable checkpoint saving
-            '--checkpoint_strategy', 'smart',  # Use smart checkpointing
-            '--max_checkpoints_to_keep', '3',  # Keep last 3 checkpoints
-            '--validate_checkpoints'  # Enable checkpoint validation
-            
-        ]
-
-        # If epochs override provided, pass it through; otherwise rely on best-config defaults
-        if args.num_epochs is not None:
-            command.extend(['--num_epochs', str(args.num_epochs)])
-        
-        # Add time encoder specific arguments
-        encoder_specific_args = get_time_encoder_args(time_encoder_name)
-        if encoder_specific_args:
-            command.extend(encoder_specific_args.split())
-        
-        # Add disable_progress_bar if specified
-        if args.disable_progress_bar:
-            command.append('--disable_progress_bar')
-        
-        # Add seed-level resuming if needed
-        if start_from_seed > 0:
-            command.extend(['--start_from_seed', str(start_from_seed)])
-        
-        # Add checkpoint resuming if available
+        # Build the command using helper so CLI hyperparameters are forwarded
+        resume_ckpt = None
         if resume_from_checkpoint and checkpoint_file:
-            # Convert to absolute path and verify existence
+            # prefer absolute path when forwarding
+            resume_ckpt = os.path.abspath(checkpoint_file)
+
+        command = build_training_command(
+            model=model,
+            dataset=dataset,
+            time_encoder_name=time_encoder_name,
+            args=args,
+            resume_checkpoint=resume_ckpt,
+            start_seed=start_from_seed
+        )
+
+        # Print checkpoint debugging info (do not append flags here - build_training_command already included them)
+        if resume_from_checkpoint and checkpoint_file:
             abs_checkpoint_path = os.path.abspath(checkpoint_file)
-            print(f"🔍 Checkpoint debugging:")
+            print(f"[DEBUG] Checkpoint debugging:")
             print(f"   Original path: {checkpoint_file}")
             print(f"   Absolute path: {abs_checkpoint_path}")
             print(f"   File exists: {os.path.exists(abs_checkpoint_path)}")
             print(f"   Working dir: {os.getcwd()}")
-            
-            command.extend(['--resume_from_checkpoint', abs_checkpoint_path])
-            print(f"🔄 Resuming from checkpoint at seed {start_from_seed}")
+            print(f"RESUME: Resuming from checkpoint at seed {start_from_seed}")
         else:
             if start_from_seed > 0:
-                print(f"🚀 Starting from seed {start_from_seed} (fresh training)")
+                print(f"Starting from seed {start_from_seed} (fresh training)")
             else:
-                print(f"🚀 Starting new training from seed 0")
+                print(f"START: Starting new training from seed 0")
         
         print(f"Command: {' '.join(command)}")
         print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         if args.dry_run:
-            print("🔍 DRY RUN - Command not executed")
+            print("[DRY RUN] - Command not executed")
             print("-" * 80)
             continue
         
@@ -941,10 +1230,12 @@ if __name__ == "__main__":
                 args, time_encoder, max_retries=args.max_retries
             )
             if success:
-                print(f"✅ Successfully completed: {combo_key}")
+                print(f"SUCCESS: Successfully completed: {combo_key}")
                 mark_experiment_complete(combo_key, time_encoder)
+                # Run evaluation after successful training
+                run_evaluation(model, dataset, time_encoder_name, args)
             else:
-                print(f"❌ Failed after all retry attempts: {combo_key}")
+                print(f" Failed after all retry attempts: {combo_key}")
                 # Leave as incomplete for potential manual investigation
         else:
             # Original single-attempt logic
@@ -959,53 +1250,55 @@ if __name__ == "__main__":
                 if check_training_completion(model, dataset, time_encoder_name):
                     duration = end_time - start_time
                     print("-" * 80)
-                    print(f"✅ Successfully completed: {combo_key}")
+                    print(f"SUCCESS: Successfully completed: {combo_key}")
                     print(f"   Duration: {duration/3600:.2f} hours")
                     mark_experiment_complete(combo_key, time_encoder)
+                    # Run evaluation after successful training
+                    run_evaluation(model, dataset, time_encoder_name, args)
                 else:
                     print("-" * 80)
-                    print(f"⚠️  Training finished but no results found: {combo_key}")
+                    print(f" Training finished but no results found: {combo_key}")
                     
             except subprocess.TimeoutExpired:
                 print("-" * 80)
-                print(f"⏰ Training timeout ({args.timeout_hours}h) for: {combo_key}")
+                print(f" Training timeout ({args.timeout_hours}h) for: {combo_key}")
                 print("   Experiment marked as incomplete for future resuming")
                 
             except subprocess.CalledProcessError as e:
                 print("-" * 80)
-                print(f"❌ Error occurred while running: {combo_key}")
+                print(f" Error occurred while running: {combo_key}")
                 print(f"Return code: {e.returncode}")
                 
             except KeyboardInterrupt:
-                print(f"\n⏹️  Interrupted by user. Last attempted: {combo_key}")
+                print(f"\n  Interrupted by user. Last attempted: {combo_key}")
                 break
                 
             except Exception as e:
-                print(f"❌ Unexpected error for {combo_key}: {e}")
+                print(f" Unexpected error for {combo_key}: {e}")
         
         # Print updated summary after each experiment
         completed, incomplete, seed_progress = get_experiment_status(time_encoder)
         remaining = len(experiments_to_run) - (i)
-        print(f"\n📊 Progress: {len([exp for exp in experiments_to_run[:i] if exp[3] in completed])} completed, {remaining} remaining\n")
+        print(f"\nProgress: {len([exp for exp in experiments_to_run[:i] if exp[3] in completed])} completed, {remaining} remaining\n")
     
     # Final summary
-    print("\n🏁 Experiment batch completed!")
+    print("\n Experiment batch completed!")
     completed, incomplete, seed_progress = get_experiment_status(time_encoder)
     print_experiment_summary(completed, incomplete, time_encoder)
     
     # Generate detailed report
     report_file = generate_experiment_report(time_encoder)
     if report_file:
-        print(f"📊 Detailed report saved to: {report_file}")
+        print(f"Detailed report saved to: {report_file}")
     
     # Save final status
     save_experiment_status(completed, incomplete, time_encoder, seed_progress)
     
     log_file, status_file, progress_file, _, run_dir = get_log_files(time_encoder)
-    print(f"\n📁 Log organization:")
+    print(f"\n Log organization:")
     print(f"   - Encoder directory: {get_encoder_log_dir(time_encoder)}")
     print(f"   - Current run: {run_dir}")
     print(f"   - Status file: {status_file}")
     if report_file:
         print(f"   - Report: {report_file}")
-    print(f"\n✨ Experiments for {time_encoder} completed successfully!")
+    print(f"\nExperiments for {time_encoder} completed successfully!")

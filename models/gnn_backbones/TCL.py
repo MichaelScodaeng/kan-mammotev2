@@ -8,7 +8,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from debug_config import should_debug_model  # 🔍 Global debug control
+
 from models.gnn_backbones.modules import TimeEncoder, TransformerEncoder
 from utils.utils import NeighborSampler
 
@@ -185,36 +185,36 @@ class TCL(nn.Module):
         nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(nodes_edge_ids)]
         # Tensor, shape (batch_size, num_neighbors + 1, time_feat_dim)
         
-        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        #  ENHANCED: Support KMM dual-stream interface
         time_encoder_name = getattr(time_encoder, '__class__', type(time_encoder)).__name__
         
         if hasattr(time_encoder, 'encoder') and hasattr(time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        # 🔍 COMPREHENSIVE DEBUG OUTPUT (controlled by args.debug_encoder)
+        #  COMPREHENSIVE DEBUG OUTPUT (controlled by args.debug_encoder)
         debug_enabled = hasattr(self, '_debug_encoder') and self._debug_encoder
         if debug_enabled:
             print(f"\n🏷️  TCL TIME ENCODER DEBUG:")
             print(f"   Time encoder: {time_encoder_name}")
-            print(f"   KAN_MAMMOTE variant: {is_kan_mammote}")
+            print(f"   KMM variant: {is_KMM}")
             print(f"   Batch size: {node_interact_times.shape[0]}")
             print(f"   Sequence length: {nodes_neighbor_times.shape[1] if len(nodes_neighbor_times.shape) > 1 else 1}")
             print(f"   node_interact_times range: [{node_interact_times.min():.1f}, {node_interact_times.max():.1f}]")
             print(f"   nodes_neighbor_times range: [{nodes_neighbor_times.min():.1f}, {nodes_neighbor_times.max():.1f}]")
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(nodes_neighbor_times).float().to(self.device)  # Absolute neighbor times
             t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - nodes_neighbor_times).float().to(self.device)  # Relative time differences
             
-            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
-            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and nodes_neighbor_times.size > 0:
-                print(f"\n🔍 [TCL] Neighbor Time Sorting Debug:")
+            #  DEBUG: Check if neighbor times are sorted before encoder
+            if nodes_neighbor_times.size > 0:
+                print(f"\n [TCL] Neighbor Time Sorting Debug:")
                 print(f"   Batch size: {nodes_neighbor_times.shape[0]}, Neighbors+self: {nodes_neighbor_times.shape[1]}")
                 
                 # Check first row for sorting (remember: [current_node, neighbor1, neighbor2, ...])
@@ -239,7 +239,7 @@ class TCL(nn.Module):
                 print(f"      t_rel shape: {t_rel.shape}")
                 print(f"      t_abs sample: {t_abs.flatten()[:5].cpu().numpy()}")
                 print(f"      t_rel sample: {t_rel.flatten()[:5].cpu().numpy()}")
-                print(f"   🔍 NON-ZERO ANALYSIS:")
+                print(f"    NON-ZERO ANALYSIS:")
                 
                 print(f"      t_abs non-zero count: {(t_abs != 0).sum().item()} / {t_abs.numel()}")
                 print(f"      t_rel non-zero count: {(t_rel != 0).sum().item()} / {t_rel.numel()}")

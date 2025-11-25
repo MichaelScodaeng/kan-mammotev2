@@ -9,7 +9,6 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from debug_config import should_debug_model  # 🔍 Global debug control
 from utils.utils import NeighborSampler
 from .modules import TimeEncoder, MergeLayer, MultiHeadAttention
 
@@ -252,37 +251,34 @@ class MemoryModel(torch.nn.Module):
         src_node_delta_times = torch.from_numpy(node_interact_times).float().to(self.device) - \
                                self.memory_bank.node_last_updated_times[torch.from_numpy(src_node_ids)]
         
-        # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+        # Check if the time encoder is KMM variant for dual-stream support
         time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
         
         if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
-         # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+            is_KMM = time_encoder_name in ['KMM']
+         # Check if the time encoder is KMM variant for dual-stream support
 
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(node_interact_times).float().to(self.device).unsqueeze(dim=1)  # Absolute interaction times
             t_rel = src_node_delta_times.unsqueeze(dim=1)  # Relative time differences
             
-            # 🔍 DEBUG: Track TGN→KAN_MAMMOTE call in MemoryModel (the REAL usage!)
+            # Track TGN to KMM call in MemoryModel
             try:
                 from ..time_encoders.factory import DEBUG_TIME_ENCODER_FACTORY
                 if DEBUG_TIME_ENCODER_FACTORY:
-                    print(f"🎯 [TGN MemoryModel→KAN_MAMMOTE] Message computation call:", flush=True)
-                    print(f"   ├─ Function: compute_new_node_raw_messages", flush=True)
-                    print(f"   ├─ node_interact_times shape: {node_interact_times.shape}", flush=True)
-                    print(f"   ├─ src_node_delta_times shape: {src_node_delta_times.shape}", flush=True)
-                    print(f"   ├─ t_abs after unsqueeze: {t_abs.shape}", flush=True)
-                    print(f"   ├─ t_rel after unsqueeze: {t_rel.shape}", flush=True)
-                    print(f"   ├─ Expected by Google AI: (batch_size, 1, 1) ✅", flush=True)
-                    print(f"   └─ ACTUAL: seq_len={t_abs.shape[1]} - This matches Google AI expectation!", flush=True)
-                    print(f"   └─ Actual t_abs values: {t_abs}", flush=True)
-                    print(f"   └─ Actual t_rel values: {t_rel}", flush=True)
+                    print(f"[TGN MemoryModel to KMM] Message computation call:")
+                    print(f"   Function: compute_new_node_raw_messages")
+                    print(f"   node_interact_times shape: {node_interact_times.shape}")
+                    print(f"   src_node_delta_times shape: {src_node_delta_times.shape}")
+                    print(f"   t_abs after unsqueeze: {t_abs.shape}")
+                    print(f"   t_rel after unsqueeze: {t_rel.shape}")
+                    print(f"   Expected format: (batch_size, 1, 1)")
             except ImportError:
                 pass
             
@@ -668,19 +664,19 @@ class GraphAttentionEmbedding(nn.Module):
         # query (source) node always has the start time with time interval == 0
         # shape (batch_size, 1, time_feat_dim)
         
-        # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+        # Check if the time encoder is KMM variant for dual-stream support
         time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
         
         if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both zero absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both zero absolute and relative time
             zeros_shape = (node_interact_times.shape[0], 1)
             t_abs = torch.zeros(zeros_shape).to(device)  # Zero absolute times
             t_rel = torch.zeros(zeros_shape).to(device)  # Zero relative times  
@@ -689,8 +685,8 @@ class GraphAttentionEmbedding(nn.Module):
             # Standard time encoders: Use zeros as timestamps
             node_time_features = self.time_encoder(timestamps=torch.zeros(node_interact_times.shape).unsqueeze(dim=1).to(device))
         
-        # 🔍 DEBUG: Ensure node_time_features has correct shape
-        #print(f"🔍 node_time_features after encoder: {node_time_features.shape}")
+        # Ensure node_time_features has correct shape
+
         
         # Ensure node_time_features has shape (batch_size, 1, time_feat_dim)
         if node_time_features.dim() == 2:
@@ -699,7 +695,7 @@ class GraphAttentionEmbedding(nn.Module):
             # If it has wrong middle dimension, fix it
             node_time_features = node_time_features.reshape(node_time_features.shape[0], 1, -1)
         
-        #print(f"🔍 node_time_features after shape fix: {node_time_features.shape}")
+
         # shape (batch_size, node_feat_dim)
         # add memory and node raw features to get node features
         # note that when using getting values of the ids from Tensor, convert the ndarray to tensor to avoid wrong retrieval
@@ -740,46 +736,24 @@ class GraphAttentionEmbedding(nn.Module):
             # adarray, shape (batch_size, num_neighbors)
             neighbor_delta_times = node_interact_times[:, np.newaxis] - neighbor_times
 
-            # Check if the time encoder is KAN_MAMMOTE variant for dual-stream support
+            # Check if the time encoder is KMM variant for dual-stream support
             time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
             
             if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
-                # Check if wrapped encoder is KAN_MAMMOTE variant
+                # Check if wrapped encoder is KMM variant
                 wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
-                is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+                is_KMM = wrapped_encoder_name in ['KMM']
             else:
                 # Direct encoder check
-                is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+                is_KMM = time_encoder_name in ['KMM']
             
-            if is_kan_mammote:
-                # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+            if is_KMM:
+                # KMM dual-stream: Pass both absolute and relative time
                 t_abs = torch.from_numpy(neighbor_times).float().to(device)  # Absolute neighbor times
                 t_rel = torch.from_numpy(neighbor_delta_times).float().to(device)  # Relative time differences
                 
-                # � ALWAYS PRINT: Force debug to check if this code path is executed
-                #print(f"🔥 [TGN-GraphAttentionEmbedding] KAN-MAMMOTE TIME ENCODING CALLED!")
-                #print(f"🔥 [TGN-GraphAttentionEmbedding] Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
-                #print(f"🔥 [TGN-GraphAttentionEmbedding] First row neighbor times: {neighbor_times[0][:5]}...")
-                #print(f"🔥 [TGN-GraphAttentionEmbedding] First row delta times: {neighbor_delta_times[0][:5]}...")
-                '''
-                # �🔍 DEBUG: Check if neighbor times are sorted before encoder
-                if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
-                    print(f"\n🔍 [TGN-GraphAttentionEmbedding] Neighbor Time Sorting Debug:")
-                    print(f"   Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
-                    
-                    # Check first row for sorting
-                    first_neighbor_times = neighbor_times[0]
-                    is_sorted = all(first_neighbor_times[i] <= first_neighbor_times[i+1] for i in range(len(first_neighbor_times)-1))
-                    print(f"   First row neighbor times: {first_neighbor_times[:5]}...")
-                    print(f"   Is chronologically sorted: {is_sorted}")
-                    
-                    # Check t_abs and t_rel values
-                    print(f"   t_abs sample: {t_abs[0, :5].cpu().numpy()}")
-                    print(f"   t_rel sample: {t_rel[0, :5].cpu().numpy()}")
-                    print(f"   Time computation: current_time - neighbor_time")
-                    
-                    self._debug_printed_sorting = True
-                '''
+
+                
                 neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)
                 
                 # Ensure correct shape: (batch_size, num_neighbors, time_feat_dim)
@@ -796,8 +770,8 @@ class GraphAttentionEmbedding(nn.Module):
             # get edge features, shape (batch_size, num_neighbors, edge_feat_dim)
             neighbor_edge_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]
             
-            # 🔍 DEBUG: Check tensor shapes before temporal convolution
-            '''print(f"🔍 TEMPORAL CONV DEBUG:")
+            # DEBUG: Check tensor shapes before temporal convolution
+            '''print(f"TEMPORAL CONV DEBUG:")
             print(f"   node_conv_features shape: {node_conv_features.shape}")
             print(f"   node_time_features shape: {node_time_features.shape}")
             print(f"   neighbor_node_conv_features shape: {neighbor_node_conv_features.shape}")

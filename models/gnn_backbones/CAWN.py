@@ -114,19 +114,19 @@ class CAWN(nn.Module):
         nodes_neighbor_delta_times = nodes_neighbor_times[:, :, 0][:, :, np.newaxis] - nodes_neighbor_times
         # Tensor, shape (batch_size, num_neighbors ** self.walk_length, self.walk_length + 1, time_feat_dim)
         
-        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        # Support KMM dual-stream interface
         time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
         
         if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(nodes_neighbor_times).float().to(self.device).flatten(start_dim=1)  # Absolute neighbor times
             t_rel = torch.from_numpy(nodes_neighbor_delta_times).float().to(self.device).flatten(start_dim=1)  # Relative time differences
             neighbor_time_features = self.time_encoder(t_abs=t_abs, t_rel=t_rel)\

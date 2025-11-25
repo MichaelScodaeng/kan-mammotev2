@@ -50,7 +50,7 @@ class OriginalTimeEncoder(BaseTimeEncoder):
         
         This encoder only uses relative time (t_rel) and ignores t_abs.
         """
-        print("⚠️ WARNING: OriginalTimeEncoder only uses relative time (t_rel). t_abs is ignored.")
+        print(" WARNING: OriginalTimeEncoder only uses relative time (t_rel). t_abs is ignored.")
         print("t_rel", t_rel)
         # The 'timestamps' this encoder needs are the relative time deltas.
         timestamps = t_rel

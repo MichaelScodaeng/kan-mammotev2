@@ -40,16 +40,16 @@ def check_null_values(data_dir='processed_data'):
                 print(f"  📄 {csv_file.name}: {df.shape[0]} rows, {df.shape[1]} cols")
                 
                 if null_count > 0:
-                    print(f"    ⚠️  NULL VALUES FOUND: {null_count}")
+                    print(f"      NULL VALUES FOUND: {null_count}")
                     # Show which columns have nulls
                     null_cols = df.isnull().sum()
                     for col, count in null_cols[null_cols > 0].items():
                         print(f"       - {col}: {count} nulls")
                 else:
-                    print(f"    ✅ No null values")
+                    print(f"    SUCCESS: No null values")
                     
             except Exception as e:
-                print(f"    ❌ Error reading {csv_file.name}: {e}")
+                print(f"     Error reading {csv_file.name}: {e}")
         
         # Check NPY files
         npy_files = list(dataset_dir.glob("*.npy"))
@@ -63,12 +63,12 @@ def check_null_values(data_dir='processed_data'):
                 print(f"  📊 {npy_file.name}: shape {data.shape}, dtype {data.dtype}")
                 
                 if null_count > 0:
-                    print(f"    ⚠️  NaN VALUES FOUND: {null_count}")
+                    print(f"      NaN VALUES FOUND: {null_count}")
                 else:
-                    print(f"    ✅ No NaN values")
+                    print(f"    SUCCESS: No NaN values")
                     
             except Exception as e:
-                print(f"    ❌ Error reading {npy_file.name}: {e}")
+                print(f"     Error reading {npy_file.name}: {e}")
 
 def check_specific_dataset(dataset_name, data_dir='processed_data'):
     """
@@ -84,7 +84,7 @@ def check_specific_dataset(dataset_name, data_dir='processed_data'):
         print(f"Dataset {dataset_name} not found in {data_dir}")
         return
     
-    print(f"🔍 Detailed analysis for dataset: {dataset_name}")
+    print(f" Detailed analysis for dataset: {dataset_name}")
     print("=" * 60)
     
     # Check main CSV file
@@ -103,9 +103,9 @@ def check_specific_dataset(dataset_name, data_dir='processed_data'):
             percentage = (null_count / total_count) * 100
             
             if null_count > 0:
-                print(f"    ⚠️  {col}: {null_count}/{total_count} ({percentage:.2f}%) nulls")
+                print(f"      {col}: {null_count}/{total_count} ({percentage:.2f}%) nulls")
             else:
-                print(f"    ✅ {col}: No nulls")
+                print(f"    SUCCESS: {col}: No nulls")
         
         # Show sample of data with nulls if any
         if df.isnull().any().any():
@@ -124,9 +124,9 @@ def check_specific_dataset(dataset_name, data_dir='processed_data'):
         if node_features.dtype.kind in ['f', 'c']:
             nan_count = np.isnan(node_features).sum()
             if nan_count > 0:
-                print(f"    ⚠️  NaN values: {nan_count}")
+                print(f"      NaN values: {nan_count}")
             else:
-                print(f"    ✅ No NaN values")
+                print(f"     No NaN values")
 
 def get_data_summary(data_dir='processed_data'):
     """
@@ -135,7 +135,7 @@ def get_data_summary(data_dir='processed_data'):
     data_path = Path(data_dir)
     datasets = [d for d in data_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
     
-    print("📋 DATASET SUMMARY")
+    print(" DATASET SUMMARY")
     print("=" * 60)
     
     for dataset_dir in sorted(datasets):
@@ -146,7 +146,7 @@ def get_data_summary(data_dir='processed_data'):
             try:
                 df = pd.read_csv(main_csv)
                 has_nulls = df.isnull().any().any()
-                status = "⚠️  HAS NULLS" if has_nulls else "✅ CLEAN"
+                status = "  HAS NULLS" if has_nulls else " CLEAN"
                 print(f"{dataset_name:12} | {df.shape[0]:>8} rows | {df.shape[1]:>2} cols | {status}")
             except:
                 print(f"{dataset_name:12} | ERROR READING")

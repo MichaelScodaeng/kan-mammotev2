@@ -8,7 +8,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from debug_config import should_debug_model  # 🔍 Global debug control
+
 from .modules import TimeEncoder
 from utils.utils import NeighborSampler
 
@@ -113,25 +113,25 @@ class GraphMixer(nn.Module):
         nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(neighbor_edge_ids)]
         # Tensor, shape (batch_size, num_neighbors, time_feat_dim)
         
-        # ✅ ENHANCED: Support KAN_MAMMOTE dual-stream interface
+        # Support KMM dual-stream interface
         time_encoder_name = getattr(self.time_encoder, '__class__', type(self.time_encoder)).__name__
         
         if hasattr(self.time_encoder, 'encoder') and hasattr(self.time_encoder.encoder, '__class__'):
-            # Check if wrapped encoder is KAN_MAMMOTE variant
+            # Check if wrapped encoder is KMM variant
             wrapped_encoder_name = self.time_encoder.encoder.__class__.__name__
-            is_kan_mammote = wrapped_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = wrapped_encoder_name in ['KMM']
         else:
             # Direct encoder check
-            is_kan_mammote = time_encoder_name in ['KAN_MAMMOTE', 'KAN_MAMMOTE_Lite']
+            is_KMM = time_encoder_name in ['KMM']
         
-        if is_kan_mammote:
-            # KAN_MAMMOTE dual-stream: Pass both absolute and relative time
+        if is_KMM:
+            # KMM dual-stream: Pass both absolute and relative time
             t_abs = torch.from_numpy(neighbor_times).float().to(self.device)  # Absolute neighbor times
             t_rel = torch.from_numpy(node_interact_times[:, np.newaxis] - neighbor_times).float().to(self.device)  # Relative time differences
             
-            # 🔍 DEBUG: Check if neighbor times are sorted before encoder
-            if should_debug_model() and not hasattr(self, '_debug_printed_sorting') and neighbor_times.size > 0:
-                print(f"\n🔍 [GraphMixer] Neighbor Time Sorting Debug:")
+            # Check if neighbor times are sorted before encoder
+            if neighbor_times.size > 0:
+                print(f"\n[GraphMixer] Neighbor Time Sorting Debug:")
                 print(f"   Batch size: {neighbor_times.shape[0]}, Num neighbors: {neighbor_times.shape[1]}")
                 
                 # Check first row for sorting

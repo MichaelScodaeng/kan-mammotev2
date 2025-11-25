@@ -33,7 +33,7 @@ class MetricsLogger:
             save_dir: Base directory to save metrics
             model_name: Name of the model (e.g., 'TGAT')
             dataset_name: Name of the dataset (e.g., 'wikipedia')
-            encoder_type: Type of time encoder (e.g., 'kan_mammote')
+            encoder_type: Type of time encoder (e.g., 'KMM')
             run_id: Run/seed identifier for multiple runs
             save_model_name: Full save model name (overrides auto-generated name if provided)
                             This is used to support --save_model_name_suffix for isolated experiments
@@ -44,7 +44,7 @@ class MetricsLogger:
         self.encoder_type = encoder_type
         self.run_id = run_id
         
-        # ✅ FIX: Use provided save_model_name if available (includes suffix for isolation)
+        #  FIX: Use provided save_model_name if available (includes suffix for isolation)
         # Otherwise auto-generate for backward compatibility
         if save_model_name:
             dir_name = save_model_name  # Use full name with suffix (e.g., *_val_lastfm_jodie)
@@ -303,7 +303,7 @@ def create_metrics_logger(args, run_id: int = 0) -> MetricsLogger:
     else:
         save_dir = "./saved_metrics"
     
-    # ✅ FIX: Pass args.save_model_name if it exists (includes suffix for isolation)
+    #  FIX: Pass args.save_model_name if it exists (includes suffix for isolation)
     # This ensures validation experiments don't overwrite baseline metrics
     save_model_name = getattr(args, 'save_model_name', None)
     
@@ -313,5 +313,5 @@ def create_metrics_logger(args, run_id: int = 0) -> MetricsLogger:
         dataset_name=args.dataset_name,
         encoder_type=args.time_encoder_type,
         run_id=run_id,
-        save_model_name=save_model_name  # ✅ NEW: Respects --save_model_name_suffix
+        save_model_name=save_model_name  #  NEW: Respects --save_model_name_suffix
     )

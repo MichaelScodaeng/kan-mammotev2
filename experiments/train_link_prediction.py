@@ -24,12 +24,11 @@ from models.gnn_backbones.DyGFormer import DyGFormer
 # Optional Mamba-based imports
 try:
     from models.gnn_backbones.DyGMamba import DyGMamba
-    from models.time_encoders import KAN_MAMMOTE, KAN_MAMMOTE_Lite, TimeEncoderWrapper
+    from models.time_encoders import KMM, TimeEncoderWrapper
     MAMBA_AVAILABLE = True
 except ImportError as e:
     DyGMamba = None
-    KAN_MAMMOTE = None
-    KAN_MAMMOTE_Lite = None
+    KMM = None
     TimeEncoderWrapper = None
     MAMBA_AVAILABLE = False
     print(f"Warning: Mamba-based models not available: {e}")
@@ -55,9 +54,9 @@ def get_available_models():
 
 def get_available_encoders():
     """Return list of available encoder types"""
-    base_encoders = ['original', 'lete', 'mercer', 'bochner', 'time2vec']
+    base_encoders = ['original', 'lete',]
     if MAMBA_AVAILABLE:
-        base_encoders.extend(['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite'])
+        base_encoders.extend(['KMM'])
     return base_encoders
 
 def validate_checkpoint(checkpoint_path, logger):
@@ -149,10 +148,10 @@ def find_best_checkpoint(checkpoint_dir, logger, validate=True):
             # Validate checkpoint if requested
             if validate:
                 if validate_checkpoint(checkpoint_path, logger):
-                    logger.info(f"✅ Using valid checkpoint: {checkpoint_path} (epoch {epoch})")
+                    logger.info(f"SUCCESS: Using valid checkpoint: {checkpoint_path} (epoch {epoch})")
                     return checkpoint_path, epoch
                 else:
-                    logger.warning(f"❌ Checkpoint corrupted, trying next: {checkpoint_path}")
+                    logger.warning(f"ERROR: Checkpoint corrupted, trying next: {checkpoint_path}")
                     continue
             else:
                 # Skip validation, use directly
@@ -218,7 +217,7 @@ if __name__ == "__main__":
     args = get_link_prediction_args(is_evaluation=False)
 
     # ===== DEBUG: Print configuration before data loading =====
-    print(f"\n🔍 DEBUGGING DATA LOADING:")
+    print(f"\n[DEBUG] DEBUGGING DATA LOADING:")
     print(f"   Time encoder: {args.time_encoder_type}")
     print(f"   Dataset: {args.dataset_name}")
     print(f"   Val ratio: {args.val_ratio}")
@@ -230,25 +229,25 @@ if __name__ == "__main__":
     # ===== END DEBUG =====
 
     # get data for training, validation and testing
-    # ✅ NEW: Pass data_ratio and seed to data loader (applies BEFORE splitting)
+    # NEW: Pass data_ratio and seed to data loader (applies BEFORE splitting)
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = \
         get_link_prediction_data(
             dataset_name=args.dataset_name, 
             val_ratio=args.val_ratio, 
             test_ratio=args.test_ratio,
-            seed=args.seed,  # ✅ Fixed seed for reproducibility
-            data_ratio=args.data_ratio,  # ✅ Applied BEFORE splitting
+            seed=args.seed,  # Fixed seed for reproducibility
+            data_ratio=args.data_ratio,  # Applied BEFORE splitting
             train_only_ratio=getattr(args, 'train_only_ratio', False)  # ⭐ NEW: Train-only ratio mode
         )
 
     # ===== DEBUG: Print actual data sizes =====
-    print(f"\n📊 DATA SPLIT SIZES (after data_ratio={args.data_ratio}):")
+    print(f"\nDATA SPLIT SIZES (after data_ratio={args.data_ratio}):")
     print(f"   Full data: {len(full_data.src_node_ids):,} edges")
     print(f"   Train data: {len(train_data.src_node_ids):,} edges ({len(train_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
     print(f"   Val data: {len(val_data.src_node_ids):,} edges ({len(val_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
     print(f"   Test data: {len(test_data.src_node_ids):,} edges ({len(test_data.src_node_ids)/len(full_data.src_node_ids)*100:.1f}%)")
     print(f"   Expected batches: {(len(train_data.src_node_ids) + args.batch_size - 1) // args.batch_size}")
-    print(f"   ✅ All splits proportionally scaled with ratio {len(train_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(val_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(test_data.src_node_ids)/len(full_data.src_node_ids):.2f}")
+    print(f"   SUCCESS: All splits proportionally scaled with ratio {len(train_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(val_data.src_node_ids)/len(full_data.src_node_ids):.2f}:{len(test_data.src_node_ids)/len(full_data.src_node_ids):.2f}")
     # ===== END DEBUG =====
 
     # initialize training neighbor sampler to retrieve temporal graph
@@ -381,10 +380,10 @@ if __name__ == "__main__":
                                    time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
                                    num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
             
-            # 🔍 Enable debug mode for TCL if debug_encoder is set
+            # Enable debug mode for TCL if debug_encoder is set
             if args.debug_encoder:
                 dynamic_backbone._debug_encoder = True
-                logger.info(f"🔍 Debug mode ENABLED for TCL time encoder calls")
+                logger.info(f"[DEBUG] Debug mode ENABLED for TCL time encoder calls")
         elif args.model_name == 'GraphMixer':
             dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                           time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device, time_encoder=time_encoder)
@@ -432,10 +431,10 @@ if __name__ == "__main__":
             if args.model_name == 'TGAT' and hasattr(time_encoder, 'encoder'):
                 # Unwrap the TimeEncoderWrapper to access the actual encoder
                 actual_encoder = time_encoder.encoder
-                if isinstance(actual_encoder, (KAN_MAMMOTE, KAN_MAMMOTE_Lite)):
+                if isinstance(actual_encoder, (KMM)):
                     logger.info(f"Warming up {actual_encoder.__class__.__name__}...")
                     actual_encoder.warmup(device=args.device, num_iterations=3)
-            elif args.time_encoder_type in ['kan_mammote', 'kan_mammote_dual_kmote', 'kan_mammote_lite']:
+            elif args.time_encoder_type in ['KMM']:
                 # Direct usage without wrapper (for other models)
                 if hasattr(time_encoder, 'warmup'):
                     logger.info(f"Warming up time encoder...")
@@ -450,11 +449,11 @@ if __name__ == "__main__":
         
         # CRITICAL FIX: Only clear directory if NOT resuming from checkpoint
         if args.resume_from_checkpoint and os.path.exists(args.resume_from_checkpoint):
-            logger.info(f"🔄 Resuming from checkpoint - preserving model directory: {save_model_folder}")
+            logger.info(f"RESUME: Resuming from checkpoint - preserving model directory: {save_model_folder}")
             # Ensure directory exists but don't delete existing checkpoints
             os.makedirs(save_model_folder, exist_ok=True)
         else:
-            logger.info(f"🚀 Starting fresh training - clearing model directory: {save_model_folder}")
+            logger.info(f"START: Starting fresh training - clearing model directory: {save_model_folder}")
             logger.info("NO I'm joking, I'm not deleting your files :)")
             #shutil.rmtree(save_model_folder, ignore_errors=True)
             #os.makedirs(save_model_folder, exist_ok=True)
@@ -504,7 +503,7 @@ if __name__ == "__main__":
 
         # Load checkpoint if available
         if args.resume_from_checkpoint:
-            logger.info(f'🔍 Checkpoint debugging in train_link_prediction.py:')
+            logger.info(f'[DEBUG] Checkpoint debugging in train_link_prediction.py:')
             logger.info(f'   Checkpoint path argument: {args.resume_from_checkpoint}')
             logger.info(f'   Working directory: {os.getcwd()}')
             logger.info(f'   File exists check: {os.path.exists(args.resume_from_checkpoint)}')
@@ -541,7 +540,7 @@ if __name__ == "__main__":
                     
                     checkpoint_loaded = True
                     
-                    logger.info(f'✅ Successfully resumed from epoch {start_epoch}, best_average_precision: {best_average_precision:.4f}')
+                    logger.info(f'SUCCESS: Successfully resumed from epoch {start_epoch}, best_average_precision: {best_average_precision:.4f}')
                     
                 except Exception as e:
                     logger.error(f'Failed to load checkpoint {args.resume_from_checkpoint}: {e}')
@@ -597,10 +596,10 @@ if __name__ == "__main__":
                 
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
                 
-                # 🔍 ENABLE DEBUG FOR FIRST FEW BATCHES (if debug_encoder is enabled)
+                # ENABLE DEBUG FOR FIRST FEW BATCHES (if debug_encoder is enabled)
                 debug_this_batch = False #args.debug_encoder and batch_idx < 3  # Debug first 3 batches
                 if debug_this_batch:
-                    logger.info(f"\n🔍 ENABLING DEBUG FOR BATCH {batch_idx} (Debug enabled)")
+                    logger.info(f"\n[DEBUG] ENABLING DEBUG FOR BATCH {batch_idx} (Debug enabled)")
                     
                     # Enable debug mode for time encoder
                     if hasattr(time_encoder, 'enable_debug_mode'):
@@ -615,9 +614,9 @@ if __name__ == "__main__":
                     train_data.src_node_ids[train_data_indices], train_data.dst_node_ids[train_data_indices], \
                     train_data.node_interact_times[train_data_indices], train_data.edge_ids[train_data_indices]
 
-                # 🔍 BATCH DEBUG INFO
+                # BATCH DEBUG INFO
                 if debug_this_batch:
-                    logger.info(f"📊 BATCH {batch_idx} INFO:")
+                    logger.info(f"BATCH {batch_idx} INFO:")
                     logger.info(f"   Batch size: {len(batch_src_node_ids)}")
                     logger.info(f"   Time range: [{batch_node_interact_times.min():.1f}, {batch_node_interact_times.max():.1f}]")
                     logger.info(f"   Src nodes sample: {batch_src_node_ids[:5]}")
@@ -735,7 +734,7 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
                 loss.backward()
                 
-                # 🔧 GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
+                # GRADIENT CLIPPING: Prevent gradient explosions in complex models (e.g., KAN-MAMMOTE with Mamba2)
                 # This is critical for training stability, especially with high-capacity time encoders
                 grad_norm = 0.0
                 if args.max_grad_norm > 0:
@@ -758,7 +757,7 @@ if __name__ == "__main__":
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
                     model[0].memory_bank.detach_memory_bank()
 
-                # 🔍 DISABLE DEBUG AFTER BATCH
+                #  DISABLE DEBUG AFTER BATCH
                 if debug_this_batch:
                     # Disable debug mode
                     if hasattr(time_encoder, 'disable_debug_mode'):
@@ -767,7 +766,7 @@ if __name__ == "__main__":
                     if hasattr(model[0], '_debug_encoder'):
                         model[0]._debug_encoder = False
                     
-                    logger.info(f"🔍 DEBUG BATCH {batch_idx} COMPLETED\n")
+                    logger.info(f"[DEBUG] DEBUG BATCH {batch_idx} COMPLETED\n")
 
             # Add epoch-level progress logging when tqdm is disabled
             if not use_tqdm:
@@ -959,22 +958,22 @@ if __name__ == "__main__":
                         if validate_checkpoint(temp_checkpoint_path, logger):
                             # Atomic move (rename is atomic on most filesystems)
                             os.rename(temp_checkpoint_path, checkpoint_path)
-                            logger.info(f'✅ Checkpoint saved and validated: {checkpoint_path}')
+                            logger.info(f'SUCCESS: Checkpoint saved and validated: {checkpoint_path}')
                         else:
-                            logger.error(f'❌ Checkpoint validation failed, removing corrupt file')
+                            logger.error(f'ERROR: Checkpoint validation failed, removing corrupt file')
                             os.remove(temp_checkpoint_path)
                             continue  # Skip cleanup if checkpoint failed
                     else:
                         # Direct save without validation for speed
                         os.rename(temp_checkpoint_path, checkpoint_path)
-                        logger.info(f'✅ Checkpoint saved: {checkpoint_path}')
+                        logger.info(f'SUCCESS: Checkpoint saved: {checkpoint_path}')
                     
                     # Cleanup old checkpoints (only after successful save)
                     max_checkpoints = getattr(args, 'max_checkpoints_to_keep', 3)
                     cleanup_old_checkpoints(save_model_folder, max_checkpoints, logger)
                     
                 except Exception as e:
-                    logger.error(f'❌ Failed to save checkpoint: {e}')
+                    logger.error(f'ERROR: Failed to save checkpoint: {e}')
                     # Clean up temp file if it exists
                     temp_checkpoint_path = checkpoint_path + '.tmp'
                     if os.path.exists(temp_checkpoint_path):
@@ -1108,7 +1107,7 @@ if __name__ == "__main__":
         
         # Save summary of all metrics
         metrics_logger.save_summary()
-        logger.info(f'✅ Metrics saved to: {metrics_logger.metrics_dir}')
+        logger.info(f'SUCCESS: Metrics saved to: {metrics_logger.metrics_dir}')
         # ===== END TEST METRICS LOGGING =====
 
         single_run_time = time.time() - run_start_time

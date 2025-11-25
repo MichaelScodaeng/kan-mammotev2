@@ -35,20 +35,20 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Time encoder arguments
     parser.add_argument('--time_encoder_type', type=str, default='original', 
-                        choices=['original', 'lete', 'kan_mammote_dual_kmote', 'mercer', 'bochner', 'time2vec',"kan_mammote_dual_kmote_tgat"], 
+                        choices=['original', 'lete', 'KMM', 'time2vec', 'kan_mammote'], 
                         help='type of time encoder to use')
     parser.add_argument('--expert_dim', type=int, default=128, 
-                        help='dimension of each expert in K-MOTE (for kan_mammote encoder)')
+                        help='dimension of each expert in K-MOTE (for KMM encoder)')
     parser.add_argument('--num_mixtures', type=int, default=16, 
-                        help='number of mixture components in SM-Kernel (for kan_mammote encoder)')
+                        help='number of mixture components in SM-Kernel (for KMM encoder)')
     parser.add_argument('--sort_neighbors_by_time', action='store_true', default=True,
-                        help='Sort sampled neighbors chronologically for Mamba-based time encoders (recommended for kan_mammote)')
+                        help='Sort sampled neighbors chronologically for Mamba-based time encoders (recommended for KMM)')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
     parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate for GNN backbone')
-    parser.add_argument('--encoder_dropout', type=float, default=0.1, help='dropout rate for time encoder (e.g., KAN_MAMMOTE)')
+    parser.add_argument('--encoder_dropout', type=float, default=0.1, help='dropout rate for time encoder (e.g., KMM)')
     parser.add_argument('--gamma', type=float, default=0.5, help='gamma')
     parser.add_argument('--num_epochs', type=int, default=200, help='number of epochs')
     parser.add_argument('--optimizer', type=str, default='AdamW8bit', choices=['SGD', 'Adam', 'RMSprop',"AdamW","Adam8bit","AdamW8bit"], help='name of optimizer')
@@ -79,13 +79,13 @@ def get_link_prediction_args(is_evaluation: bool = False):
     
     # Mamba-specific arguments for KAN-MAMMOTE
     parser.add_argument('--mamba_d_state', type=int, default=128, 
-                        help='Mamba state dimension (for kan_mammote encoder)')
+                        help='Mamba state dimension (for KMM encoder)')
     parser.add_argument('--mamba_d_conv', type=int, default=4, 
-                        help='Mamba convolution dimension (for kan_mammote encoder)')
+                        help='Mamba convolution dimension (for KMM encoder)')
     parser.add_argument('--mamba_expand', type=int, default=4, 
-                        help='Mamba expansion factor (for kan_mammote encoder)')
+                        help='Mamba expansion factor (for KMM encoder)')
     parser.add_argument('--mamba_headdim', type=int, default=64, 
-                        help='Mamba head dimension (for kan_mammote encoder)')
+                        help='Mamba head dimension (for KMM encoder)')
     
     # Arguments specific to KAN-MAMMOTE
     

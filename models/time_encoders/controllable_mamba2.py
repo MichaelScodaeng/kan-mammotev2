@@ -49,12 +49,11 @@ class ControllableMamba2(Mamba2):
         gamma, beta = temporal_modulators
         #print("shape of gamma, beta, dt_content:", gamma.shape, beta.shape, dt_content.shape)
         
-        # 🔧 IMPROVED: Better dimension mismatch handling to avoid memory issues
         if gamma.shape != dt_content.shape:
             if gamma.dim() == 3 and dt_content.dim() == 3:
                 if gamma.shape[-1] != dt_content.shape[-1]:
                     raise ValueError(
-                        f"❌ DIMENSION MISMATCH: gamma has {gamma.shape[-1]} features, "
+                        f"DIMENSION MISMATCH: gamma has {gamma.shape[-1]} features, "
                         f"but dt_content expects {dt_content.shape[-1]}. "
                         f"This indicates a bug in KAN-MAMMOTE's modulator_head output dimension. "
                         f"Expected: modulator_head should output {dt_content.shape[-1] * 2} features."
